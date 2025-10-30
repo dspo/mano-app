@@ -2583,7 +2583,10 @@ version = "0.1.0"
 dependencies = [
  "gpui",
  "gpui-component",
+ "http",
  "raw-window-handle",
+ "serde",
+ "serialize-to-javascript",
  "wry",
 ]
 
@@ -2594,7 +2597,10 @@ dependencies = [
  "gpui",
  "gpui-component",
  "gpui-wry",
+ "http",
  "raw-window-handle",
+ "serde",
+ "serialize-to-javascript",
 ]
 
 [[package]]
@@ -5964,6 +5970,28 @@ dependencies = [
  "ryu",
  "serde",
  "unsafe-libyaml",
+]
+
+[[package]]
+name = "serialize-to-javascript"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "04f3666a07a197cdb77cdf306c32be9b7f598d7060d50cfd4d5aa04bfd92f6c5"
+dependencies = [
+ "serde",
+ "serde_json",
+ "serialize-to-javascript-impl",
+]
+
+[[package]]
+name = "serialize-to-javascript-impl"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "772ee033c0916d670af7860b6e1ef7d658a4629a6d0b4c8c3e67f09b3765b75d"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.108",
 ]
 
 [[package]]

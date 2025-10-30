@@ -8,3 +8,6 @@ gpui.workspace = true
 gpui-component.workspace = true
 wry.workspace = true
 raw-window-handle.workspace = true
+http.workspace = true
+serialize-to-javascript.workspace = true
+serde.workspace = true
