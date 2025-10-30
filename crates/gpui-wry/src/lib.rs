@@ -2,7 +2,7 @@ use gpui_component::wry::{Error as WryError, Result, WebView, WebViewBuilder, We
 use http::header::{ACCESS_CONTROL_ALLOW_ORIGIN, CONTENT_TYPE};
 use http::{Request as HttpRequest, Response as HttpResponse, Result as HttpResult, StatusCode};
 use serde::Serialize;
-use serialize_to_javascript::{DefaultTemplate, Template, default_template};
+use serialize_to_javascript::{default_template, DefaultTemplate, Template};
 use std::path::PathBuf;
 
 pub struct Builder<'a> {
@@ -30,6 +30,26 @@ impl<'a> Builder<'a> {
         self.builder = f(self.builder);
         self
     }
+
+    // todo: 改成注册路由
+    pub fn serve_api<F>(self, command: F) -> Self
+    where
+        F: Fn(HttpRequest<Vec<u8>>) -> HttpResponse<Vec<u8>> + 'static,
+    {
+        self.apply(|b| {
+            b.with_asynchronous_custom_protocol(
+                "ipc".into(),
+                move |_webview_id, request, responder| {
+                    let response = command(request);
+                    responder.respond(response);
+                },
+            )
+        })
+    }
+
+    // todo: 实现 fallback to ipc
+
+    // todo: 实现 channel for perfermance
 
     pub fn build_as_child(self, window: &mut gpui::Window) -> Result<WebView> {
         if self.webview_id.is_empty() {
