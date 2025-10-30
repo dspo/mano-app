@@ -1,14 +1,32 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
+use gpui_component::wry::{Result, WebView, WebViewBuilder};
+
+pub struct Builder<'a> {
+    builder: WebViewBuilder<'a>,
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+impl<'a> Builder<'a> {
+    pub fn new() -> Self {
+        Builder {
+            builder: WebViewBuilder::new(),
+        }
+    }
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
+    pub fn apply<F>(mut self, f: F) -> Self
+    where
+        F: FnOnce(WebViewBuilder<'a>) -> WebViewBuilder<'a>,
+    {
+        self.builder = f(self.builder);
+        self
+    }
+
+    pub fn build_as_child(self, window: &mut gpui::Window) -> Result<WebView> {
+        use raw_window_handle::HasWindowHandle;
+
+        let window_handle = window.window_handle()?;
+        self.builder.build_as_child(&window_handle)
+    }
+
+    pub fn webview_builder(self) -> WebViewBuilder<'a> {
+        self.builder
     }
 }
