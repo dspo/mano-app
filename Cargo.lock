@@ -2590,6 +2590,8 @@ dependencies = [
 name = "gpui-wry-workspace"
 version = "0.1.0"
 dependencies = [
+ "gpui",
+ "gpui-component",
  "gpui-wry",
 ]
 
