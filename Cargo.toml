@@ -1,0 +1,21 @@
+[package]
+name = "gpui-wry-workspace"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+gpui-wry = { path = "./crates/gpui-wry" }
+
+[workspace]
+members = ["crates/gpui-wry"]
+resolver = "3" # 支持 2024 edition
+
+[[example]]
+name = "greet"
+path = "examples/greet.rs"
+
+[workspace.dependencies]
+gpui = "0.2.0"
+gpui-component = { version = "0.3.1", features = ["webview"] }
+wry = { version = "0.53.5" }
+
