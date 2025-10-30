@@ -7,6 +7,7 @@ edition = "2021"
 gpui-wry = { path = "./crates/gpui-wry" }
 gpui = { workspace = true }
 gpui-component = { workspace = true }
+raw-window-handle = { workspace = true }
 
 [workspace]
 members = ["crates/gpui-wry"]
@@ -16,3 +17,4 @@ resolver = "3"
 gpui = "0.2.0"
 gpui-component = { version = "0.3.1", features = ["webview"] }
 wry = { version = "0.53.5" }
+raw-window-handle = { version = "0.6", features = ["std"] }

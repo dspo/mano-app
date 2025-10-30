@@ -2583,6 +2583,7 @@ version = "0.1.0"
 dependencies = [
  "gpui",
  "gpui-component",
+ "raw-window-handle",
  "wry",
 ]
 
@@ -2593,6 +2594,7 @@ dependencies = [
  "gpui",
  "gpui-component",
  "gpui-wry",
+ "raw-window-handle",
 ]
 
 [[package]]
