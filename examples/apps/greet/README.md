@@ -1,16 +1,18 @@
-# React + Vite
+# A mini tauri on GPUI
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This template should help get you started developing with Tauri, React and Typescript in Vite.
 
-Currently, two official plugins are available:
+## Example
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+To run the dev server, run at the directory:
 
-## React Compiler
+```shell
+pnpm install
+pnpm dev
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+To run the example, run at the root of the project:
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```shell
+cargo run --example greet
+```
