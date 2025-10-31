@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-pub use gpui_wry_macros::api_handler;
+pub use gpui_wry_macros::{generate_single_handler, generate_handler};
 
 // todo: 实现 dev server
 
@@ -68,7 +68,7 @@ impl<'a> Builder<'a> {
 
     // todo: 实现 channel for perfermance
 
-    pub fn build_as_child(mut self, window: &mut gpui::Window) -> Result<WebView> {
+    pub fn build_as_child(self, window: &mut gpui::Window) -> Result<WebView> {
         if self.webview_id.is_empty() {
             return Result::Err(WryError::InitScriptError);
         }
@@ -116,7 +116,7 @@ impl<'a> Builder<'a> {
         self
     }
 
-    fn with_apis(mut self) -> Self {
+    fn with_apis(self) -> Self {
         let handlers = self.handlers.clone();
         self.apply(move |b| {
             b.with_asynchronous_custom_protocol(
