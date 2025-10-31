@@ -1,4 +1,5 @@
 use gpui::private::serde_json;
+use gpui::private::serde_json::Value;
 use gpui::{App, AppContext, Application, Context, Entity, WindowOptions};
 use gpui_component::webview::WebView;
 use gpui_component::wry::WebViewId;
@@ -23,97 +24,84 @@ fn greet_view(window: &mut gpui::Window, app: &mut App) -> Entity<WebView> {
             .with_webview_id(WebViewId::from("greet"))
             .serve_static(String::from("examples/apps/greet/dist"))
             // .serve_apis(generate_handler![greet])
-            .serve_api((String::from("greet"), wrap_command_1(greet_0)))
+            .serve_api((String::from("greet"), command(greet_0)))
             .build_as_child(window)
             .unwrap();
         WebView::new(webview, window, cx)
     })
 }
 
-fn wrap_command_1<C, D, S>(c: C) -> impl Fn(http::Request<Vec<u8>>) -> http::Response<Vec<u8>>
+fn command<C, D, S>(c: C) -> impl Fn(http::Request<Vec<u8>>) -> http::Response<Vec<u8>>
 where
-    D: for<'de> Deserialize<'de>, // 或者使用 serde::de::DeserializeOwned
+    D: for<'de> Deserialize<'de>,
     S: Serialize,
     C: Fn(D) -> Result<S, Error>,
 {
     move |request: http::Request<Vec<u8>>| -> http::Response<Vec<u8>> {
-        // 尝试将请求体反序列化为 D
-        let body_bytes = request.into_body();
-        let deserialized: D = match serde_json::from_slice(&body_bytes) {
+        // try to deserialize request body
+        let request_body = request.into_body();
+        let d: D = match serde_json::from_slice(&request_body) {
             Ok(d) => d,
             Err(e) => {
-                // 反序列化失败，返回 400
-                return http::Response::builder()
-                    .status(StatusCode::BAD_REQUEST)
-                    .header(CONTENT_TYPE, HeaderValue::from_static("text/plain"))
-                    .header(ACCESS_CONTROL_ALLOW_ORIGIN, HeaderValue::from_static("*"))
-                    .header(
-                        ACCESS_CONTROL_EXPOSE_HEADERS,
-                        HeaderValue::from_static("Tauri-Response"),
-                    )
-                    .header("Tauri-Response", HeaderValue::from_static("ok"))
-                    .header(
-                        ACCESS_CONTROL_EXPOSE_HEADERS,
-                        HeaderValue::from_static("Tauri-Response"),
-                    )
-                    .body(format!("Bad Request: {}", e).into_bytes())
-                    .unwrap();
+                return response_bad_request(e).unwrap();
             }
         };
 
-        // 调用用户提供的函数 C
-        let result: Result<S, Error> = c(deserialized);
+        // call the custom command
+        let r: Result<S, Error> = c(d);
 
         // 根据结果构建响应
-        match result {
+        match r {
             Ok(output) => {
                 // 序列化成功结果
                 let serialized = match serde_json::to_vec(&output) {
                     Ok(bytes) => bytes,
-                    Err(e) => {
-                        // 序列化失败，返回 500
-                        return http::Response::builder()
-                            .status(StatusCode::INTERNAL_SERVER_ERROR)
-                            .header(CONTENT_TYPE, HeaderValue::from_static("text/plain"))
-                            .header(ACCESS_CONTROL_ALLOW_ORIGIN, HeaderValue::from_static("*"))
-                            .header(
-                                ACCESS_CONTROL_EXPOSE_HEADERS,
-                                HeaderValue::from_static("Tauri-Response"),
-                            )
-                            .header("Tauri-Response", HeaderValue::from_static("ok"))
-                            .body(format!("Internal Server Error: {}", e).into_bytes())
-                            .unwrap();
+                    Err(err) => {
+                        return response_internal_server_error(err).unwrap();
                     }
                 };
 
-                http::Response::builder()
-                    .status(StatusCode::OK)
-                    .header(CONTENT_TYPE, HeaderValue::from_static("text/plain"))
-                    .header(ACCESS_CONTROL_ALLOW_ORIGIN, HeaderValue::from_static("*"))
+                response_builder(StatusCode::OK)
                     .header(
-                        ACCESS_CONTROL_EXPOSE_HEADERS,
-                        HeaderValue::from_static("Tauri-Response"),
+                        CONTENT_TYPE,
+                        if serde_json::from_slice::<Value>(&serialized).is_ok() {
+                            APPLICATION_JSON
+                        } else {
+                            TEXT_PLAIN
+                        },
                     )
-                    .header("Tauri-Response", HeaderValue::from_static("ok"))
                     .body(serialized)
                     .unwrap()
             }
-            Err(e) => {
-                // 用户函数返回错误，返回 500
-                http::Response::builder()
-                    .status(StatusCode::INTERNAL_SERVER_ERROR)
-                    .header(CONTENT_TYPE, HeaderValue::from_static("text/plain"))
-                    .header(ACCESS_CONTROL_ALLOW_ORIGIN, HeaderValue::from_static("*"))
-                    .header(
-                        ACCESS_CONTROL_EXPOSE_HEADERS,
-                        HeaderValue::from_static("Tauri-Response"),
-                    )
-                    .header("Tauri-Response", HeaderValue::from_static("ok"))
-                    .body(format!("Internal Server Error: {}", e).into_bytes())
-                    .unwrap()
-            }
+            Err(e) => response_internal_server_error(e).unwrap(),
         }
     }
+}
+
+const TAURI_RESPONSE_HEADER_NAME: &str = "Tauri-Response";
+const TEXT_PLAIN: HeaderValue = HeaderValue::from_static("text/plain");
+const APPLICATION_JSON: HeaderValue = HeaderValue::from_static("application/json");
+const TAURI_RESPONSE_HEADER_OK: HeaderValue = HeaderValue::from_static("ok");
+
+pub fn response_builder(status_code: StatusCode) -> http::response::Builder {
+    http::Response::builder()
+        .status(status_code)
+        .header(ACCESS_CONTROL_ALLOW_ORIGIN, HeaderValue::from_static("*"))
+        .header(ACCESS_CONTROL_EXPOSE_HEADERS, TAURI_RESPONSE_HEADER_NAME)
+        .header(TAURI_RESPONSE_HEADER_NAME, TAURI_RESPONSE_HEADER_OK)
+}
+fn response_bad_request<S: ToString>(content: S) -> http::Result<http::Response<Vec<u8>>> {
+    response_builder(StatusCode::BAD_REQUEST)
+        .header(CONTENT_TYPE, TEXT_PLAIN)
+        .body(content.to_string().into_bytes())
+}
+
+fn response_internal_server_error<S: ToString>(
+    content: S,
+) -> http::Result<http::Response<Vec<u8>>> {
+    response_builder(StatusCode::INTERNAL_SERVER_ERROR)
+        .header(CONTENT_TYPE, TEXT_PLAIN)
+        .body(content.to_string().into_bytes())
 }
 
 #[derive(Deserialize, Serialize)]
@@ -121,8 +109,11 @@ struct Namer {
     name: String,
 }
 
-fn greet_0(namer: Namer) -> Result<Namer, Error> {
-    Ok(namer)
+fn greet_0(namer: Namer) -> Result<String, Error> {
+    Ok(format!(
+        "Hello, {}! You've been greeted from Rust!",
+        namer.name
+    ))
 }
 
 // todo: 学习 tauri 是如何封装 command 的
