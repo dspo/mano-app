@@ -2,6 +2,7 @@ use gpui::private::serde_json;
 use gpui::{App, AppContext, Application, Context, Entity, WindowOptions};
 use gpui_component::webview::WebView;
 use gpui_component::wry::WebViewId;
+use gpui_wry::api_handler;
 use http::header::{ACCESS_CONTROL_ALLOW_ORIGIN, ACCESS_CONTROL_EXPOSE_HEADERS, CONTENT_TYPE};
 use http::{HeaderValue, StatusCode};
 use serde::Deserialize;
@@ -21,7 +22,7 @@ fn greet_view(window: &mut gpui::Window, app: &mut App) -> Entity<WebView> {
         let webview = gpui_wry::Builder::new()
             .with_webview_id(WebViewId::from("greet"))
             .serve_static(String::from("examples/apps/greet/dist"))
-            .serve_api(greet_api)
+            .serve_apis(vec![api_handler!(greet)])
             .build_as_child(window)
             .unwrap();
         WebView::new(webview, window, cx)
@@ -29,7 +30,7 @@ fn greet_view(window: &mut gpui::Window, app: &mut App) -> Entity<WebView> {
 }
 
 // todo: 学习 tauri 是如何封装 command 的
-fn greet_api(request: http::Request<Vec<u8>>) -> http::Response<Vec<u8>> {
+fn greet(request: http::Request<Vec<u8>>) -> http::Response<Vec<u8>> {
     http::Response::builder()
         .status(StatusCode::OK)
         .header(CONTENT_TYPE, HeaderValue::from_static("text/plain"))

@@ -2,14 +2,20 @@ use gpui_component::wry::{Error as WryError, Result, WebView, WebViewBuilder, We
 use http::header::{ACCESS_CONTROL_ALLOW_ORIGIN, CONTENT_TYPE};
 use http::{Request as HttpRequest, Response as HttpResponse, Result as HttpResult, StatusCode};
 use serde::Serialize;
-use serialize_to_javascript::{default_template, DefaultTemplate, Template};
+use serialize_to_javascript::{DefaultTemplate, Template, default_template};
+use std::collections::HashMap;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 // todo: 实现 dev server
 
 pub struct Builder<'a> {
     builder: WebViewBuilder<'a>,
     webview_id: WebViewId<'a>,
+    handlers: HashMap<
+        String,
+        Arc<dyn Fn(HttpRequest<Vec<u8>>) -> HttpResponse<Vec<u8>> + Send + Sync + 'static>,
+    >,
 }
 
 impl<'a> Builder<'a> {
@@ -17,6 +23,7 @@ impl<'a> Builder<'a> {
         Builder {
             builder: WebViewBuilder::new(),
             webview_id: WebViewId::default(),
+            handlers: HashMap::new(),
         }
     }
 
@@ -33,27 +40,33 @@ impl<'a> Builder<'a> {
         self
     }
 
-    // todo: 改成注册路由
-    pub fn serve_api<F>(self, command: F) -> Self
+    pub fn serve_api<F>(mut self, api: (String, F)) -> Self
     where
-        F: Fn(HttpRequest<Vec<u8>>) -> HttpResponse<Vec<u8>> + 'static,
+        F: Fn(HttpRequest<Vec<u8>>) -> HttpResponse<Vec<u8>> + Send + Sync + 'static,
     {
-        self.apply(|b| {
-            b.with_asynchronous_custom_protocol(
-                "ipc".into(),
-                move |_webview_id, request, responder| {
-                    let response = command(request);
-                    responder.respond(response);
-                },
-            )
-        })
+        let (name, f) = api;
+        self.handlers.insert(name, Arc::new(f));
+
+        self
+    }
+
+    pub fn serve_apis<I, F>(mut self, apis: I) -> Self
+    where
+        I: IntoIterator<Item = (String, F)>,
+        F: Fn(HttpRequest<Vec<u8>>) -> HttpResponse<Vec<u8>> + Send + Sync + 'static,
+    {
+        for (name, f) in apis {
+            self.handlers.insert(name, Arc::new(f));
+        }
+
+        self
     }
 
     // todo: 实现 fallback to ipc
 
     // todo: 实现 channel for perfermance
 
-    pub fn build_as_child(self, window: &mut gpui::Window) -> Result<WebView> {
+    pub fn build_as_child(mut self, window: &mut gpui::Window) -> Result<WebView> {
         if self.webview_id.is_empty() {
             return Result::Err(WryError::InitScriptError);
         }
@@ -63,6 +76,7 @@ impl<'a> Builder<'a> {
         let window_handle = window.window_handle()?;
         let webview_id = self.webview_id;
         self.with_initialization_script_for_main_only()
+            .with_apis()
             .builder
             .with_id(webview_id)
             .build_as_child(&window_handle)
@@ -72,13 +86,14 @@ impl<'a> Builder<'a> {
         self.builder
     }
 
+    // todo: 实现更专业的 serve static
     pub fn serve_static(self, static_root: String) -> Self {
         self.apply(move |b| {
             b.with_asynchronous_custom_protocol(
                 "wry".into(),
                 move |_webview_id, request, responder| {
-                    let response =
-                        response_static(&static_root, request).unwrap_or_else(internal_server_err);
+                    let response = response_static(&static_root, request)
+                        .unwrap_or_else(response_internal_server_err);
                     responder.respond(response)
                 },
             )
@@ -97,6 +112,25 @@ impl<'a> Builder<'a> {
             self = self.apply(|b| b.with_initialization_script_for_main_only(s.script, true));
         }
         self
+    }
+
+    fn with_apis(mut self) -> Self {
+        let handlers = self.handlers.clone();
+        self.apply(move |b| {
+            b.with_asynchronous_custom_protocol(
+                "ipc".into(),
+                move |_webview_id, request, responder| {
+                    if let Some(path) = request.uri().path().strip_prefix('/') {
+                        if let Some(handler) = handlers.get(path) {
+                            let response = handler(request);
+                            responder.respond(response);
+                            return;
+                        }
+                    }
+                    responder.respond(response_not_found(request.uri().path()));
+                },
+            )
+        })
     }
 }
 
@@ -127,12 +161,12 @@ fn response_static(
             Ok(content) => content,
             Err(err) => {
                 println!("failed to read file: {err}");
-                return Ok(page_not_found());
+                return Ok(response_not_found(err)); // todo: change it to internal server error
             }
         },
         Err(err) => {
             println!("failed to canonicalize path: {err}");
-            return Ok(page_not_found());
+            return Ok(response_not_found(path));
         }
     };
 
@@ -152,7 +186,7 @@ fn response_static(
     } else if path.ends_with(".svg") {
         "image/svg+xml"
     } else {
-        return Ok(not_yet_implemented());
+        return Ok(response_not_implemented(path));
     };
 
     http::Response::builder()
@@ -163,25 +197,25 @@ fn response_static(
         .map_err(Into::into)
 }
 
-fn page_not_found() -> HttpResponse<Vec<u8>> {
+fn response_not_found<S: ToString>(content: S) -> HttpResponse<Vec<u8>> {
     http::Response::builder()
         .status(StatusCode::NOT_FOUND)
         .header(CONTENT_TYPE, "text/plain")
         .header(ACCESS_CONTROL_ALLOW_ORIGIN, "*")
-        .body(String::from("page not found").into_bytes())
+        .body(format!("{} not found", content.to_string()).into_bytes())
         .unwrap()
 }
 
-fn not_yet_implemented() -> HttpResponse<Vec<u8>> {
+fn response_not_implemented<S: ToString>(content: S) -> HttpResponse<Vec<u8>> {
     http::Response::builder()
         .status(StatusCode::NOT_IMPLEMENTED)
         .header(CONTENT_TYPE, "text/plain")
         .header(ACCESS_CONTROL_ALLOW_ORIGIN, "*")
-        .body(String::from("not yet implemented for the ext of the path").into_bytes())
+        .body(format!("{} not implemented", content.to_string()).into_bytes())
         .unwrap()
 }
 
-fn internal_server_err<S: ToString>(content: S) -> HttpResponse<Vec<u8>> {
+fn response_internal_server_err<S: ToString>(content: S) -> HttpResponse<Vec<u8>> {
     HttpResponse::builder()
         .status(StatusCode::INTERNAL_SERVER_ERROR)
         .header(CONTENT_TYPE, "text/plain")
@@ -405,4 +439,14 @@ struct InitJavascript<'a> {
     event_initialization_script: &'a str,
     #[raw]
     freeze_prototype: &'a str,
+}
+
+#[macro_export]
+macro_rules! api_handler {
+    ($name:ident) => {
+        (
+            stringify!($name).to_string(),
+            $name as fn(http::Request<Vec<u8>>) -> http::Response<Vec<u8>>,
+        )
+    };
 }
