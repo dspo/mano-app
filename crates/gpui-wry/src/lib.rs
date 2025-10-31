@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-pub use gpui_wry_macros::{generate_single_handler, generate_handler};
+pub use gpui_wry_macros::{handle_api, handler_apis, register_api, register_apis};
 
 // todo: 实现 dev server
 

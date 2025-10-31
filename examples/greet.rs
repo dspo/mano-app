@@ -3,10 +3,12 @@ use gpui::private::serde_json::Value;
 use gpui::{App, AppContext, Application, Context, Entity, WindowOptions};
 use gpui_component::webview::WebView;
 use gpui_component::wry::WebViewId;
+use gpui_wry::register_api;
 use http::header::{ACCESS_CONTROL_ALLOW_ORIGIN, ACCESS_CONTROL_EXPOSE_HEADERS, CONTENT_TYPE};
 use http::{HeaderValue, StatusCode};
 use serde::{Deserialize, Serialize};
 use std::io::Error;
+use gpui_wry_macros::register_apis;
 
 fn main() {
     Application::new().run(|cx: &mut App| {
@@ -23,8 +25,8 @@ fn greet_view(window: &mut gpui::Window, app: &mut App) -> Entity<WebView> {
         let webview = gpui_wry::Builder::new()
             .with_webview_id(WebViewId::from("greet"))
             .serve_static(String::from("examples/apps/greet/dist"))
-            // .serve_apis(generate_handler![greet])
-            .serve_api((String::from("greet"), command(greet_0)))
+            // .serve_apis(register_apis![greet])
+            .serve_api(register_api!(greet))
             .build_as_child(window)
             .unwrap();
         WebView::new(webview, window, cx)
@@ -109,7 +111,7 @@ struct Namer {
     name: String,
 }
 
-fn greet_0(namer: Namer) -> Result<String, Error> {
+fn greet(namer: Namer) -> Result<String, Error> {
     Ok(format!(
         "Hello, {}! You've been greeted from Rust!",
         namer.name
@@ -117,34 +119,3 @@ fn greet_0(namer: Namer) -> Result<String, Error> {
 }
 
 // todo: 学习 tauri 是如何封装 command 的
-fn greet(request: http::Request<Vec<u8>>) -> http::Response<Vec<u8>> {
-    http::Response::builder()
-        .status(StatusCode::OK)
-        .header(CONTENT_TYPE, HeaderValue::from_static("text/plain"))
-        .header(ACCESS_CONTROL_ALLOW_ORIGIN, HeaderValue::from_static("*"))
-        .header(
-            ACCESS_CONTROL_EXPOSE_HEADERS,
-            HeaderValue::from_static(ACCESS_CONTROL_ALLOW_ORIGIN.as_ref()),
-        )
-        .header(
-            ACCESS_CONTROL_EXPOSE_HEADERS,
-            HeaderValue::from_static("Tauri-Response"),
-        )
-        .header("Tauri-Response", HeaderValue::from_static("ok"))
-        .body({
-            #[derive(Deserialize)]
-            struct Greet {
-                name: String,
-            }
-            let request_body = &request.into_body();
-            let request_body: Greet = serde_json::from_slice(request_body).unwrap();
-            let body = format!(
-                "Hello, {}! You've been greeted from Rust!",
-                request_body.name
-            );
-            println!("{}", body);
-            body.into_bytes()
-        })
-        .map_err(|err| format!("{err}"))
-        .unwrap()
-}
