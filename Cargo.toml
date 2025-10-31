@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 gpui-wry = { path = "./crates/gpui-wry" }
+gpui-wry-macros = { path = "./crates/gpui-wry-macros" }
 gpui = { workspace = true }
 gpui-component = { workspace = true }
 raw-window-handle = { workspace = true }
@@ -13,12 +14,13 @@ serialize-to-javascript = { workspace = true }
 serde = { workspace = true }
 
 [workspace]
-members = ["crates/gpui-wry"]
+members = ["crates/gpui-wry", "crates/gpui-wry-macros"]
 resolver = "3"
 
 [workspace.dependencies]
 gpui = "0.2.0"
 gpui-component = { version = "0.3.1", features = ["webview"] }
+gpui-wry-macros = { path = "./crates/gpui-wry-macros" }
 wry = { version = "0.53.5" }
 raw-window-handle = { version = "0.6", features = ["std"] }
 http = { version = "1.3.1" }

@@ -2583,11 +2583,23 @@ version = "0.1.0"
 dependencies = [
  "gpui",
  "gpui-component",
+ "gpui-wry-macros",
  "http",
  "raw-window-handle",
  "serde",
  "serialize-to-javascript",
  "wry",
+]
+
+[[package]]
+name = "gpui-wry-macros"
+version = "0.1.0"
+dependencies = [
+ "http",
+ "proc-macro2",
+ "quote",
+ "serde",
+ "syn 1.0.109",
 ]
 
 [[package]]
@@ -2597,6 +2609,7 @@ dependencies = [
  "gpui",
  "gpui-component",
  "gpui-wry",
+ "gpui-wry-macros",
  "http",
  "raw-window-handle",
  "serde",

@@ -441,12 +441,5 @@ struct InitJavascript<'a> {
     freeze_prototype: &'a str,
 }
 
-#[macro_export]
-macro_rules! api_handler {
-    ($name:ident) => {
-        (
-            stringify!($name).to_string(),
-            $name as fn(http::Request<Vec<u8>>) -> http::Response<Vec<u8>>,
-        )
-    };
-}
+// 注意：api_handler宏现在在gpui-wry-macros crate中作为过程宏实现
+// 使用时需要先导入：use gpui_wry_macros::api_handler;
