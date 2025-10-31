@@ -7,6 +7,8 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+pub use gpui_wry_macros::api_handler;
+
 // todo: 实现 dev server
 
 pub struct Builder<'a> {
@@ -440,6 +442,3 @@ struct InitJavascript<'a> {
     #[raw]
     freeze_prototype: &'a str,
 }
-
-// 注意：api_handler宏现在在gpui-wry-macros crate中作为过程宏实现
-// 使用时需要先导入：use gpui_wry_macros::api_handler;

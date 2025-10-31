@@ -2,7 +2,7 @@ use gpui::private::serde_json;
 use gpui::{App, AppContext, Application, Context, Entity, WindowOptions};
 use gpui_component::webview::WebView;
 use gpui_component::wry::WebViewId;
-use gpui_wry_macros::api_handler;
+use gpui_wry::api_handler;
 use http::header::{ACCESS_CONTROL_ALLOW_ORIGIN, ACCESS_CONTROL_EXPOSE_HEADERS, CONTENT_TYPE};
 use http::{HeaderValue, StatusCode};
 use serde::Deserialize;
