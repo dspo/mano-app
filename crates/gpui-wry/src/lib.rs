@@ -2,12 +2,12 @@ use gpui_component::wry::{Error as WryError, Result, WebView, WebViewBuilder, We
 use http::header::{ACCESS_CONTROL_ALLOW_ORIGIN, CONTENT_TYPE};
 use http::{Request as HttpRequest, Response as HttpResponse, Result as HttpResult, StatusCode};
 use serde::Serialize;
-use serialize_to_javascript::{default_template, DefaultTemplate, Template};
+use serialize_to_javascript::{DefaultTemplate, Template, default_template};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-pub use gpui_wry_macros::{api_handler, generate_handler};
+pub use gpui_wry_macros::{api_handler, command_handlers};
 
 // todo: 实现 dev server
 
@@ -52,7 +52,7 @@ impl<'a> Builder<'a> {
         self
     }
 
-    pub fn invoke_handler<I, F>(mut self, apis: I) -> Self
+    pub fn serve_apis<I, F>(mut self, apis: I) -> Self
     where
         I: IntoIterator<Item = (String, F)>,
         F: Fn(HttpRequest<Vec<u8>>) -> HttpResponse<Vec<u8>> + Send + Sync + 'static,

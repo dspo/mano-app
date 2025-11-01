@@ -14,12 +14,12 @@ use syn::{parse_macro_input, Ident};
 /// ```
 /// fn my_handler(req: http::Request<Vec<u8>>) -> http::Response<Vec<u8>> { todo!() }
 ///
-/// let (handler_name, handler) = api_handler_single!(my_handler);
+/// let (handler_name, handler) = api_handler!(my_handler);
 /// // handler_name: String = "my_handler"
 /// // handler: fn(http::Request<Vec<u8>>) -> http::Response<Vec<u8>>
 /// ```
 #[proc_macro]
-pub fn api_handler_single(input: TokenStream) -> TokenStream {
+pub fn api_handler(input: TokenStream) -> TokenStream {
     // Parse the input as a function name identifier
     let func_name = parse_macro_input!(input as Ident);
     let func_str = func_name.to_string();
@@ -37,7 +37,7 @@ pub fn api_handler_single(input: TokenStream) -> TokenStream {
 
 /// Batch-wraps multiple synchronous HTTP handlers into `Vec<(String, Handler)>`.
 ///
-/// Compared to `api_handler_single`:
+/// Compared to `api_handler`:
 /// - Accepts several comma-separated functions at once  
 /// - Returns a vector ready to be registered into a router
 ///
@@ -50,13 +50,11 @@ pub fn api_handler_single(input: TokenStream) -> TokenStream {
 /// // handlers: Vec<(String, fn(http::Request<Vec<u8>>) -> http::Response<Vec<u8>>)>
 /// ```
 #[proc_macro]
-pub fn api_handler(input: TokenStream) -> TokenStream {
-    // 解析输入为多个函数名，以逗号分隔
+pub fn api_handlers(input: TokenStream) -> TokenStream {
     let func_names: Vec<Ident> = syn::parse_macro_input!(input with syn::punctuated::Punctuated::<Ident, syn::token::Comma>::parse_terminated)
         .into_iter()
         .collect();
 
-    // 为每个函数名生成对应的元组
     let tuples = func_names.iter().map(|func_name| {
         let func_str = func_name.to_string();
         quote! {
@@ -67,7 +65,6 @@ pub fn api_handler(input: TokenStream) -> TokenStream {
         }
     });
 
-    // 生成包含所有元组的Vec
     let expanded = quote! {
         vec![#(#tuples),*]
     };
@@ -75,9 +72,8 @@ pub fn api_handler(input: TokenStream) -> TokenStream {
     expanded.into()
 }
 
-
 ///
-/// `generate_handler_single` is a procedural macro designed to automatically wrap a Rust function
+/// `command_handler` is a procedural macro designed to automatically wrap a Rust function
 /// into an HTTP handler. This allows the function to be invoked via HTTP requests, making it
 /// suitable for use in web services or any application requiring HTTP-based communication.
 ///
@@ -107,7 +103,7 @@ pub fn api_handler(input: TokenStream) -> TokenStream {
 /// }
 ///
 /// // Convert `my_function` into an HTTP handler
-/// let (handler_name, handler) = generate_handler_single!(my_function);
+/// let (handler_name, handler) = command_handler!(my_function);
 /// ```
 ///
 /// # Generated Code Overview
@@ -136,12 +132,10 @@ pub fn api_handler(input: TokenStream) -> TokenStream {
 /// - The macro sets up CORS headers to allow cross-origin requests, which might need to be adjusted based on the specific requirements.
 ///
 #[proc_macro]
-pub fn generate_handler_single(input: TokenStream) -> TokenStream {
-    // 解析输入为函数名
+pub fn command_handler(input: TokenStream) -> TokenStream {
     let func_name = parse_macro_input!(input as Ident);
     let func_str = func_name.to_string();
 
-    // 生成代码，将普通函数包装成HTTP处理函数并返回元组
     let expanded = quote! {
         (
             #func_str.to_string(),
@@ -150,7 +144,7 @@ pub fn generate_handler_single(input: TokenStream) -> TokenStream {
                 use http::{header::CONTENT_TYPE, HeaderValue, Response, StatusCode};
                 use serde::{de::DeserializeOwned, Serialize};
                 use serde_json::{from_slice, to_vec, Value};
-                
+
                 // 响应构建器
                 fn response_builder(status_code: StatusCode) -> http::response::Builder {
                     http::Response::builder()
@@ -159,19 +153,19 @@ pub fn generate_handler_single(input: TokenStream) -> TokenStream {
                         .header(http::header::ACCESS_CONTROL_EXPOSE_HEADERS, "Tauri-Response")
                         .header("Tauri-Response", "ok")
                 }
-                
+
                 fn response_bad_request<S: ToString>(content: S) -> http::Result<http::Response<Vec<u8>>> {
                     response_builder(StatusCode::BAD_REQUEST)
                         .header(CONTENT_TYPE, HeaderValue::from_static("text/plain"))
                         .body(content.to_string().into_bytes())
                 }
-                
+
                 fn response_internal_server_error<S: ToString>(content: S) -> http::Result<http::Response<Vec<u8>>> {
                     response_builder(StatusCode::INTERNAL_SERVER_ERROR)
                         .header(CONTENT_TYPE, HeaderValue::from_static("text/plain"))
                         .body(content.to_string().into_bytes())
                 }
-                
+
                 // 尝试反序列化请求体
                 let request_body = request.into_body();
                 // 直接尝试反序列化，让编译器自动推断类型
@@ -181,10 +175,10 @@ pub fn generate_handler_single(input: TokenStream) -> TokenStream {
                         return response_bad_request(e).unwrap();
                     }
                 };
-                
+
                 // 调用自定义命令
                 let r: Result<_, _> = #func_name(d);
-                
+
                 // 根据结果构建响应
                 match r {
                     Ok(output) => {
@@ -195,7 +189,7 @@ pub fn generate_handler_single(input: TokenStream) -> TokenStream {
                                 return response_internal_server_error(err).unwrap();
                             }
                         };
-                        
+
                         response_builder(StatusCode::OK)
                             .header(
                                 CONTENT_TYPE,
@@ -217,9 +211,8 @@ pub fn generate_handler_single(input: TokenStream) -> TokenStream {
     expanded.into()
 }
 
-
 ///
-/// `generate_handler` is a procedural macro designed to automatically wrap multiple Rust functions
+/// `command_handlers` is a procedural macro designed to automatically wrap multiple Rust functions
 /// into HTTP handlers. This allows the functions to be invoked via HTTP requests, making them
 /// suitable for use in web services or any application requiring HTTP-based communication.
 ///
@@ -258,7 +251,7 @@ pub fn generate_handler_single(input: TokenStream) -> TokenStream {
 ///         let webview = gpui_wry::Builder::new()
 ///             .with_webview_id(WebViewId::from("greet"))
 ///             .serve_static(String::from("examples/apps/greet/dist"))
-///             .invoke_handler(generate_handler![my_function1, my_function2])
+///             .invoke_handler(command_handlers![my_function1, my_function2])
 ///             .build_as_child(window)
 ///             .unwrap();
 ///         WebView::new(webview, window, cx)
@@ -292,13 +285,11 @@ pub fn generate_handler_single(input: TokenStream) -> TokenStream {
 /// - The macro sets up CORS headers to allow cross-origin requests, which might need to be adjusted based on the specific requirements.
 ///
 #[proc_macro]
-pub fn generate_handler(input: TokenStream) -> TokenStream {
-    // 解析输入为多个函数名，以逗号分隔
+pub fn command_handlers(input: TokenStream) -> TokenStream {
     let func_names: Vec<Ident> = syn::parse_macro_input!(input with syn::punctuated::Punctuated::<Ident, syn::token::Comma>::parse_terminated)
         .into_iter()
         .collect();
 
-    // 为每个函数名生成对应的元组
     let tuples = func_names.iter().map(|func_name| {
         let func_str = func_name.to_string();
         quote! {
@@ -375,7 +366,6 @@ pub fn generate_handler(input: TokenStream) -> TokenStream {
         }
     });
 
-    // 生成包含所有元组的Vec
     let expanded = quote! {
         vec![#(#tuples),*]
     };

@@ -2,7 +2,7 @@ use gpui::private::serde_json;
 use gpui::{App, AppContext, Application, Context, Entity, WindowOptions};
 use gpui_component::webview::WebView;
 use gpui_component::wry::WebViewId;
-use gpui_wry::generate_handler;
+use gpui_wry::command_handlers;
 use serde::{Deserialize, Serialize};
 use std::io::Error;
 
@@ -21,7 +21,7 @@ fn greet_view(window: &mut gpui::Window, app: &mut App) -> Entity<WebView> {
         let webview = gpui_wry::Builder::new()
             .with_webview_id(WebViewId::from("greet"))
             .serve_static(String::from("examples/apps/greet/dist"))
-            .invoke_handler(generate_handler![greet])
+            .serve_apis(command_handlers![greet])
             .build_as_child(window)
             .unwrap();
         WebView::new(webview, window, cx)
