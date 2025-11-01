@@ -2,12 +2,12 @@ use gpui_component::wry::{Error as WryError, Result, WebView, WebViewBuilder, We
 use http::header::{ACCESS_CONTROL_ALLOW_ORIGIN, CONTENT_TYPE};
 use http::{Request as HttpRequest, Response as HttpResponse, Result as HttpResult, StatusCode};
 use serde::Serialize;
-use serialize_to_javascript::{DefaultTemplate, Template, default_template};
+use serialize_to_javascript::{default_template, DefaultTemplate, Template};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-pub use gpui_wry_macros::{handle_api, handler_apis, register_api, register_apis};
+pub use gpui_wry_macros::{api_handler, generate_handler};
 
 // todo: 实现 dev server
 
@@ -42,7 +42,7 @@ impl<'a> Builder<'a> {
         self
     }
 
-    pub fn serve_api<F>(mut self, api: (String, F)) -> Self
+    pub fn invoke_handler_single<F>(mut self, api: (String, F)) -> Self
     where
         F: Fn(HttpRequest<Vec<u8>>) -> HttpResponse<Vec<u8>> + Send + Sync + 'static,
     {
@@ -52,7 +52,7 @@ impl<'a> Builder<'a> {
         self
     }
 
-    pub fn serve_apis<I, F>(mut self, apis: I) -> Self
+    pub fn invoke_handler<I, F>(mut self, apis: I) -> Self
     where
         I: IntoIterator<Item = (String, F)>,
         F: Fn(HttpRequest<Vec<u8>>) -> HttpResponse<Vec<u8>> + Send + Sync + 'static,
@@ -66,7 +66,7 @@ impl<'a> Builder<'a> {
 
     // todo: 实现 fallback to ipc
 
-    // todo: 实现 channel for perfermance
+    // todo: 实现 channel for performance
 
     pub fn build_as_child(self, window: &mut gpui::Window) -> Result<WebView> {
         if self.webview_id.is_empty() {

@@ -4,16 +4,27 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, Ident};
 
-/// 函数式宏，用于将API处理函数转换为(name, handler)元组
-/// 用法: api_handler!(function_name)
-/// 这会将函数名转换为字符串，并返回包含函数名和函数指针的元组
+/// Wraps a function with signature `Fn(http::Request<Vec<u8>> -> http::Response<Vec<u8>>)` into a tuple `(func_name, func)`.
+///
+/// This macro takes a function name as input and generates code that returns a tuple containing:
+/// 1. The function name as a string
+/// 2. The function pointer with the correct type
+///
+/// # Example
+/// ```
+/// fn my_handler(req: http::Request<Vec<u8>>) -> http::Response<Vec<u8>> { todo!() }
+///
+/// let (handler_name, handler) = api_handler_single!(my_handler);
+/// // handler_name: String = "my_handler"
+/// // handler: fn(http::Request<Vec<u8>>) -> http::Response<Vec<u8>>
+/// ```
 #[proc_macro]
-pub fn handle_api(input: TokenStream) -> TokenStream {
-    // 解析输入为函数名
+pub fn api_handler_single(input: TokenStream) -> TokenStream {
+    // Parse the input as a function name identifier
     let func_name = parse_macro_input!(input as Ident);
     let func_str = func_name.to_string();
 
-    // 生成代码，返回(函数名字符串, 函数指针)元组
+    // Generate code that returns a tuple of (function_name_string, function_pointer)
     let expanded = quote! {
         (
             #func_str.to_string(),
@@ -24,17 +35,27 @@ pub fn handle_api(input: TokenStream) -> TokenStream {
     expanded.into()
 }
 
-/// 批量API处理函数宏
-/// 用于同时处理多个API处理函数，将它们转换为(name, handler)元组的集合
-/// 用法: api_handlers![function1, function2, function3]
-/// 返回一个Vec<(String, fn(http::Request<Vec<u8>>) -> http::Response<Vec<u8>>)>
+/// Batch-wraps multiple synchronous HTTP handlers into `Vec<(String, Handler)>`.
+///
+/// Compared to `api_handler_single`:
+/// - Accepts several comma-separated functions at once  
+/// - Returns a vector ready to be registered into a router
+///
+/// # Example
+/// ```
+/// fn foo(req: http::Request<Vec<u8>>) -> http::Response<Vec<u8>> { todo!() }
+/// fn bar(req: http::Request<Vec<u8>>) -> http::Response<Vec<u8>> { todo!() }
+///
+/// let handlers = api_handler![foo, bar];
+/// // handlers: Vec<(String, fn(http::Request<Vec<u8>>) -> http::Response<Vec<u8>>)>
+/// ```
 #[proc_macro]
-pub fn handler_apis(input: TokenStream) -> TokenStream {
+pub fn api_handler(input: TokenStream) -> TokenStream {
     // 解析输入为多个函数名，以逗号分隔
-    let func_names: Vec<Ident> = syn::parse_macro_input!(input with syn::punctuated::Punctuated::<Ident, syn::token::Comma>::parse_terminated) 
+    let func_names: Vec<Ident> = syn::parse_macro_input!(input with syn::punctuated::Punctuated::<Ident, syn::token::Comma>::parse_terminated)
         .into_iter()
         .collect();
-    
+
     // 为每个函数名生成对应的元组
     let tuples = func_names.iter().map(|func_name| {
         let func_str = func_name.to_string();
@@ -45,20 +66,77 @@ pub fn handler_apis(input: TokenStream) -> TokenStream {
             )
         }
     });
-    
+
     // 生成包含所有元组的Vec
     let expanded = quote! {
         vec![#(#tuples),*]
     };
-    
+
     expanded.into()
 }
 
-/// 函数式宏，用于将普通函数直接转换为(name, handler)元组
-/// 用法: register_api!(function_name)
-/// 这会将普通函数包装成HTTP处理函数，并返回包含函数名和处理函数的元组
+
+///
+/// `generate_handler_single` is a procedural macro designed to automatically wrap a Rust function
+/// into an HTTP handler. This allows the function to be invoked via HTTP requests, making it
+/// suitable for use in web services or any application requiring HTTP-based communication.
+///
+/// # Usage
+///
+/// The macro takes a single argument, which is the name of the function you want to convert into
+/// an HTTP handler. The function should accept a type that implements `DeserializeOwned` and return
+/// a type that implements `Serialize`, typically using `serde_json` for JSON serialization.
+///
+/// ## Example
+///
+/// ```rust
+/// use serde::{Deserialize, Serialize};
+///
+/// #[derive(Deserialize)]
+/// struct MyRequest {
+///     id: u32,
+/// }
+///
+/// #[derive(Serialize)]
+/// struct MyResponse {
+///     message: String,
+/// }
+///
+/// fn my_function(req: MyRequest) -> Result<MyResponse, String> {
+///     Ok(MyResponse { message: format!("Hello, your ID is {}", req.id) })
+/// }
+///
+/// // Convert `my_function` into an HTTP handler
+/// let (handler_name, handler) = generate_handler_single!(my_function);
+/// ```
+///
+/// # Generated Code Overview
+///
+/// - **Function Name Conversion**: The input function's name is converted to a string, used as part of the generated HTTP handler.
+/// - **HTTP Response Building**: The macro includes helper functions for constructing HTTP responses with appropriate status codes and headers, including handling of CORS.
+/// - **Request Body Parsing**: The request body is deserialized from JSON. If deserialization fails, a `400 Bad Request` response is returned.
+/// - **Error Handling**: Errors during function execution result in a `500 Internal Server Error` response.
+/// - **Response Serialization**: Successful results are serialized back to JSON, with the content type set appropriately.
+///
+/// # Return Value
+///
+/// The macro returns a tuple containing:
+/// 1. A `String` representing the name of the wrapped function.
+/// 2. A closure that acts as the HTTP handler, accepting an `http::Request<Vec<u8>>` and returning an `http::Response<Vec<u8>>`.
+///
+/// # Dependencies
+///
+/// - `http`: For creating and manipulating HTTP requests and responses.
+/// - `serde` and `serde_json`: For (de)serializing data.
+///
+/// # Notes
+///
+/// - The macro assumes that the function being wrapped can handle the deserialized request data and return a serializable response.
+/// - Proper error handling within the provided function is essential, as all errors are caught and returned as HTTP 500 errors.
+/// - The macro sets up CORS headers to allow cross-origin requests, which might need to be adjusted based on the specific requirements.
+///
 #[proc_macro]
-pub fn register_api(input: TokenStream) -> TokenStream {
+pub fn generate_handler_single(input: TokenStream) -> TokenStream {
     // 解析输入为函数名
     let func_name = parse_macro_input!(input as Ident);
     let func_str = func_name.to_string();
@@ -139,17 +217,87 @@ pub fn register_api(input: TokenStream) -> TokenStream {
     expanded.into()
 }
 
-/// 批量普通函数宏
-/// 用于同时处理多个普通函数，将它们包装成HTTP处理函数并转换为(name, handler)元组的集合
-/// 用法: register_apis![function1, function2, function3]
-/// 返回一个Vec<(String, fn(http::Request<Vec<u8>>) -> http::Response<Vec<u8>>)>
+
+///
+/// `generate_handler` is a procedural macro designed to automatically wrap multiple Rust functions
+/// into HTTP handlers. This allows the functions to be invoked via HTTP requests, making them
+/// suitable for use in web services or any application requiring HTTP-based communication.
+///
+/// # Usage
+///
+/// The macro takes multiple function names as arguments, separated by commas. Each function should
+/// accept a type that implements `DeserializeOwned` and return a type that implements `Serialize`,
+/// typically using `serde_json` for JSON serialization.
+///
+/// ## Example
+///
+/// ```rust
+/// use serde::{Deserialize, Serialize};
+///
+/// #[derive(Deserialize)]
+/// struct MyRequest {
+///     id: u32,
+/// }
+///
+/// #[derive(Serialize)]
+/// struct MyResponse {
+///     message: String,
+/// }
+///
+/// fn my_function1(req: MyRequest) -> Result<MyResponse, String> {
+///     Ok(MyResponse { message: format!("Hello from function 1, your ID is {}", req.id) })
+/// }
+///
+/// fn my_function2(req: MyRequest) -> Result<MyResponse, String> {
+///     Ok(MyResponse { message: format!("Hello from function 2, your ID is {}", req.id) })
+/// }
+///
+/// // Convert multiple functions into HTTP handlers
+/// fn view(window: &mut gpui::Window, app: &mut App) -> Entity<WebView> {
+///     app.new(|cx: &mut Context<WebView>| {
+///         let webview = gpui_wry::Builder::new()
+///             .with_webview_id(WebViewId::from("greet"))
+///             .serve_static(String::from("examples/apps/greet/dist"))
+///             .invoke_handler(generate_handler![my_function1, my_function2])
+///             .build_as_child(window)
+///             .unwrap();
+///         WebView::new(webview, window, cx)
+///     })
+/// }
+/// ```
+///
+/// # Generated Code Overview
+///
+/// - **Function Name Conversion**: Each input function's name is converted to a string, used as part of the generated HTTP handler.
+/// - **HTTP Response Building**: The macro includes helper functions for constructing HTTP responses with appropriate status codes and headers, including handling of CORS.
+/// - **Request Body Parsing**: The request body is deserialized from JSON. If deserialization fails, a `400 Bad Request` response is returned.
+/// - **Error Handling**: Errors during function execution result in a `500 Internal Server Error` response.
+/// - **Response Serialization**: Successful results are serialized back to JSON, with the content type set appropriately.
+///
+/// # Return Value
+///
+/// The macro returns a `Vec` containing tuples, where each tuple contains:
+/// 1. A `String` representing the name of the wrapped function.
+/// 2. A closure that acts as the HTTP handler, accepting an `http::Request<Vec<u8>>` and returning an `http::Response<Vec<u8>>`.
+///
+/// # Dependencies
+///
+/// - `http`: For creating and manipulating HTTP requests and responses.
+/// - `serde` and `serde_json`: For (de)serializing data.
+///
+/// # Notes
+///
+/// - The macro assumes that the functions being wrapped can handle the deserialized request data and return a serializable response.
+/// - Proper error handling within the provided functions is essential, as all errors are caught and returned as HTTP 500 errors.
+/// - The macro sets up CORS headers to allow cross-origin requests, which might need to be adjusted based on the specific requirements.
+///
 #[proc_macro]
-pub fn register_apis(input: TokenStream) -> TokenStream {
+pub fn generate_handler(input: TokenStream) -> TokenStream {
     // 解析输入为多个函数名，以逗号分隔
-    let func_names: Vec<Ident> = syn::parse_macro_input!(input with syn::punctuated::Punctuated::<Ident, syn::token::Comma>::parse_terminated) 
+    let func_names: Vec<Ident> = syn::parse_macro_input!(input with syn::punctuated::Punctuated::<Ident, syn::token::Comma>::parse_terminated)
         .into_iter()
         .collect();
-    
+
     // 为每个函数名生成对应的元组
     let tuples = func_names.iter().map(|func_name| {
         let func_str = func_name.to_string();
@@ -184,7 +332,7 @@ pub fn register_apis(input: TokenStream) -> TokenStream {
                             .body(content.to_string().into_bytes())
                     }
                     
-                        // 尝试反序列化请求体
+                    // 尝试反序列化请求体
                     let request_body = request.into_body();
                     // 直接尝试反序列化，让编译器自动推断类型
                     let d = match from_slice(&request_body) {
@@ -226,11 +374,11 @@ pub fn register_apis(input: TokenStream) -> TokenStream {
             )
         }
     });
-    
+
     // 生成包含所有元组的Vec
     let expanded = quote! {
         vec![#(#tuples),*]
     };
-    
+
     expanded.into()
 }
