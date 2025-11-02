@@ -1,5 +1,7 @@
 use gpui::private::serde_json;
-use gpui::{App, AppContext, Application, Context, Entity, WindowOptions};
+use gpui::{
+    px, size, App, AppContext, Application, Bounds, Context, Entity, WindowBounds, WindowOptions,
+};
 use gpui_component::webview::WebView;
 use gpui_component::wry::WebViewId;
 use gpui_wry::command_handlers;
@@ -10,8 +12,16 @@ fn main() {
     Application::new().run(|cx: &mut App| {
         cx.activate(true);
 
-        cx.open_window(WindowOptions::default(), greet_view)
-            .unwrap();
+        let options = WindowOptions {
+            window_bounds: Some(WindowBounds::Windowed(Bounds::centered(
+                None,
+                size(px(800.), px(600.0)),
+                cx,
+            ))),
+            is_resizable: false,
+            ..Default::default()
+        };
+        cx.open_window(options, greet_view).unwrap();
     });
 }
 
