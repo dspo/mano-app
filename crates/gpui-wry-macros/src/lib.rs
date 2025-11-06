@@ -1,4 +1,4 @@
-//! gpui-wry的过程宏实现
+//! gpui-wry macros
 
 use proc_macro::TokenStream;
 use quote::quote;
@@ -295,7 +295,7 @@ pub fn command_handlers(input: TokenStream) -> TokenStream {
         quote! {
             (
                 #func_str.to_string(),
-                move |request: http::Request<Vec<u8>>| -> http::Response<Vec<u8>> {
+                Box::new(move |request: http::Request<Vec<u8>>| -> http::Response<Vec<u8>> {
                     // 定义必要的常量和辅助函数
                     use http::{header::CONTENT_TYPE, HeaderValue, Response, StatusCode};
                     use serde::{de::DeserializeOwned, Serialize};
@@ -361,7 +361,7 @@ pub fn command_handlers(input: TokenStream) -> TokenStream {
                         }
                         Err(e) => response_internal_server_error(e).unwrap(),
                     }
-                },
+                }) as Box<dyn Fn(http::Request<Vec<u8>>) -> http::Response<Vec<u8>> + Send + Sync + 'static>,
             )
         }
     });

@@ -2,7 +2,7 @@ use gpui_component::wry::{Error as WryError, Result, WebView, WebViewBuilder, We
 use http::header::{ACCESS_CONTROL_ALLOW_ORIGIN, CONTENT_TYPE};
 use http::{Request as HttpRequest, Response as HttpResponse, Result as HttpResult, StatusCode};
 use serde::Serialize;
-use serialize_to_javascript::{DefaultTemplate, Template, default_template};
+use serialize_to_javascript::{default_template, DefaultTemplate, Template};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -93,8 +93,8 @@ impl<'a> Builder<'a> {
         self.apply(move |b| {
             b.with_asynchronous_custom_protocol(
                 "wry".into(),
-                move |_webview_id, request, responder| {
-                    let response = response_static(&static_root, request)
+                move |webview_id, request, responder| {
+                    let response = serve_static(webview_id, &static_root, request)
                         .unwrap_or_else(response_internal_server_err);
                     responder.respond(response)
                 },
@@ -121,7 +121,15 @@ impl<'a> Builder<'a> {
         self.apply(move |b| {
             b.with_asynchronous_custom_protocol(
                 "ipc".into(),
-                move |_webview_id, request, responder| {
+                move |webview_id, request, responder| {
+                    println!(
+                        "webview_id: {}, method: {}, scheme: {:?}, host: {:?}, path: {:?}",
+                        webview_id,
+                        request.method(),
+                        request.uri().scheme(),
+                        request.uri().host(),
+                        request.uri().path()
+                    );
                     if let Some(path) = request.uri().path().strip_prefix('/') {
                         if let Some(handler) = handlers.get(path) {
                             let response = handler(request);
@@ -137,13 +145,15 @@ impl<'a> Builder<'a> {
 }
 
 // todo: 查看下 tauri 是怎么实现的
-fn response_static(
+fn serve_static(
+    webview_id: WebViewId,
     static_path: &str,
     request: HttpRequest<Vec<u8>>,
 ) -> HttpResult<HttpResponse<Vec<u8>>> {
     let path = request.uri().path();
     println!(
-        "method: {:?}, scheme: {:?}, host: {:?}, path: {:?}",
+        "webview_id: {}, method: {:?}, scheme: {:?}, host: {:?}, path: {:?}",
+        webview_id,
         request.method(),
         request.uri().scheme(),
         request.uri().host(),
