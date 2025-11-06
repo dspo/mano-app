@@ -16,7 +16,7 @@ serialize-to-javascript = { workspace = true }
 serde = { workspace = true }
 
 [workspace]
-members = ["crates/gpui-wry", "crates/gpui-wry-macros", "crates/gpui-wry-app"]
+members = ["crates/gpui-wry", "crates/gpui-wry-macros", "crates/mano-app"]
 resolver = "3"
 
 [workspace.dependencies]

@@ -1,0 +1,29 @@
+[package]
+name = "mano-app"
+version = "0.1.0"
+edition = "2021"
+description = "Binary application built with GPUI-WRY framework"
+authors = ["Your Name <your.email@example.com>"]
+license = "MIT OR Apache-2.0"
+
+[[bin]]
+name = "mano-app"
+path = "src/main.rs"
+
+[dependencies]
+gpui-wry = { workspace = true }
+gpui = { workspace = true }
+gpui-component = { workspace = true }
+serde = { workspace = true }
+serde_json = "1.0"
+tokio = { version = "1.0", features = ["full"] }
+anyhow = "1.0"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+chrono = "0.4"
+toml = { workspace = true }
+dirs = { workspace = true }
+http.workspace = true
+
+[dev-dependencies]
+tempfile = "3.0"
