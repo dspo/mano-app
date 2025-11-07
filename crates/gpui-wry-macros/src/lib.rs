@@ -140,12 +140,12 @@ pub fn command_handler(input: TokenStream) -> TokenStream {
         (
             #func_str.to_string(),
             move |request: http::Request<Vec<u8>>| -> http::Response<Vec<u8>> {
-                // 定义必要的常量和辅助函数
+                // Define necessary constants and helper functions
                 use http::{header::CONTENT_TYPE, HeaderValue, Response, StatusCode};
                 use serde::{de::DeserializeOwned, Serialize};
                 use serde_json::{from_slice, to_vec, Value};
 
-                // 响应构建器
+                // Response builder
                 fn response_builder(status_code: StatusCode) -> http::response::Builder {
                     http::Response::builder()
                         .status(status_code)
@@ -166,9 +166,9 @@ pub fn command_handler(input: TokenStream) -> TokenStream {
                         .body(content.to_string().into_bytes())
                 }
 
-                // 尝试反序列化请求体
+                // Try to deserialize request body
                 let request_body = request.into_body();
-                // 直接尝试反序列化，让编译器自动推断类型
+                // Directly try to deserialize, let the compiler infer the type automatically
                 let d = match from_slice(&request_body) {
                     Ok(d) => d,
                     Err(e) => {
@@ -176,13 +176,13 @@ pub fn command_handler(input: TokenStream) -> TokenStream {
                     }
                 };
 
-                // 调用自定义命令
+                // Call custom command
                 let r: Result<_, _> = #func_name(d);
 
-                // 根据结果构建响应
+                // Build response based on result
                 match r {
                     Ok(output) => {
-                        // 序列化成功结果
+                        // Serialize successful result
                         let serialized = match to_vec(&output) {
                             Ok(bytes) => bytes,
                             Err(err) => {
@@ -296,13 +296,13 @@ pub fn command_handlers(input: TokenStream) -> TokenStream {
             (
                 #func_str.to_string(),
                 Box::new(move |request: http::Request<Vec<u8>>| -> http::Response<Vec<u8>> {
-                    // 定义必要的常量和辅助函数
+                    // Define necessary constants and helper functions
                     use http::{header::CONTENT_TYPE, HeaderValue, Response, StatusCode};
                     use serde::{de::DeserializeOwned, Serialize};
                     use serde_json::{from_slice, to_vec, Value};
                     use std::string::ToString;
                     
-                    // 响应构建器
+                    // Response builder
                     fn response_builder(status_code: StatusCode) -> http::response::Builder {
                         http::Response::builder()
                             .status(status_code)
@@ -323,9 +323,9 @@ pub fn command_handlers(input: TokenStream) -> TokenStream {
                             .body(content.to_string().into_bytes())
                     }
                     
-                    // 尝试反序列化请求体
+                    // Try to deserialize request body
                     let request_body = request.into_body();
-                    // 直接尝试反序列化，让编译器自动推断类型
+                    // Directly try to deserialize, let the compiler infer the type automatically
                     let d = match from_slice(&request_body) {
                         Ok(d) => d,
                         Err(e) => {
@@ -333,13 +333,13 @@ pub fn command_handlers(input: TokenStream) -> TokenStream {
                         }
                     };
                     
-                    // 调用自定义命令
+                    // Call custom command
                     let r: Result<_, _> = #func_name(d);
                     
-                    // 根据结果构建响应
+                    // Build response based on result
                     match r {
                         Ok(output) => {
-                            // 序列化成功结果
+                            // Serialize successful result
                             let serialized = match to_vec(&output) {
                                 Ok(bytes) => bytes,
                                 Err(err) => {

@@ -25,7 +25,6 @@ fn main() {
     });
 }
 
-// todo: 窗口大小跟 tauri 示例项目保持一致
 fn greet_view(window: &mut gpui::Window, app: &mut App) -> Entity<WebView> {
     app.new(|cx: &mut Context<WebView>| {
         let webview = gpui_wry::Builder::new()
@@ -50,4 +49,4 @@ fn greet(namer: Namer) -> Result<String, Error> {
     ))
 }
 
-// todo: 学习 tauri 是如何封装 command 的
+// todo: implement macros like #[command] and generate_handler![] in Tauri (if it is necessary)

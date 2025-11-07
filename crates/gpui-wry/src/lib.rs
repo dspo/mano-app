@@ -2,14 +2,14 @@ use gpui_component::wry::{Error as WryError, Result, WebView, WebViewBuilder, We
 use http::header::{ACCESS_CONTROL_ALLOW_ORIGIN, CONTENT_TYPE};
 use http::{Request as HttpRequest, Response as HttpResponse, Result as HttpResult, StatusCode};
 use serde::Serialize;
-use serialize_to_javascript::{default_template, DefaultTemplate, Template};
+use serialize_to_javascript::{DefaultTemplate, Template, default_template};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 
 pub use gpui_wry_macros::{api_handler, command_handlers};
 
-// todo: 实现 dev server
+// todo: implement dev server
 
 pub struct Builder<'a> {
     builder: WebViewBuilder<'a>,
@@ -64,9 +64,9 @@ impl<'a> Builder<'a> {
         self
     }
 
-    // todo: 实现 fallback to ipc
+    // todo: implement fallback to ipc
 
-    // todo: 实现 channel for performance
+    // todo: implement channel for performance
 
     pub fn build_as_child(self, window: &mut gpui::Window) -> Result<WebView> {
         if self.webview_id.is_empty() {
@@ -88,7 +88,7 @@ impl<'a> Builder<'a> {
         self.builder
     }
 
-    // todo: 实现更专业的 serve static
+    // todo: implement more professional serve static
     pub fn serve_static(self, static_root: String) -> Self {
         self.apply(move |b| {
             b.with_asynchronous_custom_protocol(
@@ -104,7 +104,7 @@ impl<'a> Builder<'a> {
     }
 
     fn with_initialization_script_for_main_only(mut self) -> Self {
-        // todo: 搞懂一下 tauri 拿到 window label 和 webview label 做什么用
+        // todo: fix mocked_window_id and webview_id
         let scripts = prepare_scripts(
             String::from("mocked_window_id"),
             self.webview_id.to_string(),
@@ -144,7 +144,7 @@ impl<'a> Builder<'a> {
     }
 }
 
-// todo: 查看下 tauri 是怎么实现的
+// todo: this is too simple, refactor it like Tauri
 fn serve_static(
     webview_id: WebViewId,
     static_path: &str,
@@ -324,7 +324,7 @@ impl core::default::Default for InitializationScript {
 }
 
 impl InitializationScript {
-    // todo: 搞明白什么叫 main_frame_script
+    // todo: let it be usefull like Tauri
     fn main_frame_script(script: String) -> Self {
         InitializationScript {
             script,
