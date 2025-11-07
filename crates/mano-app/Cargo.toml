@@ -2,8 +2,8 @@
 name = "mano-app"
 version = "0.1.0"
 edition = "2021"
-description = "Binary application built with GPUI-WRY framework"
-authors = ["Your Name <your.email@example.com>"]
+description = "Mano-app for novel writing"
+authors = ["dspo <rainchan365@163.com>"]
 license = "MIT OR Apache-2.0"
 
 [[bin]]
@@ -14,16 +14,5 @@ path = "src/main.rs"
 gpui-wry = { workspace = true }
 gpui = { workspace = true }
 gpui-component = { workspace = true }
-serde = { workspace = true }
-serde_json = "1.0"
-tokio = { version = "1.0", features = ["full"] }
-anyhow = "1.0"
-tracing = "0.1"
-tracing-subscriber = "0.3"
-chrono = "0.4"
-toml = { workspace = true }
-dirs = { workspace = true }
-http.workspace = true
 
 [dev-dependencies]
-tempfile = "3.0"
