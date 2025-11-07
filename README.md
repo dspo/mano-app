@@ -23,18 +23,19 @@ With this combination, during GPUI development, you can embed WebViews anywhere 
 GPUI-Wry aims to implement some of Tauri's capabilities, such as calling Rust functions from Webviews, to enable interaction between the two UI types.
 However, much of this work is just beginning.
 
-Some Tauri code has been copied during implementation, which may not be standard practice. License declarations will be added in the future.
+Some Tauri code has been copied during implementation.
 Special thanks to Tauri for the inspiration.
 
 ## Running Examples
 
-The project includes an example application, very similar to Tauri's default example, which you can run with the following command:
+The project includes an example application, very similar to Tauri's default example BUT BUILD ON GPUI.
 
 Before you to run the example, you need to install the frontend app.
 Go to the [directory of the example greet](examples/apps/greet) and run:
 
 ```shell
 pnpm install
+pnpm build
 ```
 
 To run the example, run at the root of the project:
