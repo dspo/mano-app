@@ -1,3 +1,5 @@
+use mano_app::run;
+
 fn main() {
-    println!("Hello Mano");
+    run();
 }
