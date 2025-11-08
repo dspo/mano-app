@@ -1,11 +1,13 @@
-use gpui_component::wry::{Error as WryError, Result, WebView, WebViewBuilder, WebViewId};
+pub mod webview;
+pub use wry;
+
 use http::header::{ACCESS_CONTROL_ALLOW_ORIGIN, CONTENT_TYPE};
-use http::{Request as HttpRequest, Response as HttpResponse, Result as HttpResult, StatusCode};
 use serde::Serialize;
 use serialize_to_javascript::{DefaultTemplate, Template, default_template};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
+use wry::{Error as WryError, Result, WebView, WebViewBuilder, WebViewId};
 
 pub use gpui_wry_macros::{api_handler, command_handlers};
 
@@ -16,7 +18,7 @@ pub struct Builder<'a> {
     webview_id: WebViewId<'a>,
     handlers: HashMap<
         String,
-        Arc<dyn Fn(HttpRequest<Vec<u8>>) -> HttpResponse<Vec<u8>> + Send + Sync + 'static>,
+        Arc<dyn Fn(http::Request<Vec<u8>>) -> http::Response<Vec<u8>> + Send + Sync + 'static>,
     >,
 }
 
@@ -44,7 +46,7 @@ impl<'a> Builder<'a> {
 
     pub fn invoke_handler_single<F>(mut self, api: (String, F)) -> Self
     where
-        F: Fn(HttpRequest<Vec<u8>>) -> HttpResponse<Vec<u8>> + Send + Sync + 'static,
+        F: Fn(http::Request<Vec<u8>>) -> http::Response<Vec<u8>> + Send + Sync + 'static,
     {
         let (name, f) = api;
         self.handlers.insert(name, Arc::new(f));
@@ -55,7 +57,7 @@ impl<'a> Builder<'a> {
     pub fn serve_apis<I, F>(mut self, apis: I) -> Self
     where
         I: IntoIterator<Item = (String, F)>,
-        F: Fn(HttpRequest<Vec<u8>>) -> HttpResponse<Vec<u8>> + Send + Sync + 'static,
+        F: Fn(http::Request<Vec<u8>>) -> http::Response<Vec<u8>> + Send + Sync + 'static,
     {
         for (name, f) in apis {
             self.handlers.insert(name, Arc::new(f));
@@ -148,8 +150,8 @@ impl<'a> Builder<'a> {
 fn serve_static(
     webview_id: WebViewId,
     static_path: &str,
-    request: HttpRequest<Vec<u8>>,
-) -> HttpResult<HttpResponse<Vec<u8>>> {
+    request: http::Request<Vec<u8>>,
+) -> http::Result<http::Response<Vec<u8>>> {
     let path = request.uri().path();
     println!(
         "webview_id: {}, method: {:?}, scheme: {:?}, host: {:?}, path: {:?}",
@@ -202,34 +204,34 @@ fn serve_static(
     };
 
     http::Response::builder()
-        .status(StatusCode::OK)
+        .status(http::StatusCode::OK)
         .header(CONTENT_TYPE, mimetype)
         .header(ACCESS_CONTROL_ALLOW_ORIGIN, "*")
         .body(content)
         .map_err(Into::into)
 }
 
-fn response_not_found<S: ToString>(content: S) -> HttpResponse<Vec<u8>> {
+fn response_not_found<S: ToString>(content: S) -> http::Response<Vec<u8>> {
     http::Response::builder()
-        .status(StatusCode::NOT_FOUND)
+        .status(http::StatusCode::NOT_FOUND)
         .header(CONTENT_TYPE, "text/plain")
         .header(ACCESS_CONTROL_ALLOW_ORIGIN, "*")
         .body(format!("{} not found", content.to_string()).into_bytes())
         .unwrap()
 }
 
-fn response_not_implemented<S: ToString>(content: S) -> HttpResponse<Vec<u8>> {
+fn response_not_implemented<S: ToString>(content: S) -> http::Response<Vec<u8>> {
     http::Response::builder()
-        .status(StatusCode::NOT_IMPLEMENTED)
+        .status(http::StatusCode::NOT_IMPLEMENTED)
         .header(CONTENT_TYPE, "text/plain")
         .header(ACCESS_CONTROL_ALLOW_ORIGIN, "*")
         .body(format!("{} not implemented", content.to_string()).into_bytes())
         .unwrap()
 }
 
-fn response_internal_server_err<S: ToString>(content: S) -> HttpResponse<Vec<u8>> {
-    HttpResponse::builder()
-        .status(StatusCode::INTERNAL_SERVER_ERROR)
+fn response_internal_server_err<S: ToString>(content: S) -> http::Response<Vec<u8>> {
+    http::Response::builder()
+        .status(http::StatusCode::INTERNAL_SERVER_ERROR)
         .header(CONTENT_TYPE, "text/plain")
         .body(content.to_string().as_bytes().to_vec())
         .unwrap()

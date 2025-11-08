@@ -5,7 +5,6 @@ edition = "2024"
 
 [dependencies]
 gpui.workspace = true
-gpui-component.workspace = true
 gpui-wry-macros.workspace = true
 wry.workspace = true
 raw-window-handle.workspace = true

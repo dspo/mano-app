@@ -2,9 +2,9 @@ use gpui::private::serde_json;
 use gpui::{
     px, size, App, AppContext, Application, Bounds, Context, Entity, WindowBounds, WindowOptions,
 };
-use gpui_component::webview::WebView;
-use gpui_component::wry::WebViewId;
 use gpui_wry::command_handlers;
+use gpui_wry::webview::WebView;
+use gpui_wry::wry::WebViewId;
 use serde::{Deserialize, Serialize};
 use std::io::Error;
 

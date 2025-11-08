@@ -2582,7 +2582,6 @@ name = "gpui-wry"
 version = "0.1.0"
 dependencies = [
  "gpui",
- "gpui-component",
  "gpui-wry-macros",
  "http",
  "raw-window-handle",
