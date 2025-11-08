@@ -3781,17 +3781,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "mano-app-workspace"
-version = "0.1.0"
-dependencies = [
- "gpui",
- "gpui-component",
- "gpui-wry",
- "http",
- "serde",
-]
-
-[[package]]
 name = "markdown"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

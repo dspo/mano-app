@@ -11,3 +11,9 @@ raw-window-handle.workspace = true
 http.workspace = true
 serialize-to-javascript.workspace = true
 serde.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[[example]]
+name = "greet"

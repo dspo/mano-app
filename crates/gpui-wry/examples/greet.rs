@@ -1,3 +1,4 @@
+use std::env;
 use gpui::private::serde_json;
 use gpui::{
     px, size, App, AppContext, Application, Bounds, Context, Entity, WindowBounds, WindowOptions,
@@ -26,6 +27,7 @@ fn main() {
 }
 
 fn greet_view(window: &mut gpui::Window, app: &mut App) -> Entity<WebView> {
+    println!("current dir: {:?}", env::current_dir()    );
     app.new(|cx: &mut Context<WebView>| {
         let webview = gpui_wry::Builder::new()
             .with_webview_id(WebViewId::from("greet"))
