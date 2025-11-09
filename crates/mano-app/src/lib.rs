@@ -1,6 +1,6 @@
 use gpui::{
-    div, px, size, AppContext, Application, Bounds, Context, Entity, FocusHandle, Focusable, Hsla,
-    IntoElement, ParentElement, Render, Styled, Window, WindowBounds, WindowOptions,
+    px, size, AppContext, Application, Bounds, Context, Entity, FocusHandle, Focusable, Hsla,
+    IntoElement, Render, Styled, Window, WindowBounds, WindowOptions,
 };
 use gpui_component::resizable::{h_resizable, resizable_panel, v_resizable, ResizableState};
 use gpui_component::Root;
@@ -79,7 +79,7 @@ impl Focusable for ManoApp {
 }
 
 impl Render for ManoApp {
-    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
         h_resizable("main-horizontal-split", self.main_state.clone())
             .child(
                 resizable_panel()
