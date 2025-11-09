@@ -6,9 +6,10 @@ use wry::{
 
 use gpui::private::anyhow;
 use gpui::{
-    App, Bounds, ContentMask, DismissEvent, Element, ElementId, Entity, EventEmitter, FocusHandle,
-    Focusable, GlobalElementId, Hitbox, InteractiveElement, IntoElement, LayoutId, MouseDownEvent,
-    ParentElement as _, Pixels, Render, Size, Style, Styled as _, Window, canvas, div,
+    App, Bounds, ContentMask, DismissEvent, Div, Element, ElementId, Entity, EventEmitter,
+    FocusHandle, Focusable, GlobalElementId, Hitbox, InteractiveElement, IntoElement, LayoutId,
+    MouseDownEvent, ParentElement as _, Pixels, Render, Size, Style, Styled as _, Window, canvas,
+    div,
 };
 
 pub struct WebView {
@@ -16,6 +17,7 @@ pub struct WebView {
     webview: Rc<wry::WebView>,
     visible: bool,
     bounds: Bounds<Pixels>,
+    more_style: Option<Box<dyn Fn(Div) -> Div>>,
 }
 
 impl Drop for WebView {
@@ -33,6 +35,7 @@ impl WebView {
             visible: true,
             bounds: Bounds::default(),
             webview: Rc::new(webview),
+            more_style: None,
         }
     }
 
@@ -63,6 +66,14 @@ impl WebView {
     pub fn load_url(&mut self, url: &str) {
         self.webview.load_url(url).unwrap();
     }
+
+    pub fn more_style<F>(mut self, f: F) -> Self
+    where
+        F: Fn(Div) -> Div + 'static,
+    {
+        self.more_style = Some(Box::new(f));
+        self
+    }
 }
 
 impl Deref for WebView {
@@ -89,9 +100,13 @@ impl Render for WebView {
     ) -> impl IntoElement {
         let view = cx.entity().clone();
 
-        div()
-            .track_focus(&self.focus_handle)
-            .size_full()
+        let mut div_element = div().track_focus(&self.focus_handle).size_full();
+
+        if let Some(ref more_style) = self.more_style {
+            div_element = more_style(div_element);
+        }
+
+        div_element
             .child({
                 let view = cx.entity().clone();
                 canvas(

@@ -91,12 +91,12 @@ impl<'a> Builder<'a> {
     }
 
     // todo: implement more professional serve static
-    pub fn serve_static(self, static_root: String) -> Self {
+    pub fn serve_static<S: ToString + 'static>(self, static_root: S) -> Self {
         self.apply(move |b| {
             b.with_asynchronous_custom_protocol(
                 "wry".into(),
                 move |webview_id, request, responder| {
-                    let response = serve_static(webview_id, &static_root, request)
+                    let response = serve_static(webview_id, static_root.to_string(), request)
                         .unwrap_or_else(response_internal_server_err);
                     responder.respond(response)
                 },
@@ -147,9 +147,9 @@ impl<'a> Builder<'a> {
 }
 
 // todo: this is too simple, refactor it like Tauri
-fn serve_static(
+fn serve_static<S: ToString>(
     webview_id: WebViewId,
-    static_path: &str,
+    static_path: S,
     request: http::Request<Vec<u8>>,
 ) -> http::Result<http::Response<Vec<u8>>> {
     let path = request.uri().path();
@@ -162,7 +162,7 @@ fn serve_static(
         request.uri().path()
     );
     // Read the file content from file path
-    let root = PathBuf::from(static_path);
+    let root = PathBuf::from(static_path.to_string());
     let path = if path == "/" {
         "index.html"
     } else {
