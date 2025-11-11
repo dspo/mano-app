@@ -145,6 +145,7 @@ function Node({ node, style, dragHandle }: NodeRendererProps<GmailItem>) {
       </span>
       <span>{node.isEditing ? <Input node={node} /> : node.data.name}</span>
       <span>{node.data.unread === 0 ? null : node.data.unread}</span>
+      <span>{node.data.moreInfo?.length === 0 ? null : node.data.moreInfo?.join(" ")}</span>
     </div>
   );
 }
