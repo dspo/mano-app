@@ -1,0 +1,33 @@
+// 共享类型定义
+export interface TreeNode {
+  id?: string;
+  name: string;
+  isDirectory: boolean;
+  type: 'file' | 'folder';
+  children?: TreeNode[];
+  icon?: string;
+}
+
+// 组件Props类型
+export interface FileTreeProps {
+  fileTree: TreeNode[];
+  expandedNodes: Set<string>;
+  activeFile: string;
+  onToggleNode: (nodeName: string) => void;
+  onSelectFile: (fileName: string) => void;
+}
+
+export interface MenuBarProps {
+  showSearchPanel: boolean;
+  onToggleSearch: () => void;
+}
+
+export interface EditorProps {
+  activeFile: string;
+  activeFileInfo: TreeNode | undefined;
+  showSearchPanel: boolean;
+}
+
+export interface PropertyPanelProps {
+  activeFileInfo: TreeNode | undefined;
+}
