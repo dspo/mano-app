@@ -18,13 +18,35 @@ import { gmailData, type GmailItem } from "./gmail-data.ts";
 
 // 导入FillFlexParent组件
 import { FillFlexParent } from "./fill-flex-parent.tsx";
+import { useEffect } from "react";
 
 export default function GmailSidebar() {
   const [term] = useState<string>("");
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; node: NodeApi<GmailItem> } | null>(null);
   const globalTree = (tree?: TreeApi<GmailItem> | null) => {
     // @ts-ignore
     window.tree = tree;
   };
+
+  const handleContextMenu = (event: React.MouseEvent) => {
+    event.preventDefault();
+    // 这里简单处理，实际项目中可能需要更精确的节点定位
+    const nodeData = { name: "Selected Node" } as GmailItem;
+    // 创建一个简单的NodeApi对象
+    const node = { data: nodeData } as unknown as NodeApi<GmailItem>;
+    setContextMenu({ x: event.clientX, y: event.clientY, node });
+  };
+
+  const closeContextMenu = () => {
+    setContextMenu(null);
+  };
+
+  // 点击菜单外部关闭菜单
+  useEffect(() => {
+    const handleClickOutside = () => closeContextMenu();
+    window.addEventListener('click', handleClickOutside);
+    return () => window.removeEventListener('click', handleClickOutside);
+  }, []);
 
   return (
     <div className={styles.page}>
@@ -57,13 +79,51 @@ export default function GmailSidebar() {
                       return false;
                     }
                   }}
+                  onContextMenu={handleContextMenu}
                 >
                   {Node}
                 </Tree>
               );
             }}
           </FillFlexParent>
+          {contextMenu && (
+            <ContextMenu
+              x={contextMenu.x}
+              y={contextMenu.y}
+
+              onClose={closeContextMenu}
+            />
+          )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function ContextMenu({ x, y, onClose }: { x: number; y: number; onClose: () => void }) {
+  return (
+    <div
+      className={styles.contextMenu}
+      style={{
+        position: 'fixed',
+        top: y,
+        left: x,
+        zIndex: 1000,
+      }}
+    >
+      <div className={styles.contextMenuItem} onClick={(e) => {
+        e.stopPropagation();
+        // 这里将来实现创建文件功能
+        onClose();
+      }}>
+        Create File In This Node
+      </div>
+      <div className={styles.contextMenuItem} onClick={(e) => {
+        e.stopPropagation();
+        // 这里将来实现删除节点功能
+        onClose();
+      }}>
+        Delete This Node
       </div>
     </div>
   );
@@ -77,6 +137,7 @@ function Node({ node, style, dragHandle }: NodeRendererProps<GmailItem>) {
       style={style}
       className={clsx(styles.node, node.state)}
       onClick={() => node.isInternal && node.toggle()}
+      // 不需要在这里添加onContextMenu，Tree组件会处理
     >
       <FolderArrow node={node} />
       <span>
