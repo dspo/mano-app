@@ -20,14 +20,20 @@ import { gmailData, type GmailItem } from "./gmail-data.ts";
 import { FillFlexParent } from "./fill-flex-parent.tsx";
 import { useEffect } from "react";
 
-export default function GmailSidebar() {
+interface GmailSidebarProps {
+  onSelectNode: (node: GmailItem) => void;
+}
+
+export default function GmailSidebar({ onSelectNode }: GmailSidebarProps) {
   const [term] = useState<string>("");
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; node: NodeApi<GmailItem> } | null>(null);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  
   const globalTree = (tree?: TreeApi<GmailItem> | null) => {
     // @ts-ignore
     window.tree = tree;
   };
-
+  
   const handleContextMenu = (event: React.MouseEvent) => {
     event.preventDefault();
     // 这里简单处理，实际项目中可能需要更精确的节点定位
@@ -47,6 +53,12 @@ export default function GmailSidebar() {
     window.addEventListener('click', handleClickOutside);
     return () => window.removeEventListener('click', handleClickOutside);
   }, []);
+
+  // 处理节点选择并更新状态
+  const handleNodeSelection = (node: GmailItem) => {
+    setSelectedNodeId(node.id);
+    onSelectNode(node);
+  };
 
   return (
     <div className={styles.page}>
@@ -82,7 +94,7 @@ export default function GmailSidebar() {
                   }}
                   onContextMenu={handleContextMenu}
                 >
-                  {Node}
+                  {(props) => <Node {...props} selectedId={selectedNodeId} onSelectNode={handleNodeSelection} />}
                 </Tree>
               );
             }}
@@ -91,7 +103,6 @@ export default function GmailSidebar() {
             <ContextMenu
               x={contextMenu.x}
               y={contextMenu.y}
-
               onClose={closeContextMenu}
             />
           )}
@@ -130,14 +141,21 @@ function ContextMenu({ x, y, onClose }: { x: number; y: number; onClose: () => v
   );
 }
 
-function Node({ node, style, dragHandle }: NodeRendererProps<GmailItem>) {
+function Node({ node, style, dragHandle, selectedId, onSelectNode }: NodeRendererProps<GmailItem> & { selectedId: string | null; onSelectNode: (node: GmailItem) => void }) {
   const Icon = node.data.icon || BsTree;
   return (
     <div
       ref={dragHandle}
       style={style}
-      className={clsx(styles.node, node.state)}
-      onClick={() => node.isInternal && node.toggle()}
+      className={clsx(styles.node, node.state, { [styles.selected]: selectedId === node.data.id })}
+      onClick={(e) => {
+        // 先执行节点展开/折叠
+        if (node.isInternal) {
+          node.toggle();
+        }
+        // 触发选择事件
+        onSelectNode(node.data);
+      }}
     >
       <FolderArrow node={node} />
       <span>

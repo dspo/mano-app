@@ -1,9 +1,42 @@
 import './App.css';
 import GmailSidebar from './components/GmailSidebar';
+import Welcome from './components/Welcome';
+import { useState } from 'react';
+import { type GmailItem } from './components/gmail-data';
+import RichTextEditor from './components/RichTextEditor';
+import PlainTextEditor from './components/PlainTextEditor';
+import MarkdownEditor from './components/MarkdownEditor';
 
 function App() {
-  // 状态管理和文件树数据暂时简化，因为Editor组件已移除
-  // 事件处理函数
+  const [selectedNode, setSelectedNode] = useState<GmailItem | null>(null);
+
+  // 关闭编辑器，返回Welcome界面
+  const handleCloseEditor = () => {
+    setSelectedNode(null);
+  };
+
+  // 根据节点类型渲染对应的编辑器
+  const renderEditor = () => {
+    if (!selectedNode) {
+      return <Welcome />;
+    }
+
+    // 根据节点类型选择编辑器
+    const nodeType = selectedNode.nodeType || 'PlainText';
+    if (nodeType === 'Directory' || nodeType === 'RichText') {
+      return <RichTextEditor node={selectedNode} onClose={handleCloseEditor} />;
+    } else if (nodeType === 'PlainText') {
+      return <PlainTextEditor node={selectedNode} onClose={handleCloseEditor} />;
+    } else if (nodeType === 'Markdown') {
+      return <MarkdownEditor node={selectedNode} onClose={handleCloseEditor} />;
+    }
+
+    return (
+      <div className="editor-content-placeholder">
+        <div className="placeholder-text">未知的编辑器类型</div>
+      </div>
+    );
+  };
 
   return (
     <div className="ide-layout">
@@ -11,7 +44,7 @@ function App() {
       <div className="main-layout">
         {/* 左侧资源管理器 */}
         <div className="sidebar">
-          <GmailSidebar />
+          <GmailSidebar onSelectNode={setSelectedNode} />
 
           {/* 底部快速操作按钮 */}
           <div className="sidebar-footer">
@@ -60,11 +93,9 @@ function App() {
           }}
         ></div>
 
-        {/* 中间编辑器区域 - Editor组件已移除 */}
+        {/* 中间编辑器区域 */}
         <div className="editor-container">
-          <div className="editor-content-placeholder">
-            <div className="placeholder-text">Welcom to Mano</div>
-          </div>
+          {renderEditor()}
         </div>
       </div>
     </div>

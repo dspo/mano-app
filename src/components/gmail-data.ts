@@ -22,7 +22,7 @@ export type GmailItem = {
 export const gmailData: GmailItem[] = [
   {
     id: "1",
-    name: "天龙八部（卷I）",
+    name: "天龙八部",
     unread: 0,
     moreInfo: ["连载中", "[全 3/50 回]"],
     readOnly: false,
@@ -31,7 +31,7 @@ export const gmailData: GmailItem[] = [
     children: [
       {
         id: "1-1",
-        name: "正文",
+        name: "卷 I",
         unread: 0,
         readOnly: false,
         icon: icons.MdInbox,
@@ -91,7 +91,7 @@ export const gmailData: GmailItem[] = [
                 moreInfo: ["仁宗"],
                 readOnly: false,
                 icon: icons.MdPersonPinCircle,
-                nodeType: PlainText,
+                nodeType: RichText,
               },
               {
                 id: "1-3-1-2",
@@ -99,7 +99,7 @@ export const gmailData: GmailItem[] = [
                 moreInfo: ["耶律洪基"],
                 readOnly: false,
                 icon: icons.MdPersonPinCircle,
-                nodeType: PlainText,
+                nodeType: RichText,
               },
             ]
           },
@@ -115,14 +115,14 @@ export const gmailData: GmailItem[] = [
                 name: "丐帮",
                 readOnly: false,
                 icon: icons.MdPerson,
-                nodeType: PlainText,
+                nodeType: RichText,
               },
               {
                 id: "1-3-2-2",
                 name: "大理",
                 readOnly: false,
                 icon: icons.MdPerson,
-                nodeType: PlainText,
+                nodeType: RichText,
               },
             ]
           },
@@ -206,7 +206,7 @@ export const gmailData: GmailItem[] = [
     unread: 0,
     readOnly: false,
     icon: icons.MdSend,
-    nodeType: PlainText,
+    nodeType: Markdown,
   },
   {
     id: "6",
@@ -276,5 +276,4 @@ export const gmailData: GmailItem[] = [
       },
     ]
   },
-
 ];
