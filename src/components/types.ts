@@ -22,7 +22,4 @@ export interface MenuBarProps {
   onToggleSearch: () => void;
 }
 
-export interface EditorProps {
-  activeFile: string;
-  activeFileInfo: TreeNode | undefined;
-}
+// EditorProps接口已移除，因为Editor组件已删除

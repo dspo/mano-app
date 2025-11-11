@@ -1,70 +1,9 @@
-import { useState } from 'react';
 import './App.css';
-import { TreeNode } from './components/types';
 import GmailSidebar from './components/GmailSidebar';
-import Editor from './components/Editor';
 
 function App() {
-  // 状态管理
-  const [activeFile] = useState<string>('序章.md');
-
-  // 模拟文件树数据
-  const mockFileTree: TreeNode[] = [
-    {
-      id: 'chapter1',
-      name: '第一章',
-      isDirectory: true,
-      type: 'folder',
-      icon: '📁',
-      children: [
-        { id: 'prologue', name: '序章.md', isDirectory: false, type: 'file', icon: '📝' },
-        { id: 'section1-1', name: '第一节.md', isDirectory: false, type: 'file', icon: '📄' },
-        { id: 'section1-2', name: '第二节.md', isDirectory: false, type: 'file', icon: '📄' }
-      ]
-    },
-    {
-      id: 'chapter2',
-      name: '第二章',
-      isDirectory: true,
-      type: 'folder',
-      icon: '📁',
-      children: [
-        { id: 'section2-1', name: '第一节.md', isDirectory: false, type: 'file', icon: '📄' },
-        { id: 'section2-2', name: '第二节.md', isDirectory: false, type: 'file', icon: '📄' }
-      ]
-    },
-    {
-      id: 'chapter3',
-      name: '第三章',
-      isDirectory: true,
-      type: 'folder',
-      icon: '📁',
-      children: [
-        { id: 'section3-1', name: '第一节.md', isDirectory: false, type: 'file', icon: '📄' }
-      ]
-    },
-    { id: 'outline', name: '大纲.md', isDirectory: false, type: 'file', icon: '📋' },
-    { id: 'characters', name: '角色设定.md', isDirectory: false, type: 'file', icon: '👥' }
-  ];
-
+  // 状态管理和文件树数据暂时简化，因为Editor组件已移除
   // 事件处理函数
-
-  // 获取当前活动文件的详细信息
-  const getActiveFileInfo = () => {
-    const findNode = (nodes: TreeNode[]): TreeNode | undefined => {
-      for (const node of nodes) {
-        if (node.name === activeFile) return node;
-        if (node.children) {
-          const found = findNode(node.children);
-          if (found) return found;
-        }
-      }
-      return undefined;
-    };
-    return findNode(mockFileTree);
-  };
-
-  const activeFileInfo = getActiveFileInfo();
 
   return (
     <div className="ide-layout">
@@ -75,8 +14,8 @@ function App() {
           <GmailSidebar />
           
           {/* 底部快速操作按钮 */}
-          <div style={{ padding: '12px', borderTop: '1px solid var(--border-color)' }}>
-            <button style={{ width: '100%', fontSize: '12px' }}>新建文件</button>
+          <div className="sidebar-footer">
+            <button className="create-file-btn">新建文件</button>
           </div>
         </div>
         
@@ -85,37 +24,48 @@ function App() {
           className="resizer"
           onMouseDown={(e) => {
             e.preventDefault();
-            let startX = e.clientX;
+            const startX = e.clientX;
             const sidebar = document.querySelector('.sidebar') as HTMLElement;
+            const startWidth = sidebar.offsetWidth;
+            const mainLayout = document.querySelector('.main-layout') as HTMLElement;
+            
+            // 添加视觉反馈
+            sidebar.classList.add('resizing');
+            mainLayout.classList.add('resizing');
             
             const handleMouseMove = (e: MouseEvent) => {
               const deltaX = e.clientX - startX;
-              const newWidth = Math.max(200, Math.min(400, sidebar.offsetWidth + deltaX));
+              const newWidth = Math.max(220, Math.min(400, startWidth + deltaX));
               sidebar.style.width = `${newWidth}px`;
-              startX = e.clientX;
             };
             
             const handleMouseUp = () => {
               document.removeEventListener('mousemove', handleMouseMove);
               document.removeEventListener('mouseup', handleMouseUp);
+              document.removeEventListener('mouseleave', handleMouseUp);
               document.body.style.cursor = '';
+              document.body.style.userSelect = '';
+              
+              // 移除视觉反馈
+              sidebar.classList.remove('resizing');
+              mainLayout.classList.remove('resizing');
             };
             
+            // 添加额外的事件监听以增强用户体验
             document.addEventListener('mousemove', handleMouseMove);
             document.addEventListener('mouseup', handleMouseUp);
+            document.addEventListener('mouseleave', handleMouseUp);
             document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none'; // 防止拖动时选中文本
           }}
         ></div>
 
-        {/* 中间编辑器 */}
+        {/* 中间编辑器区域 - Editor组件已移除 */}
         <div className="editor-container">
-          <Editor 
-            activeFile={activeFile}
-            activeFileInfo={activeFileInfo}
-          />
+          <div className="editor-content-placeholder">
+            <div className="placeholder-text">编辑器区域</div>
+          </div>
         </div>
-
-
       </div>
     </div>
   );

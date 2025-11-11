@@ -51,8 +51,9 @@ body, html, #root {
   flex-direction: column;
   height: 100vh;
   width: 100vw;
-  padding: 12px;
-  gap: 12px;
+  padding: 0;
+  gap: 0;
+  background-color: transparent;
 }
 
 /* 顶部菜单栏 */
@@ -85,22 +86,30 @@ body, html, #root {
 .main-layout {
   display: flex;
   flex: 1;
-  gap: 12px;
+  gap: 0;
   overflow: hidden;
   position: relative;
+  background-color: transparent;
+}
+
+/* 调整大小时的视觉反馈 */
+.main-layout.resizing {
+  cursor: col-resize;
 }
 
 /* 左侧边栏 */
 .sidebar {
-  width: 280px;
-  background-color: var(--bg-secondary);
-  border-radius: var(--radius-md);
-  box-shadow: 0 1px 3px var(--shadow-color);
+  width: 270px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid var(--border-color);
   flex-shrink: 0;
+  transition: width 0.15s ease;
+}
+
+/* 调整大小时的视觉反馈 */
+.sidebar.resizing {
+  cursor: col-resize;
 }
 
 .sidebar-header {
@@ -179,22 +188,94 @@ body, html, #root {
   flex-direction: column;
   overflow: hidden;
   min-width: 0;
+  background-color: white;
 }
 
-/* 可拖拽分隔条样式 */
+/* 编辑器内容占位符样式 */
+.editor-content-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  background-color: white;
+  color: var(--text-secondary);
+}
+
+.placeholder-text {
+  font-size: 14px;
+  color: var(--text-tertiary);
+  padding: 40px;
+  text-align: center;
+  border-radius: var(--radius-md);
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+/* 侧边栏底部样式 */
+.sidebar-footer {
+  padding: 12px;
+  border-top: 1px solid var(--border-color);
+  background-color: var(--bg-secondary);
+}
+
+.create-file-btn {
+  width: 100%;
+  font-size: 12px;
+  padding: 8px 12px;
+  font-weight: 500;
+  background-color: var(--accent-color);
+  color: white;
+  border-radius: var(--radius-sm);
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.create-file-btn:hover {
+  background-color: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px var(--shadow-hover);
+}
+
+.create-file-btn:active {
+  transform: translateY(0);
+}
+
+/* 可拖拽分隔条样式 - 优化用户体验 */
 .resizer {
-  width: 5px;
+  width: 6px;
   height: 100%;
   background-color: transparent;
   cursor: col-resize;
-  transition: background-color 0.2s;
+  transition: background-color 0.15s ease;
+  position: relative;
 }
 
 .resizer:hover {
   background-color: var(--accent-color);
+  opacity: 0.3;
 }
 
 .resizer:active {
+  background-color: var(--accent-color);
+  opacity: 0.6;
+  cursor: col-resize;
+}
+
+/* 分隔条悬停时的细微提示 */
+.resizer::after {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 0;
+  height: 100%;
+  width: 2px;
+  background-color: transparent;
+  transition: background-color 0.15s ease;
+}
+
+.resizer:hover::after {
   background-color: var(--accent-color);
   opacity: 0.8;
 }
