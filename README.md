@@ -6,7 +6,7 @@ This project attempts to implement a novel writing application based on the GPUI
 
 One line of "Hello World" has been written, success is just around the corner 😂.
 
-# GPUI-WRY
+# GPUI-Wry
 
 GPUI-Wry attempts to combine [GPUI](https://www.gpui.rs/) with [Tauri](https://tauri.app/).
 
