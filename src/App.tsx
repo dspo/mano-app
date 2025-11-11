@@ -2,14 +2,13 @@ import { useState } from 'react';
 import './App.css';
 import { TreeNode } from './components/types';
 import MenuBar from './components/MenuBar';
-import FileTree from './components/FileTree';
+import GmailSidebar from './components/GmailSidebar';
 import Editor from './components/Editor';
 import PropertyPanel from './components/PropertyPanel';
 
 function App() {
   // 状态管理
-  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set(['第一章', '第二章']));
-  const [activeFile, setActiveFile] = useState<string>('序章.md');
+  const [activeFile] = useState<string>('序章.md');
   const [showSearchPanel, setShowSearchPanel] = useState<boolean>(false);
 
   // 模拟文件树数据
@@ -52,20 +51,6 @@ function App() {
   ];
 
   // 事件处理函数
-  const toggleNode = (nodeName: string) => {
-    const newExpanded = new Set(expandedNodes);
-    if (newExpanded.has(nodeName)) {
-      newExpanded.delete(nodeName);
-    } else {
-      newExpanded.add(nodeName);
-    }
-    setExpandedNodes(newExpanded);
-  };
-
-  const handleSelectFile = (fileName: string) => {
-    setActiveFile(fileName);
-  };
-
   const handleToggleSearch = () => {
     setShowSearchPanel(!showSearchPanel);
   };
@@ -102,13 +87,7 @@ function App() {
           <div className="sidebar-header">
             <h3>文件浏览器</h3>
           </div>
-          <FileTree 
-            fileTree={mockFileTree}
-            expandedNodes={expandedNodes}
-            activeFile={activeFile}
-            onToggleNode={toggleNode}
-            onSelectFile={handleSelectFile}
-          />
+          <GmailSidebar />
           
           {/* 底部快速操作按钮 */}
           <div style={{ padding: '12px', borderTop: '1px solid var(--border-color)' }}>

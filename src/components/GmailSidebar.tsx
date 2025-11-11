@@ -1,0 +1,172 @@
+import clsx from "clsx";
+import React, { useState } from "react";
+import {
+  CursorProps,
+  NodeApi,
+  NodeRendererProps,
+  Tree,
+  TreeApi,
+} from "react-arborist";
+import * as icons from "react-icons/md";
+import { SiGmail } from "react-icons/si";
+import { BsTree } from "react-icons/bs";
+import styles from "./Gmail.module.css";
+
+// 导入和类型声明
+import { gmailData } from "./gmail-data";
+type GmailItem = {
+  id: string;
+  name: string;
+  icon: React.ComponentType;
+  unread?: number;
+  readOnly: boolean;
+  children?: GmailItem[];
+};
+
+// 导入FillFlexParent组件
+import { FillFlexParent } from "./fill-flex-parent";
+
+export default function GmailSidebar() {
+  const [term, setTerm] = useState<string>("");
+  const globalTree = (tree?: TreeApi<GmailItem> | null) => {
+    // @ts-ignore
+    window.tree = tree;
+  };
+
+  return (
+    <div className={styles.page}>
+      <div className={styles.mainContent}>
+        <div className={styles.sidebar}>
+          <div className={styles.header}>
+            <icons.MdMenu />
+            <SiGmail />
+            <h1>Gmail</h1>
+          </div>
+          <button className={styles.composeButton}>
+            <icons.MdOutlineCreate />
+            Compose
+          </button>
+          <FillFlexParent>
+            {({ width, height }: { width: number; height: number }) => {
+              return (
+                <Tree
+                  ref={globalTree}
+                  initialData={gmailData}
+                  width={width}
+                  height={height}
+                  rowHeight={32}
+                  renderCursor={Cursor}
+                  searchTerm={term}
+                  paddingBottom={32}
+                  disableEdit={(data) => data.readOnly}
+                  disableDrop={({ parentNode, dragNodes }) => {
+                    if (
+                      parentNode.data.name === "Categories" &&
+                      dragNodes.some((drag) => drag.data.name === "Inbox")
+                    ) {
+                      return true;
+                    } else {
+                      return false;
+                    }
+                  }}
+                >
+                  {Node}
+                </Tree>
+              );
+            }}
+          </FillFlexParent>
+        </div>
+        <div className={styles.content}>
+          <h1>React Arborist Style Demo</h1>
+          <p className={styles.mobileWarning}>
+            Heads up! <br />
+            This site works best on a desktop screen.
+          </p>
+          <p>
+            React Arborist can be used to create something like the gmail
+            sidebar.
+          </p>
+          <p>The tree is fully functional. Try the following:</p>
+          <ul>
+            <li>Drag the items around</li>
+            <li>Try to drag Inbox into Categories (not allowed)</li>
+            <li>Move focus with the arrow keys</li>
+            <li>Toggle folders (press spacebar)</li>
+            <li>
+              Rename (press enter, only allowed on items in {'\''}Categories{'\''}
+              )
+            </li>
+            <li>Create a new item (press A)</li>
+            <li>Create a new folder (press shift+A)</li>
+            <li>Delete items (press delete)</li>
+            <li>Select multiple items with shift or meta</li>
+            <li>
+              Filter the tree by typing in this text box:{' '}
+              <input
+                value={term}
+                onChange={(e) => setTerm(e.currentTarget.value)}
+              />
+            </li>
+          </ul>
+          <p>
+            Star it on{' '}
+            <a href="https://github.com/brimdata/react-arborist">Github</a> (The
+            docs are there too).
+          </p>
+          <p>
+            Follow updates on{' '}
+            <a href="https://twitter.com/specialCaseDev">Twitter</a>.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Node({ node, style, dragHandle }: NodeRendererProps<GmailItem>) {
+  const Icon = node.data.icon || BsTree;
+  return (
+    <div
+      ref={dragHandle}
+      style={style}
+      className={clsx(styles.node, node.state)}
+      onClick={() => node.isInternal && node.toggle()}
+    >
+      <FolderArrow node={node} />
+      <span>
+        <Icon />
+      </span>
+      <span>{node.isEditing ? <Input node={node} /> : node.data.name}</span>
+      <span>{node.data.unread === 0 ? null : node.data.unread}</span>
+    </div>
+  );
+}
+
+function Input({ node }: { node: NodeApi<GmailItem> }) {
+  return (
+    <input
+      autoFocus
+      type="text"
+      defaultValue={node.data.name}
+      onFocus={(e) => e.currentTarget.select()}
+      onBlur={() => node.reset()}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") node.reset();
+        if (e.key === "Enter") node.submit(e.currentTarget.value);
+      }}
+    />
+  );
+}
+
+function FolderArrow({ node }: { node: NodeApi<GmailItem> }) {
+  if (node.isLeaf) return <span></span>;
+  return (
+    <span>
+      {node.isOpen ? <icons.MdArrowDropDown /> : <icons.MdArrowRight />}
+    </span>
+  );
+}
+
+function Cursor({ top, left }: CursorProps) {
+  return <div className={styles.dropCursor} style={{ top, left }}></div>;
+}
