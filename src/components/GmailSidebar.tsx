@@ -32,7 +32,7 @@ export default function GmailSidebar() {
         <div className={styles.sidebar}>
           <div className={styles.header}>
             <SiGmail />
-            <h1>Gmail</h1>
+            <h1>Mano</h1>
           </div>
           <FillFlexParent>
             {({ width, height }: { width: number; height: number }) => {
