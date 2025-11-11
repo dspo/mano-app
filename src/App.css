@@ -87,6 +87,7 @@ body, html, #root {
   flex: 1;
   gap: 12px;
   overflow: hidden;
+  position: relative;
 }
 
 /* 左侧边栏 */
@@ -99,6 +100,7 @@ body, html, #root {
   flex-direction: column;
   overflow: hidden;
   border: 1px solid var(--border-color);
+  flex-shrink: 0;
 }
 
 .sidebar-header {
@@ -176,6 +178,25 @@ body, html, #root {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  min-width: 0;
+}
+
+/* 可拖拽分隔条样式 */
+.resizer {
+  width: 5px;
+  height: 100%;
+  background-color: transparent;
+  cursor: col-resize;
+  transition: background-color 0.2s;
+}
+
+.resizer:hover {
+  background-color: var(--accent-color);
+}
+
+.resizer:active {
+  background-color: var(--accent-color);
+  opacity: 0.8;
 }
 
 .editor {

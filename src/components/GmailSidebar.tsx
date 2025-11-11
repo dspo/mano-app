@@ -1,5 +1,5 @@
 import clsx from "clsx";
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   CursorProps,
   NodeApi,
@@ -13,21 +13,13 @@ import { BsTree } from "react-icons/bs";
 import styles from "./Gmail.module.css";
 
 // 导入和类型声明
-import { gmailData } from "./gmail-data";
-type GmailItem = {
-  id: string;
-  name: string;
-  icon: React.ComponentType;
-  unread?: number;
-  readOnly: boolean;
-  children?: GmailItem[];
-};
+import { gmailData, type GmailItem } from "./gmail-data";
 
 // 导入FillFlexParent组件
 import { FillFlexParent } from "./fill-flex-parent";
 
 export default function GmailSidebar() {
-  const [term, setTerm] = useState<string>("");
+  const [term] = useState<string>("");
   const globalTree = (tree?: TreeApi<GmailItem> | null) => {
     // @ts-ignore
     window.tree = tree;
@@ -75,48 +67,6 @@ export default function GmailSidebar() {
               );
             }}
           </FillFlexParent>
-        </div>
-        <div className={styles.content}>
-          <h1>React Arborist Style Demo</h1>
-          <p className={styles.mobileWarning}>
-            Heads up! <br />
-            This site works best on a desktop screen.
-          </p>
-          <p>
-            React Arborist can be used to create something like the gmail
-            sidebar.
-          </p>
-          <p>The tree is fully functional. Try the following:</p>
-          <ul>
-            <li>Drag the items around</li>
-            <li>Try to drag Inbox into Categories (not allowed)</li>
-            <li>Move focus with the arrow keys</li>
-            <li>Toggle folders (press spacebar)</li>
-            <li>
-              Rename (press enter, only allowed on items in {'\''}Categories{'\''}
-              )
-            </li>
-            <li>Create a new item (press A)</li>
-            <li>Create a new folder (press shift+A)</li>
-            <li>Delete items (press delete)</li>
-            <li>Select multiple items with shift or meta</li>
-            <li>
-              Filter the tree by typing in this text box:{' '}
-              <input
-                value={term}
-                onChange={(e) => setTerm(e.currentTarget.value)}
-              />
-            </li>
-          </ul>
-          <p>
-            Star it on{' '}
-            <a href="https://github.com/brimdata/react-arborist">Github</a> (The
-            docs are there too).
-          </p>
-          <p>
-            Follow updates on{' '}
-            <a href="https://twitter.com/specialCaseDev">Twitter</a>.
-          </p>
         </div>
       </div>
     </div>

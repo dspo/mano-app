@@ -79,6 +79,33 @@ function App() {
             <button style={{ width: '100%', fontSize: '12px' }}>新建文件</button>
           </div>
         </div>
+        
+        {/* 可拖拽分隔条 */}
+        <div 
+          className="resizer"
+          onMouseDown={(e) => {
+            e.preventDefault();
+            let startX = e.clientX;
+            const sidebar = document.querySelector('.sidebar') as HTMLElement;
+            
+            const handleMouseMove = (e: MouseEvent) => {
+              const deltaX = e.clientX - startX;
+              const newWidth = Math.max(200, Math.min(400, sidebar.offsetWidth + deltaX));
+              sidebar.style.width = `${newWidth}px`;
+              startX = e.clientX;
+            };
+            
+            const handleMouseUp = () => {
+              document.removeEventListener('mousemove', handleMouseMove);
+              document.removeEventListener('mouseup', handleMouseUp);
+              document.body.style.cursor = '';
+            };
+            
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
+            document.body.style.cursor = 'col-resize';
+          }}
+        ></div>
 
         {/* 中间编辑器 */}
         <div className="editor-container">
