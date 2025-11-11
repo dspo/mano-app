@@ -17,6 +17,7 @@ export const gmailData: GmailItem[] = [
     unread: 1,
     readOnly: true,
     icon: icons.MdInbox,
+    children: []
   },
   {
     id: "2",
