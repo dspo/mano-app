@@ -72,9 +72,6 @@ function App() {
       <div className="main-layout">
         {/* 左侧资源管理器 */}
         <div className="sidebar">
-          <div className="sidebar-header">
-            <h3>文件浏览器</h3>
-          </div>
           <GmailSidebar />
           
           {/* 底部快速操作按钮 */}
