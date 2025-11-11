@@ -57,12 +57,13 @@ export default function GmailSidebar() {
             <h1>Mano</h1>
           </div>
           <FillFlexParent>
-            {({ width, height }: { width: number; height: number }) => {
+            {({ height }: { width: number; height: number }) => {
+              // 移除固定width，让Tree组件自动适应父容器宽度
+              // 只传递height以确保垂直滚动正常工作
               return (
                 <Tree
                   ref={globalTree}
                   initialData={gmailData}
-                  width={width}
                   height={height}
                   rowHeight={32}
                   renderCursor={Cursor}
@@ -137,7 +138,6 @@ function Node({ node, style, dragHandle }: NodeRendererProps<GmailItem>) {
       style={style}
       className={clsx(styles.node, node.state)}
       onClick={() => node.isInternal && node.toggle()}
-      // 不需要在这里添加onContextMenu，Tree组件会处理
     >
       <FolderArrow node={node} />
       <span>
