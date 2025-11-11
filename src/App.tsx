@@ -1,15 +1,12 @@
 import { useState } from 'react';
 import './App.css';
 import { TreeNode } from './components/types';
-import MenuBar from './components/MenuBar';
 import GmailSidebar from './components/GmailSidebar';
 import Editor from './components/Editor';
-import PropertyPanel from './components/PropertyPanel';
 
 function App() {
   // 状态管理
   const [activeFile] = useState<string>('序章.md');
-  const [showSearchPanel, setShowSearchPanel] = useState<boolean>(false);
 
   // 模拟文件树数据
   const mockFileTree: TreeNode[] = [
@@ -51,9 +48,6 @@ function App() {
   ];
 
   // 事件处理函数
-  const handleToggleSearch = () => {
-    setShowSearchPanel(!showSearchPanel);
-  };
 
   // 获取当前活动文件的详细信息
   const getActiveFileInfo = () => {
@@ -74,12 +68,6 @@ function App() {
 
   return (
     <div className="ide-layout">
-      {/* 顶部菜单栏 */}
-      <MenuBar 
-        showSearchPanel={showSearchPanel} 
-        onToggleSearch={handleToggleSearch} 
-      />
-
       {/* 主布局 */}
       <div className="main-layout">
         {/* 左侧资源管理器 */}
@@ -100,12 +88,10 @@ function App() {
           <Editor 
             activeFile={activeFile}
             activeFileInfo={activeFileInfo}
-            showSearchPanel={showSearchPanel}
           />
         </div>
 
-        {/* 右侧属性面板 */}
-        <PropertyPanel activeFileInfo={activeFileInfo} />
+
       </div>
     </div>
   );

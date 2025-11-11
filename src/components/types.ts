@@ -25,9 +25,4 @@ export interface MenuBarProps {
 export interface EditorProps {
   activeFile: string;
   activeFileInfo: TreeNode | undefined;
-  showSearchPanel: boolean;
-}
-
-export interface PropertyPanelProps {
-  activeFileInfo: TreeNode | undefined;
 }
