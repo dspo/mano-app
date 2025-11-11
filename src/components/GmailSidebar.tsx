@@ -7,9 +7,10 @@ import {
   Tree,
   TreeApi,
 } from "react-arborist";
-import * as icons from "react-icons/md";
+
 import { SiGmail } from "react-icons/si";
 import { BsTree } from "react-icons/bs";
+import { MdArrowDropDown, MdArrowRight } from "react-icons/md";
 import styles from "./Gmail.module.css";
 
 // 导入和类型声明
@@ -30,7 +31,6 @@ export default function GmailSidebar() {
       <div className={styles.mainContent}>
         <div className={styles.sidebar}>
           <div className={styles.header}>
-            <icons.MdMenu />
             <SiGmail />
             <h1>Gmail</h1>
           </div>
@@ -108,7 +108,7 @@ function FolderArrow({ node }: { node: NodeApi<GmailItem> }) {
   if (node.isLeaf) return <span></span>;
   return (
     <span>
-      {node.isOpen ? <icons.MdArrowDropDown /> : <icons.MdArrowRight />}
+      {node.isOpen ? <MdArrowDropDown /> : <MdArrowRight />}
     </span>
   );
 }
