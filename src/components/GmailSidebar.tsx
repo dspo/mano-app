@@ -13,10 +13,10 @@ import { BsTree } from "react-icons/bs";
 import styles from "./Gmail.module.css";
 
 // 导入和类型声明
-import { gmailData, type GmailItem } from "./gmail-data";
+import { gmailData, type GmailItem } from "./gmail-data.ts";
 
 // 导入FillFlexParent组件
-import { FillFlexParent } from "./fill-flex-parent";
+import { FillFlexParent } from "./fill-flex-parent.tsx";
 
 export default function GmailSidebar() {
   const [term] = useState<string>("");
@@ -34,10 +34,6 @@ export default function GmailSidebar() {
             <SiGmail />
             <h1>Gmail</h1>
           </div>
-          <button className={styles.composeButton}>
-            <icons.MdOutlineCreate />
-            Compose
-          </button>
           <FillFlexParent>
             {({ width, height }: { width: number; height: number }) => {
               return (
