@@ -1,13 +1,13 @@
 import clsx from "clsx";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import {
   CursorProps,
   NodeApi,
   NodeRendererProps,
   Tree,
-  TreeApi,
   useSimpleTree,
 } from "react-arborist";
+import { saveDataToConfig } from "@components/controller";
 
 import { SiGmail } from "react-icons/si";
 import { BsTree } from "react-icons/bs";
@@ -15,15 +15,18 @@ import { MdArrowDropDown, MdArrowRight } from "react-icons/md";
 import styles from "./Gmail.module.css";
 
 // 导入和类型声明
-import { gmailData, type GmailItem } from "./gmail-data.ts";
+import { gmailData } from "@components/gmail-data";
+import type { GmailItem } from "@components/model";
 
 // 导入FillFlexParent组件
-import { FillFlexParent } from "./fill-flex-parent.tsx";
+import { FillFlexParent } from "@components/fill-flex-parent";
 import { useEffect } from "react";
 
 interface GmailSidebarProps {
   onSelectNode: (node: GmailItem) => void;
 }
+
+// Workspace directory is defined in controller.ts
 
 export default function GmailSidebar({ onSelectNode }: GmailSidebarProps) {
   const [term] = useState<string>("");
@@ -31,9 +34,14 @@ export default function GmailSidebar({ onSelectNode }: GmailSidebarProps) {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [data, dataController] = useSimpleTree(gmailData);
 
+  // Filter function is now imported from controller.ts
+
   useEffect(() => {
     console.log("data", data);
-  }, [data]);
+
+    // 使用controller中的保存函数
+    saveDataToConfig(data);
+  }, [data, saveDataToConfig]);
 
   const handleContextMenu = (event: React.MouseEvent) => {
     event.preventDefault();

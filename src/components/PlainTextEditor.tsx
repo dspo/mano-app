@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { type GmailItem } from './gmail-data';
+import type { GmailItem } from '@components/model';
 
 interface PlainTextEditorProps {
   node: GmailItem;
@@ -78,43 +78,43 @@ const PlainTextEditor = ({ node: _node, onClose }: PlainTextEditorProps) => {
   const startDrag = (e: React.MouseEvent) => {
     // 只有在窗口化状态下可以拖拽
     if (!isWindowed || isMaximized) return;
-    
+
     e.preventDefault();
     isDragging.current = true;
     document.body.style.userSelect = 'none';
-    
+
     const startX = e.clientX;
     const startY = e.clientY;
     const currentX = position.x;
     const currentY = position.y;
-    
+
     const handleMouseMove = (moveEvent: MouseEvent) => {
       if (!isDragging.current || !editorRef.current || !editorRef.current.parentElement) return;
-      
+
       const deltaX = moveEvent.clientX - startX;
       const deltaY = moveEvent.clientY - startY;
-      
+
       // 计算新位置并限制在父容器内
       const parentRect = editorRef.current.parentElement.getBoundingClientRect();
       const editorRect = editorRef.current.getBoundingClientRect();
-      
+
       let newX = currentX + deltaX;
       let newY = currentY + deltaY;
-      
+
       // 限制在父容器边界内
       newX = Math.max(0, Math.min(newX, parentRect.width - editorRect.width));
       newY = Math.max(0, Math.min(newY, parentRect.height - editorRect.height));
-      
+
       setPosition({ x: newX, y: newY });
     };
-    
+
     const handleMouseUp = () => {
       isDragging.current = false;
       document.body.style.userSelect = '';
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-    
+
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
   };
@@ -124,24 +124,24 @@ const PlainTextEditor = ({ node: _node, onClose }: PlainTextEditorProps) => {
     e.preventDefault();
     isResizing.current = true;
     document.body.style.userSelect = 'none';
-    
+
     const startX = e.clientX;
     const startY = e.clientY;
     const startWidth = editorRef.current?.offsetWidth || 0;
     const startHeight = editorRef.current?.offsetHeight || 0;
     const startPosition = { ...position };
-    
+
     const handleMouseMove = (moveEvent: MouseEvent) => {
       if (!isResizing.current || !editorRef.current) return;
-      
+
       const deltaX = moveEvent.clientX - startX;
       const deltaY = moveEvent.clientY - startY;
-      
+
       let newWidth = startWidth;
       let newHeight = startHeight;
       let newX = startPosition.x;
       let newY = startPosition.y;
-      
+
       // 根据方向调整尺寸和位置
       switch (direction) {
         case 'top-left':
@@ -179,30 +179,30 @@ const PlainTextEditor = ({ node: _node, onClose }: PlainTextEditorProps) => {
           newX = startPosition.x + deltaX;
           break;
       }
-      
+
       setDimensions({
         width: `${newWidth}px`,
         height: `${newHeight}px`
       });
-      
+
       // 如果在窗口化状态下，同时更新位置
       if (isWindowed) {
         setPosition({ x: newX, y: newY });
       }
-      
+
       // 调整大小时自动进入窗口化状态
       if (!isWindowed && !isMaximized) {
         setIsWindowed(true);
       }
     };
-    
+
     const handleMouseUp = () => {
       isResizing.current = false;
       document.body.style.userSelect = '';
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-    
+
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
   };
@@ -211,24 +211,24 @@ const PlainTextEditor = ({ node: _node, onClose }: PlainTextEditorProps) => {
   useEffect(() => {
     return () => {
       document.body.style.userSelect = '';
-      document.removeEventListener('mousemove', () => {});
-      document.removeEventListener('mouseup', () => {});
+      document.removeEventListener('mousemove', () => { });
+      document.removeEventListener('mouseup', () => { });
     };
   }, []);
 
   return (
-    <div 
+    <div
       ref={editorRef}
       className={`editor text-editor ${isMaximized ? 'maximized' : ''} ${isWindowed ? 'windowed' : ''} ${isDragging.current ? 'dragging' : ''}`}
-        style={{
-          width: dimensions.width,
-          height: dimensions.height,
-          position: isWindowed ? 'absolute' : 'relative',
-          left: isWindowed ? `${position.x}px` : 0,
-          top: isWindowed ? `${position.y}px` : 0,
-          resize: 'both',
-          overflow: 'hidden'
-        }}
+      style={{
+        width: dimensions.width,
+        height: dimensions.height,
+        position: isWindowed ? 'absolute' : 'relative',
+        left: isWindowed ? `${position.x}px` : 0,
+        top: isWindowed ? `${position.y}px` : 0,
+        resize: 'both',
+        overflow: 'hidden'
+      }}
     >
       <div className="editor-header" onMouseDown={startDrag}>
         <div className="editor-title">Plain Text Editor</div>
@@ -243,7 +243,7 @@ const PlainTextEditor = ({ node: _node, onClose }: PlainTextEditorProps) => {
             {isMaximized ? '⤦' : '⤢'}
           </button>
         </div>
-        
+
         {/* 全方位调整大小控制器 */}
         {isWindowed && !isMaximized && (
           <>

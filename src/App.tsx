@@ -1,12 +1,12 @@
 import './App.css';
-import GmailSidebar from './components/GmailSidebar';
-import Welcome from './components/Welcome';
+import GmailSidebar from '@components/GmailSidebar';
+import Welcome from '@components/Welcome';
 import { useState } from 'react';
-import { type GmailItem } from './components/gmail-data';
-import RichTextEditor from './components/RichTextEditor';
-import PlainTextEditor from './components/PlainTextEditor';
-import MarkdownEditor from './components/MarkdownEditor';
-import DirectoryPanel from './components/DirectoryPanel';
+import type { GmailItem } from '@components/model';
+import RichTextEditor from '@components/RichTextEditor';
+import PlainTextEditor from '@components/PlainTextEditor';
+import MarkdownEditor from '@components/MarkdownEditor';
+import DirectoryPanel from '@components/DirectoryPanel';
 
 function App() {
   const [selectedNode, setSelectedNode] = useState<GmailItem | null>(null);

@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { type GmailItem } from './gmail-data';
+import type { GmailItem } from '@components/model';
 
 interface DirectoryPanelProps {
   node: GmailItem;
@@ -77,51 +77,51 @@ const DirectoryPanel = ({ node, onClose }: DirectoryPanelProps) => {
   const startDrag = (e: React.MouseEvent) => {
     // 只有在窗口化状态下可以拖拽
     if (!isWindowed || isMaximized) return;
-    
+
     e.preventDefault();
     isDragging.current = true;
     document.body.style.userSelect = 'none';
-    
+
     const startX = e.clientX;
     const startY = e.clientY;
     const currentX = position.x;
     const currentY = position.y;
-    
+
     const handleMouseMove = (moveEvent: MouseEvent) => {
       if (!isDragging.current || !editorRef.current || !editorRef.current.parentElement) return;
-      
+
       const deltaX = moveEvent.clientX - startX;
       const deltaY = moveEvent.clientY - startY;
-      
+
       // 计算新位置并限制在父容器内
       const parentRect = editorRef.current.parentElement.getBoundingClientRect();
       const editorRect = editorRef.current.getBoundingClientRect();
-      
+
       const newX = Math.max(0, Math.min(parentRect.width - editorRect.width, currentX + deltaX));
       const newY = Math.max(0, Math.min(parentRect.height - editorRect.height, currentY + deltaY));
-      
+
       setPosition({ x: newX, y: newY });
     };
-    
+
     const handleMouseUp = () => {
       if (!isDragging.current) return;
-      
+
       isDragging.current = false;
       document.body.style.userSelect = '';
-      
+
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
       document.removeEventListener('mouseleave', handleMouseUp);
-      
+
       if (editorRef.current) {
         document.body.style.cursor = '';
       }
     };
-    
+
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
     document.addEventListener('mouseleave', handleMouseUp);
-    
+
     if (editorRef.current) {
       document.body.style.cursor = 'move';
     }
@@ -130,74 +130,74 @@ const DirectoryPanel = ({ node, onClose }: DirectoryPanelProps) => {
   // 开始调整大小
   const startResize = (e: React.MouseEvent, direction: string) => {
     if (!isWindowed || isMaximized) return;
-    
+
     e.preventDefault();
     isResizing.current = true;
     document.body.style.userSelect = 'none';
-    
+
     const startX = e.clientX;
     const startY = e.clientY;
-    
+
     if (editorRef.current) {
       const rect = editorRef.current.getBoundingClientRect();
       const startWidth = rect.width;
       const startHeight = rect.height;
       const startLeft = rect.left;
       const startTop = rect.top;
-      
+
       const handleMouseMove = (moveEvent: MouseEvent) => {
         if (!isResizing.current || !editorRef.current || !editorRef.current.parentElement) return;
-        
+
         const deltaX = moveEvent.clientX - startX;
         const deltaY = moveEvent.clientY - startY;
-        
+
         let newWidth = startWidth;
         let newHeight = startHeight;
         let newX = position.x;
         let newY = position.y;
-        
+
         const parentRect = editorRef.current.parentElement.getBoundingClientRect();
-        
+
         // 根据拖拽方向计算新的尺寸和位置
         if (direction.includes('right')) {
           newWidth = Math.max(300, Math.min(parentRect.width - position.x, startWidth + deltaX));
         }
-        
+
         if (direction.includes('left')) {
           newWidth = Math.max(300, startWidth - deltaX);
           newX = Math.min(parentRect.width - newWidth, startLeft + deltaX);
         }
-        
+
         if (direction.includes('bottom')) {
           newHeight = Math.max(200, Math.min(parentRect.height - position.y, startHeight + deltaY));
         }
-        
+
         if (direction.includes('top')) {
           newHeight = Math.max(200, startHeight - deltaY);
           newY = Math.min(parentRect.height - newHeight, startTop + deltaY);
         }
-        
+
         setDimensions({ width: `${newWidth}px`, height: `${newHeight}px` });
         setPosition({ x: newX, y: newY });
       };
-      
+
       const handleMouseUp = () => {
         if (!isResizing.current) return;
-        
+
         isResizing.current = false;
         document.body.style.userSelect = '';
-        
+
         document.removeEventListener('mousemove', handleMouseMove);
         document.removeEventListener('mouseup', handleMouseUp);
         document.removeEventListener('mouseleave', handleMouseUp);
-        
+
         document.body.style.cursor = '';
       };
-      
+
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
       document.addEventListener('mouseleave', handleMouseUp);
-      
+
       // 设置鼠标样式
       document.body.style.cursor = 'default';
       if (direction === 'bottom-right' || direction === 'top-left') {
@@ -215,20 +215,20 @@ const DirectoryPanel = ({ node, onClose }: DirectoryPanelProps) => {
   // 伪实现目录内容显示
   const renderDirectoryContent = () => {
     const children = node.children || [];
-    
+
     return (
       <div className="directory-content">
         <div className="directory-header">
           <h2>{node.name}</h2>
           <p>包含 {children.length} 个项目</p>
         </div>
-        
+
         <div className="directory-actions">
           <button className="action-btn">新建文件</button>
           <button className="action-btn">新建文件夹</button>
           <button className="action-btn">上传文件</button>
         </div>
-        
+
         <div className="directory-files">
           <div className="files-header">
             <div className="header-column">名称</div>
@@ -236,7 +236,7 @@ const DirectoryPanel = ({ node, onClose }: DirectoryPanelProps) => {
             <div className="header-column">修改日期</div>
             <div className="header-column">大小</div>
           </div>
-          
+
           {children.map((child) => (
             <div key={child.id} className="file-item">
               <div className="file-column">
@@ -252,7 +252,7 @@ const DirectoryPanel = ({ node, onClose }: DirectoryPanelProps) => {
               </div>
             </div>
           ))}
-          
+
           {children.length === 0 && (
             <div className="empty-directory">
               <p>此文件夹为空</p>
@@ -264,7 +264,7 @@ const DirectoryPanel = ({ node, onClose }: DirectoryPanelProps) => {
   };
 
   return (
-    <div 
+    <div
       ref={editorRef}
       className={`editor ${isWindowed ? 'windowed' : ''} ${isMaximized ? 'maximized' : ''}`}
       style={{
@@ -277,7 +277,7 @@ const DirectoryPanel = ({ node, onClose }: DirectoryPanelProps) => {
       }}
     >
       {/* 编辑器标题栏 */}
-      <div 
+      <div
         className="editor-header"
         onMouseDown={startDrag}
       >
