@@ -1,10 +1,10 @@
 .page {
-    background: rgba(0,0,0,0.4) url(/img/golden-gate-bridge.jpeg);
+    background: rgba(0, 0, 0, 0.4) url(/img/golden-gate-bridge.jpeg);
     background-blend-mode: multiply;
     background-size: cover;
     min-height: 100vh;
     color: white;
-    display:flex;
+    display: flex;
     flex-direction: column;
 }
 
@@ -57,8 +57,10 @@
 /* 隐藏Tree组件的滚动条但保留滚动功能 */
 [role="tree"] {
     overflow-y: auto;
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* IE/Edge */
+    scrollbar-width: none;
+    /* Firefox */
+    -ms-overflow-style: none;
+    /* IE/Edge */
     width: 100%;
     min-width: 0;
     max-width: 100%;
@@ -71,7 +73,7 @@
 }
 
 /* 确保Tree内部元素能响应式伸缩 */
-[role="tree"] > * {
+[role="tree"]>* {
     overflow: visible;
     width: 100%;
     min-width: 0;
@@ -138,7 +140,7 @@
 }
 
 /* 确保Tree组件容器能完全填充父容器并随容器缩小 */
-.sidebar > *:last-child {
+.sidebar>*:last-child {
     flex: 1;
     min-height: 0;
     min-width: 0;
@@ -183,7 +185,8 @@
 
 /* 优化树节点文本截断 */
 .node span:nth-child(3) {
-    max-width: calc(100% - 80px); /* 为图标和箭头留出空间 */
+    max-width: calc(100% - 80px);
+    /* 为图标和箭头留出空间 */
     overflow: hidden;
     text-overflow: ellipsis;
 }
@@ -248,26 +251,26 @@
 }
 
 [role="treeitem"]:has(.node):focus-visible {
-    background-color: rgba(255,255,255,.2);
+    background-color: rgba(255, 255, 255, .2);
     outline: none;
 }
 
 [role="treeitem"][aria-selected="true"]:has(.node):focus-visible {
-    background-color: rgba(255,255,255,.4);
+    background-color: rgba(255, 255, 255, .4);
     outline: none;
 }
 
 [role="treeitem"]:has(.node):hover {
-    background-color: rgba(255,255,255,.2);
+    background-color: rgba(255, 255, 255, .2);
 }
 
 [role="treeitem"][aria-selected="true"]:has(.node) {
-    background-color: rgba(255,255,255,.3);
+    background-color: rgba(255, 255, 255, .3);
     font-weight: 700;
 }
 
 [role="treeitem"]:has(.node:global(.willReceiveDrop)) {
-    background-color: rgba(255,255,255,.4);
+    background-color: rgba(255, 255, 255, .4);
     border: 1px dashed white;
 }
 
@@ -341,7 +344,7 @@
 
 .content {
     overflow: auto;
-    background-color: rgb( 255 255 255 / 0.9);
+    background-color: rgb(255 255 255 / 0.9);
     border-radius: 16px;
     color: black;
     padding: 32px;
@@ -368,12 +371,14 @@
         flex-direction: column;
         padding-right: 0;
     }
+
     .content {
         order: 1;
         margin-top: 16px;
         margin-bottom: 16px;
         margin: 6px;
     }
+
     .sidebar {
         order: 2;
         height: 80vh;
@@ -387,73 +392,85 @@
 
 /* 右键菜单基础样式 */
 .contextMenu {
-  background-color: white;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  padding: 4px 0;
-  min-width: 200px;
-  max-width: 300px;
-  position: fixed;
-  z-index: 1000;
-  overflow: hidden;
-  margin: 0;
-  display: block;
-  flex: none;
-  width: auto;
-  max-height: 400px;
+    background-color: white;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    padding: 4px 0;
+    min-width: 200px;
+    max-width: 300px;
+    position: fixed;
+    z-index: 1000;
+    overflow: hidden;
+    margin: 0;
+    display: block;
+    flex: none;
+    width: auto;
+    max-height: 400px;
 }
 
 /* 重置全局样式对右键菜单的影响 */
-.sidebar > .contextMenu,
-.mainContent > .contextMenu,
-.page > .contextMenu {
-  width: auto !important;
-  flex: none !important;
-  max-width: 300px !important;
-  min-width: 200px !important;
-  min-height: auto !important;
-  max-height: 400px !important;
-  position: fixed !important;
+.sidebar>.contextMenu,
+.mainContent>.contextMenu,
+.page>.contextMenu {
+    width: auto !important;
+    flex: none !important;
+    max-width: 300px !important;
+    min-width: 200px !important;
+    min-height: auto !important;
+    max-height: 400px !important;
+    position: fixed !important;
 }
 
 /* 右键菜单项样式 */
 .contextMenuItem {
-  padding: 8px 16px;
-  cursor: pointer;
-  font-size: 14px;
-  color: #333;
-  transition: background-color 0.2s;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  flex: none;
-  width: auto;
-  min-width: auto;
-  max-width: none;
-  display: block;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #333;
+    transition: background-color 0.2s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: none;
+    width: auto;
+    min-width: auto;
+    max-width: none;
+    display: block;
 }
 
 .contextMenuItem:hover {
-  background-color: #f5f5f5;
+    background-color: #f5f5f5;
 }
 
 /* 确保菜单项不受全局样式影响 */
 .contextMenu .contextMenuItem {
-  width: auto !important;
-  flex: none !important;
-  min-width: auto !important;
-  max-width: none !important;
-  white-space: nowrap !important;
-  margin: 0 !important;
+    width: auto !important;
+    flex: none !important;
+    min-width: auto !important;
+    max-width: none !important;
+    white-space: nowrap !important;
+    margin: 0 !important;
 }
 
 /* 修复可能导致右键菜单铺满页面的全局样式冲突 */
 .sidebar *:not(.contextMenu):not(.contextMenuItem) {
-  /* 保持其他样式不变，但排除右键菜单相关元素 */
+    min-width: 0;
+    flex-shrink: 1;
+    box-sizing: border-box;
+    max-width: 100%;
 }
+
+/* 保持其他样式不变，但排除右键菜单相关元素 */
+
 
 /* 确保Tree组件样式不会影响右键菜单 */
 [role="tree"] *:not(.contextMenu):not(.contextMenuItem) {
-  /* Tree组件样式不影响右键菜单 */
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-sizing: border-box;
 }
+
+/* Tree组件样式不影响右键菜单 */
