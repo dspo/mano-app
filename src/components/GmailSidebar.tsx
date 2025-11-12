@@ -1,11 +1,12 @@
 import clsx from "clsx";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   CursorProps,
   NodeApi,
   NodeRendererProps,
   Tree,
   TreeApi,
+  useSimpleTree,
 } from "react-arborist";
 
 import { SiGmail } from "react-icons/si";
@@ -28,12 +29,12 @@ export default function GmailSidebar({ onSelectNode }: GmailSidebarProps) {
   const [term] = useState<string>("");
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; node: NodeApi<GmailItem> } | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  
-  const globalTree = (tree?: TreeApi<GmailItem> | null) => {
-    // @ts-ignore
-    window.tree = tree;
-  };
-  
+  const [data, dataController] = useSimpleTree(gmailData);
+
+  useEffect(() => {
+    console.log("data", data);
+  }, [data]);
+
   const handleContextMenu = (event: React.MouseEvent) => {
     event.preventDefault();
     // 这里简单处理，实际项目中可能需要更精确的节点定位
@@ -74,10 +75,9 @@ export default function GmailSidebar({ onSelectNode }: GmailSidebarProps) {
               // 只传递height以确保垂直滚动正常工作
               return (
                 <Tree
-                  ref={globalTree}
-                  initialData={gmailData}
+                  data={data}
                   height={height}
-                  rowHeight={32}
+                  rowHeight={28}
                   renderCursor={Cursor}
                   searchTerm={term}
                   paddingBottom={32}
@@ -93,6 +93,10 @@ export default function GmailSidebar({ onSelectNode }: GmailSidebarProps) {
                     }
                   }}
                   onContextMenu={handleContextMenu}
+                  onMove={dataController.onMove}
+                  onCreate={dataController.onCreate}
+                  onRename={dataController.onRename}
+                  onDelete={dataController.onDelete}
                 >
                   {(props) => <Node {...props} selectedId={selectedNodeId} onSelectNode={handleNodeSelection} />}
                 </Tree>
