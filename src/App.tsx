@@ -1,7 +1,8 @@
 import './App.css';
+import { useState } from 'react';
+import { listen } from '@tauri-apps/api/event';
 import GmailSidebar from '@components/GmailSidebar';
 import Welcome from '@components/Welcome';
-import { useState } from 'react';
 import type { GmailItem } from '@components/model';
 import RichTextEditor from '@components/RichTextEditor';
 import PlainTextEditor from '@components/PlainTextEditor';
@@ -15,6 +16,11 @@ function App() {
   const handleCloseEditor = () => {
     setSelectedNode(null);
   };
+
+  listen<{ workspace: string }>('workspace_updated', (event) => {
+      console.log('Workspace updated', event.payload.workspace, event.payload.workspace.startsWith('"'));
+  });
+
 
   // 根据节点类型渲染对应的编辑器
   const renderEditor = () => {
