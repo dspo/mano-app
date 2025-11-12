@@ -6,6 +6,7 @@ import { type GmailItem } from './components/gmail-data';
 import RichTextEditor from './components/RichTextEditor';
 import PlainTextEditor from './components/PlainTextEditor';
 import MarkdownEditor from './components/MarkdownEditor';
+import DirectoryPanel from './components/DirectoryPanel';
 
 function App() {
   const [selectedNode, setSelectedNode] = useState<GmailItem | null>(null);
@@ -23,7 +24,9 @@ function App() {
 
     // 根据节点类型选择编辑器
     const nodeType = selectedNode.nodeType || 'PlainText';
-    if (nodeType === 'Directory' || nodeType === 'RichText') {
+    if (nodeType === 'Directory') {
+      return <DirectoryPanel node={selectedNode} onClose={handleCloseEditor} />;
+    } else if (nodeType === 'RichText') {
       return <RichTextEditor node={selectedNode} onClose={handleCloseEditor} />;
     } else if (nodeType === 'PlainText') {
       return <PlainTextEditor node={selectedNode} onClose={handleCloseEditor} />;

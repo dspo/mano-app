@@ -9,13 +9,13 @@ interface PlainTextEditorProps {
 /**
  * PlainTextEditor component for editing plain text content with drag, resize, maximize and window functionality
  */
-const PlainTextEditor = ({ node, onClose }: PlainTextEditorProps) => {
+const PlainTextEditor = ({ node: _node, onClose }: PlainTextEditorProps) => {
   const [isMaximized, setIsMaximized] = useState(false);
   const [isWindowed, setIsWindowed] = useState(false);
   const [dimensions, setDimensions] = useState({ width: '100%', height: '100%' });
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const editorRef = useRef<HTMLDivElement>(null);
-  const resizeRef = useRef<HTMLDivElement>(null);
+  // 暂时移除未使用的resizeRef
   const isResizing = useRef(false);
   const isDragging = useRef(false);
   const initialDimensions = useRef({ width: '100%', height: '100%' });

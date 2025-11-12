@@ -9,7 +9,7 @@ interface MarkdownEditorProps {
 /**
  * MarkdownEditor component for editing markdown content with drag, resize, maximize and window functionality
  */
-const MarkdownEditor = ({ node, onClose }: MarkdownEditorProps) => {
+const MarkdownEditor = ({ node: _node, onClose }: MarkdownEditorProps) => {
   const [isMaximized, setIsMaximized] = useState(false);
   const [isWindowed, setIsWindowed] = useState(false);
   const [dimensions, setDimensions] = useState({ width: '100%', height: '100%' });

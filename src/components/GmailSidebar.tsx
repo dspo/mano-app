@@ -148,7 +148,7 @@ function Node({ node, style, dragHandle, selectedId, onSelectNode }: NodeRendere
       ref={dragHandle}
       style={style}
       className={clsx(styles.node, node.state, { [styles.selected]: selectedId === node.data.id })}
-      onClick={(e) => {
+      onClick={() => {
         // 先执行节点展开/折叠
         if (node.isInternal) {
           node.toggle();

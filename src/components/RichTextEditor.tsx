@@ -9,13 +9,13 @@ interface RichTextEditorProps {
 /**
  * RichTextEditor component for editing rich text content with drag, resize, maximize and window functionality
  */
-const RichTextEditor = ({ node, onClose }: RichTextEditorProps) => {
+const RichTextEditor = ({ node: _node, onClose }: RichTextEditorProps) => {
   const [isMaximized, setIsMaximized] = useState(false);
   const [isWindowed, setIsWindowed] = useState(false);
   const [dimensions, setDimensions] = useState({ width: '100%', height: '100%' });
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const editorRef = useRef<HTMLDivElement>(null);
-  const resizeRef = useRef<HTMLDivElement>(null);
+  // 暂时移除未使用的resizeRef
   const isResizing = useRef(false);
   const isDragging = useRef(false);
   const initialDimensions = useRef({ width: '100%', height: '100%' });
