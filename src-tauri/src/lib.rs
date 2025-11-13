@@ -16,8 +16,6 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![greet])
         .setup(|app: &mut App| {
-            let handle = app.handle();
-
             // my custom settings menu item
             let settings = MenuItemBuilder::new("Settings...")
                 .id("settings")
@@ -63,6 +61,7 @@ pub fn run() {
                             move |filepath| {
                                 if let Some(filepath) = filepath {
                                     let payload = serde_json::json!({"workspace": filepath});
+                                    println!("emit: {}", payload);
                                     if let Err(e) = app_clone.emit("workspace_updated", payload) {
                                         eprintln!("Failed to emit WorkspaceUpdated event: {}", e);
                                     }

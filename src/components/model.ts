@@ -1,4 +1,4 @@
-import { ComponentType } from "react";
+import { ElementType } from "react";
 
 export type NodeType = "Directory" | "RichText" | "PlainText" | "Markdown";
 
@@ -10,13 +10,10 @@ export const Markdown: NodeType = "Markdown";
 export type GmailItem = {
     id: string;
     name: string;
-    icon: ComponentType;
+    icon: ElementType;
     unread?: number;
     moreInfo?: string[];
     readOnly: boolean;
     nodeType?: NodeType;
     children?: GmailItem[];
 };
-
-// 工作目录路径
-export const workspaceDir = "/Users/chenzhongrun/projects/dspo-rs/mano";

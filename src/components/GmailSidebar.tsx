@@ -1,11 +1,15 @@
 import clsx from "clsx";
-import { useState } from "react";
+import React, {useEffect, useMemo, useState} from "react";
 import {
-  CursorProps,
-  NodeApi,
-  NodeRendererProps,
-  Tree,
-  useSimpleTree,
+    CreateHandler,
+    CursorProps,
+    DeleteHandler,
+    MoveHandler,
+    NodeApi,
+    NodeRendererProps,
+    RenameHandler,
+    SimpleTree,
+    Tree,
 } from "react-arborist";
 import { saveDataToConfig } from "@components/controller";
 
@@ -14,33 +18,76 @@ import { BsTree } from "react-icons/bs";
 import { MdArrowDropDown, MdArrowRight } from "react-icons/md";
 import styles from "./Gmail.module.css";
 
-// 导入和类型声明
-import { gmailData } from "@components/gmail-data";
 import type { GmailItem } from "@components/model";
 
 // 导入FillFlexParent组件
 import { FillFlexParent } from "@components/fill-flex-parent";
-import { useEffect } from "react";
 
 interface GmailSidebarProps {
   onSelectNode: (node: GmailItem) => void;
+  filename: string;
+  initialData: GmailItem[];
+  signal: number
 }
 
 // Workspace directory is defined in controller.ts
 
-export default function GmailSidebar({ onSelectNode }: GmailSidebarProps) {
+let nextId = 0;
+
+export default function GmailSidebar({ onSelectNode, filename, initialData }: GmailSidebarProps) {
   const [term] = useState<string>("");
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; node: NodeApi<GmailItem> } | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [data, dataController] = useSimpleTree(gmailData);
+  const [data, setData] = useState<GmailItem[]>(initialData);
 
-  // Filter function is now imported from controller.ts
+  console.log("GmailSidebar rending");
+
+    const tree = useMemo(
+        () => new SimpleTree<GmailItem>(data),
+        [data]
+    );
+
+    const onMove: MoveHandler<GmailItem> = (args: {
+        dragIds: string[];
+        parentId: null | string;
+        index: number;
+    }) => {
+        for (const id of args.dragIds) {
+            tree.move({ id, parentId: args.parentId, index: args.index });
+        }
+        setData(tree.data);
+    };
+
+    const onRename: RenameHandler<GmailItem> = ({ name, id }) => {
+        tree.update({ id, changes: { name } as any });
+        setData(tree.data);
+    };
+
+    const onCreate: CreateHandler<GmailItem> = ({ parentId, index, type }) => {
+        const data = { id: `simple-tree-id-${nextId++}`, name: "" } as any;
+        if (type === "internal") data.children = [];
+        tree.create({ parentId, index, data });
+        setData(tree.data);
+        return data;
+    };
+
+    const onDelete: DeleteHandler<GmailItem> = (args: { ids: string[] }) => {
+        args.ids.forEach((id) => tree.drop({ id }));
+        setData(tree.data);
+    };
+
+  // 监听initialData变化，当数据更新时更新treeData状态
+  useEffect(() => {
+    setData(initialData);
+  }, [initialData]);
 
   useEffect(() => {
-    console.log("data", data);
+    console.log("filename", filename, "data", data);
 
     // 使用controller中的保存函数
-    saveDataToConfig(data);
+    saveDataToConfig(filename, data).then(() => {
+      console.log("data saved")
+    });
   }, [data, saveDataToConfig]);
 
   const handleContextMenu = (event: React.MouseEvent) => {
@@ -101,10 +148,10 @@ export default function GmailSidebar({ onSelectNode }: GmailSidebarProps) {
                     }
                   }}
                   onContextMenu={handleContextMenu}
-                  onMove={dataController.onMove}
-                  onCreate={dataController.onCreate}
-                  onRename={dataController.onRename}
-                  onDelete={dataController.onDelete}
+                  onMove={onMove}
+                  onCreate={onCreate}
+                  onRename={onRename}
+                  onDelete={onDelete}
                 >
                   {(props) => <Node {...props} selectedId={selectedNodeId} onSelectNode={handleNodeSelection} />}
                 </Tree>
@@ -153,7 +200,10 @@ function ContextMenu({ x, y, onClose }: { x: number; y: number; onClose: () => v
   );
 }
 
-function Node({ node, style, dragHandle, selectedId, onSelectNode }: NodeRendererProps<GmailItem> & { selectedId: string | null; onSelectNode: (node: GmailItem) => void }) {
+function Node({ node, style, dragHandle, selectedId, onSelectNode }: NodeRendererProps<GmailItem> & {
+  selectedId: string | null;
+  onSelectNode: (node: GmailItem) => void
+}) {
   const Icon = node.data.icon || BsTree;
   return (
     <div

@@ -1,6 +1,8 @@
 import './App.css';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { listen } from '@tauri-apps/api/event';
+import { path } from '@tauri-apps/api';
+import { exists, writeTextFile } from '@tauri-apps/plugin-fs';
 import GmailSidebar from '@components/GmailSidebar';
 import Welcome from '@components/Welcome';
 import type { GmailItem } from '@components/model';
@@ -8,19 +10,60 @@ import RichTextEditor from '@components/RichTextEditor';
 import PlainTextEditor from '@components/PlainTextEditor';
 import MarkdownEditor from '@components/MarkdownEditor';
 import DirectoryPanel from '@components/DirectoryPanel';
+import { filterDataForSerialization, getDefaultItmes, loadDataFromConfig } from '@components/controller';
 
 function App() {
   const [selectedNode, setSelectedNode] = useState<GmailItem | null>(null);
+  const [gmailItems, setGmailItems] = useState<GmailItem[]>([]);
+  const [workspace, setWorkspace] = useState<string>("");
+  const [eventCount, setEventCount] = useState(0);
+  const [filename, setFilename] = useState<string>("");
+
+  listen<{ workspace: string }>('workspace_updated', async (event) => {
+    const workspace = event.payload.workspace;
+    console.log('workspace updated: ', workspace);
+    setEventCount(eventCount + 1);
+    setWorkspace(workspace.trim());
+  }).then(() => { });
+
+  // if workspace is reset, reload data
+  useEffect(() => {
+    console.log('workspace effected: ', workspace);
+
+    if (!workspace || workspace === '') {
+      console.log('empty workspace found');
+      setGmailItems([]);
+      return;
+    }
+
+    path.join(workspace, 'mano.conf.json').then((filename: string) => {
+      exists(filename).then((exists) => {
+        if (!exists) {
+          console.log(filename, "not exists", "try to init");
+          const data = filterDataForSerialization(getDefaultItmes());
+          writeTextFile(filename, JSON.stringify({ data: data, lastUpdated: new Date().toISOString() }, null, 2))
+            .catch(e => console.log("failed to init", filename, e))
+            .then(() => {
+              console.log('config init is done');
+            });
+        } else {
+          console.log(filename, "exists");
+        }
+
+        loadDataFromConfig(filename).then((data) => {
+          console.log('to setGmailItems:', data);
+          setGmailItems(data);
+        });
+
+        setFilename(filename);
+      });
+    });
+  }, [eventCount]);
 
   // 关闭编辑器，返回Welcome界面
   const handleCloseEditor = () => {
     setSelectedNode(null);
   };
-
-  listen<{ workspace: string }>('workspace_updated', (event) => {
-      console.log('Workspace updated', event.payload.workspace, event.payload.workspace.startsWith('"'));
-  });
-
 
   // 根据节点类型渲染对应的编辑器
   const renderEditor = () => {
@@ -53,7 +96,7 @@ function App() {
       <div className="main-layout">
         {/* 左侧资源管理器 */}
         <div className="sidebar">
-          <GmailSidebar onSelectNode={setSelectedNode} />
+          <GmailSidebar signal={eventCount} onSelectNode={setSelectedNode} filename={filename} initialData={gmailItems} />
 
           {/* 底部快速操作按钮 */}
           <div className="sidebar-footer">

@@ -40,7 +40,7 @@ describe('loadDataFromConfig', () => {
     it('应该成功加载并转换数据', async () => {
         // 模拟配置文件内容
         const mockConfig = {
-            treeData: [
+            data: [
                 {
                     id: '1',
                     name: '收件箱',
@@ -121,7 +121,7 @@ describe('loadDataFromConfig', () => {
             });
 
             const mockConfig = {
-                treeData: [
+                data: [
                     {
                         id: '1',
                         name: '测试',
