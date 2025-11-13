@@ -10,7 +10,7 @@ import RichTextEditor from '@components/RichTextEditor';
 import PlainTextEditor from '@components/PlainTextEditor';
 import MarkdownEditor from '@components/MarkdownEditor';
 import DirectoryPanel from '@components/DirectoryPanel';
-import { filterDataForSerialization, getDefaultItmes, loadDataFromConfig } from '@components/controller';
+import { filterDataForSerialization, getDefaultItmes, getExampleItmes, loadDataFromConfig } from '@components/controller';
 
 function App() {
   const [selectedNode, setSelectedNode] = useState<GmailItem | null>(null);
@@ -19,43 +19,46 @@ function App() {
   const [eventCount, setEventCount] = useState(0);
   const [filename, setFilename] = useState<string>("");
 
-  listen<{ workspace: string }>('workspace_updated', async (event) => {
-    const workspace = event.payload.workspace;
-    console.log('workspace updated: ', workspace);
-    setEventCount(eventCount + 1);
-    setWorkspace(workspace.trim());
-  }).then(() => { });
+  useEffect(() => {
+    // config tauri listener when component mounted
+    const unlisten = listen<{ workspace: string }>('workspace_updated', async (event) => {
+      const workspace = event.payload.workspace;
+      console.log('workspace updated, workspace:', workspace, new Date().toISOString());
+      // Use functional update to ensure we always get the latest eventCount value
+      setEventCount(prevCount => prevCount + 1);
+      setWorkspace(workspace.trim());
+    });
 
-  // if workspace is reset, reload data
+    // terminate tauri listener when component unmounted
+    return () => {
+      unlisten.then(unlistenFn => unlistenFn());
+    };
+  }, []);
+
   useEffect(() => {
     console.log('workspace effected: ', workspace);
 
+    // if workspace is empty, use default items
     if (!workspace || workspace === '') {
       console.log('empty workspace found');
-      setGmailItems([]);
+      setGmailItems(getDefaultItmes());
       return;
     }
 
     path.join(workspace, 'mano.conf.json').then((filename: string) => {
+      setFilename(filename);
+
       exists(filename).then((exists) => {
-        if (!exists) {
-          console.log(filename, "not exists", "try to init");
-          const data = filterDataForSerialization(getDefaultItmes());
-          writeTextFile(filename, JSON.stringify({ data: data, lastUpdated: new Date().toISOString() }, null, 2))
-            .catch(e => console.log("failed to init", filename, e))
-            .then(() => {
-              console.log('config init is done');
-            });
+        if (exists) {
+          console.log(filename, "exists", "try to load");
+          loadDataFromConfig(filename).then((data) => {
+            console.log('to setGmailItems:', data);
+            setGmailItems(data);
+          });
         } else {
-          console.log(filename, "exists");
+          console.log(filename, "not exists", "set default");
+          setGmailItems(getDefaultItmes());
         }
-
-        loadDataFromConfig(filename).then((data) => {
-          console.log('to setGmailItems:', data);
-          setGmailItems(data);
-        });
-
-        setFilename(filename);
       });
     });
   }, [eventCount]);
@@ -96,7 +99,7 @@ function App() {
       <div className="main-layout">
         {/* 左侧资源管理器 */}
         <div className="sidebar">
-          <GmailSidebar signal={eventCount} onSelectNode={setSelectedNode} filename={filename} initialData={gmailItems} />
+          <GmailSidebar onSelectNode={setSelectedNode} filename={filename} initialData={gmailItems} />
 
           {/* 底部快速操作按钮 */}
           <div className="sidebar-footer">

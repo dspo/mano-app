@@ -1,7 +1,7 @@
-import {readTextFile, writeTextFile} from "@tauri-apps/plugin-fs";
-import {Directory, GmailItem, Markdown, PlainText, RichText} from "@components/model";
+import { readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
+import { Directory, GmailItem, Markdown, PlainText, RichText } from "@components/model";
 import * as icons from "react-icons/md";
-import {BsTree} from "react-icons/bs";
+import { BsTree } from "react-icons/bs";
 
 
 /**
@@ -51,7 +51,13 @@ export const loadDataFromConfig = async (filename: string): Promise<GmailItem[]>
         const defaultIcon = BsTree;
 
         // 递归函数，为每个项目添加随机icon
-        const addIconsToItems = (items: any[]): GmailItem[] => {
+        const addIconsToItems = (items: any[]): GmailItem[] | undefined => {
+            if (!items) {
+                return undefined;
+            }
+            if (items.length === 0) {
+                return [];
+            }
             return items.map(item => {
                 // 随机选择一个图标组件，如果可用的图标数组为空则使用默认图标
                 const randomIcon = availableIcons.length > 0
@@ -129,11 +135,38 @@ export const saveDataToConfig = async (filename: string, data: readonly GmailIte
         .then(() => console.log("writeTextFile is done"));
 };
 
+
 export const getDefaultItmes = (): GmailItem[] => {
     return defaultItems;
 };
 
+export const getExampleItmes = (): GmailItem[] => {
+    return exampleItems;
+};
+
 const defaultItems: GmailItem[] = [
+    {
+        id: "1",
+        name: "My Novel",
+        unread: 0,
+        moreInfo: ["[0/50]"],
+        readOnly: false,
+        icon: icons.MdInbox,
+        nodeType: Directory,
+        children: []
+    },
+    {
+        id: "100",
+        name: "垃圾篓",
+        unread: 0,
+        readOnly: true,
+        icon: icons.MdOutlineDelete,
+        nodeType: Directory,
+        children: []
+    },
+];
+
+const exampleItems: GmailItem[] = [
     {
         id: "1",
         name: "天龙八部",

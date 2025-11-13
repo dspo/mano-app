@@ -1,15 +1,15 @@
 import clsx from "clsx";
-import React, {useEffect, useMemo, useState} from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
-    CreateHandler,
-    CursorProps,
-    DeleteHandler,
-    MoveHandler,
-    NodeApi,
-    NodeRendererProps,
-    RenameHandler,
-    SimpleTree,
-    Tree,
+  CreateHandler,
+  CursorProps,
+  DeleteHandler,
+  MoveHandler,
+  NodeApi,
+  NodeRendererProps,
+  RenameHandler,
+  SimpleTree,
+  Tree,
 } from "react-arborist";
 import { saveDataToConfig } from "@components/controller";
 
@@ -27,7 +27,6 @@ interface GmailSidebarProps {
   onSelectNode: (node: GmailItem) => void;
   filename: string;
   initialData: GmailItem[];
-  signal: number
 }
 
 // Workspace directory is defined in controller.ts
@@ -39,56 +38,45 @@ export default function GmailSidebar({ onSelectNode, filename, initialData }: Gm
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; node: NodeApi<GmailItem> } | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [data, setData] = useState<GmailItem[]>(initialData);
+  const tree = useMemo(() => new SimpleTree<GmailItem>(data), [data]);
 
-  console.log("GmailSidebar rending");
+  const onMove: MoveHandler<GmailItem> = (args: {
+    dragIds: string[];
+    parentId: null | string;
+    index: number;
+  }) => {
+    for (const id of args.dragIds) {
+      tree.move({ id, parentId: args.parentId, index: args.index });
+    }
+    setData(tree.data);
+  };
 
-    const tree = useMemo(
-        () => new SimpleTree<GmailItem>(data),
-        [data]
-    );
+  const onRename: RenameHandler<GmailItem> = ({ name, id }) => {
+    tree.update({ id, changes: { name } as any });
+    setData(tree.data);
+  };
 
-    const onMove: MoveHandler<GmailItem> = (args: {
-        dragIds: string[];
-        parentId: null | string;
-        index: number;
-    }) => {
-        for (const id of args.dragIds) {
-            tree.move({ id, parentId: args.parentId, index: args.index });
-        }
-        setData(tree.data);
-    };
+  const onCreate: CreateHandler<GmailItem> = ({ parentId, index, type }) => {
+    const data = { id: `simple-tree-id-${nextId++}`, name: "" } as any;
+    if (type === "internal") data.children = [];
+    tree.create({ parentId, index, data });
+    setData(tree.data);
+    return data;
+  };
 
-    const onRename: RenameHandler<GmailItem> = ({ name, id }) => {
-        tree.update({ id, changes: { name } as any });
-        setData(tree.data);
-    };
+  const onDelete: DeleteHandler<GmailItem> = (args: { ids: string[] }) => {
+    args.ids.forEach((id) => tree.drop({ id }));
+    setData(tree.data);
+  };
 
-    const onCreate: CreateHandler<GmailItem> = ({ parentId, index, type }) => {
-        const data = { id: `simple-tree-id-${nextId++}`, name: "" } as any;
-        if (type === "internal") data.children = [];
-        tree.create({ parentId, index, data });
-        setData(tree.data);
-        return data;
-    };
-
-    const onDelete: DeleteHandler<GmailItem> = (args: { ids: string[] }) => {
-        args.ids.forEach((id) => tree.drop({ id }));
-        setData(tree.data);
-    };
-
-  // 监听initialData变化，当数据更新时更新treeData状态
-  useEffect(() => {
-    setData(initialData);
-  }, [initialData]);
-
-  useEffect(() => {
+  const saveDataToLocal = () => {
     console.log("filename", filename, "data", data);
-
-    // 使用controller中的保存函数
-    saveDataToConfig(filename, data).then(() => {
-      console.log("data saved")
-    });
-  }, [data, saveDataToConfig]);
+    if (filename && filename !== "") {
+      saveDataToConfig(filename, data).then(() => {
+        console.log("data saved")
+      });
+    }
+  };
 
   const handleContextMenu = (event: React.MouseEvent) => {
     event.preventDefault();
@@ -102,6 +90,10 @@ export default function GmailSidebar({ onSelectNode, filename, initialData }: Gm
   const closeContextMenu = () => {
     setContextMenu(null);
   };
+
+  // 监听initialData变化，当数据更新时更新treeData状态
+  useEffect(() => { setData(initialData); }, [initialData]);
+  useEffect(saveDataToLocal, [data]);
 
   // 点击菜单外部关闭菜单
   useEffect(() => {
