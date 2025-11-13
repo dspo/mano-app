@@ -1,6 +1,5 @@
 import './App.css';
 import { useEffect, useState } from 'react';
-import { listen } from '@tauri-apps/api/event';
 import { path } from '@tauri-apps/api';
 import { exists } from '@tauri-apps/plugin-fs';
 import GmailSidebar from './components/GmailSidebar';
@@ -22,7 +21,7 @@ function App() {
 
   useEffect(() => {
     // 仅在 Tauri 环境中监听事件
-    if (typeof window !== 'undefined' && window.__TAURI_INTERNALS__) {
+    if (typeof window !== 'undefined' && (window as any).__TAURI_INTERNALS__) {
       // config tauri listener when component mounted
       const setupListener = async () => {
         try {
@@ -113,61 +112,61 @@ function App() {
   return (
     <ContextMenuProvider>
       <div className="ide-layout">
-      {/* 主布局 */}
-      <div className="main-layout">
-        {/* 左侧资源管理器 */}
-        <div className="sidebar">
-          <GmailSidebar onSelectNode={setSelectedNode} filename={filename} initialData={gmailItems} />
+        {/* 主布局 */}
+        <div className="main-layout">
+          {/* 左侧资源管理器 */}
+          <div className="sidebar">
+            <GmailSidebar onSelectNode={setSelectedNode} filename={filename} initialData={gmailItems} />
 
 
+          </div>
+
+          {/* 可拖拽分隔条 */}
+          <div
+            className="resizer"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              const startX = e.clientX;
+              const sidebar = document.querySelector('.sidebar') as HTMLElement;
+              const startWidth = sidebar.offsetWidth;
+              const mainLayout = document.querySelector('.main-layout') as HTMLElement;
+
+              // 添加视觉反馈
+              sidebar.classList.add('resizing');
+              mainLayout.classList.add('resizing');
+
+              const handleMouseMove = (e: MouseEvent) => {
+                const deltaX = e.clientX - startX;
+                const newWidth = Math.max(220, Math.min(400, startWidth + deltaX));
+                sidebar.style.width = `${newWidth}px`;
+              };
+
+              const handleMouseUp = () => {
+                document.removeEventListener('mousemove', handleMouseMove);
+                document.removeEventListener('mouseup', handleMouseUp);
+                document.removeEventListener('mouseleave', handleMouseUp);
+                document.body.style.cursor = '';
+                document.body.style.userSelect = '';
+
+                // 移除视觉反馈
+                sidebar.classList.remove('resizing');
+                mainLayout.classList.remove('resizing');
+              };
+
+              // 添加额外的事件监听以增强用户体验
+              document.addEventListener('mousemove', handleMouseMove);
+              document.addEventListener('mouseup', handleMouseUp);
+              document.addEventListener('mouseleave', handleMouseUp);
+              document.body.style.cursor = 'col-resize';
+              document.body.style.userSelect = 'none'; // 防止拖动时选中文本
+            }}
+          ></div>
+
+          {/* 中间编辑器区域 */}
+          <div className="editor-container">
+            {renderEditor()}
+          </div>
         </div>
-
-        {/* 可拖拽分隔条 */}
-        <div
-          className="resizer"
-          onMouseDown={(e) => {
-            e.preventDefault();
-            const startX = e.clientX;
-            const sidebar = document.querySelector('.sidebar') as HTMLElement;
-            const startWidth = sidebar.offsetWidth;
-            const mainLayout = document.querySelector('.main-layout') as HTMLElement;
-
-            // 添加视觉反馈
-            sidebar.classList.add('resizing');
-            mainLayout.classList.add('resizing');
-
-            const handleMouseMove = (e: MouseEvent) => {
-              const deltaX = e.clientX - startX;
-              const newWidth = Math.max(220, Math.min(400, startWidth + deltaX));
-              sidebar.style.width = `${newWidth}px`;
-            };
-
-            const handleMouseUp = () => {
-              document.removeEventListener('mousemove', handleMouseMove);
-              document.removeEventListener('mouseup', handleMouseUp);
-              document.removeEventListener('mouseleave', handleMouseUp);
-              document.body.style.cursor = '';
-              document.body.style.userSelect = '';
-
-              // 移除视觉反馈
-              sidebar.classList.remove('resizing');
-              mainLayout.classList.remove('resizing');
-            };
-
-            // 添加额外的事件监听以增强用户体验
-            document.addEventListener('mousemove', handleMouseMove);
-            document.addEventListener('mouseup', handleMouseUp);
-            document.addEventListener('mouseleave', handleMouseUp);
-            document.body.style.cursor = 'col-resize';
-            document.body.style.userSelect = 'none'; // 防止拖动时选中文本
-          }}
-        ></div>
-
-        {/* 中间编辑器区域 */}
-        <div className="editor-container">
-          {renderEditor()}
-        </div>
-      </div>
       </div>
     </ContextMenuProvider>
   );

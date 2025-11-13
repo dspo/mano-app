@@ -1,5 +1,5 @@
 import clsx from "clsx";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import {
   CreateHandler,
   CursorProps,
@@ -10,6 +10,7 @@ import {
   RenameHandler,
   SimpleTree,
   Tree,
+  TreeApi,
 } from "react-arborist";
 import { saveDataToConfig } from "@components/controller";
 
@@ -39,6 +40,7 @@ export default function GmailSidebar({ onSelectNode, filename, initialData }: Gm
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [data, setData] = useState<GmailItem[]>(initialData);
   const tree = useMemo(() => new SimpleTree<GmailItem>(data), [data]);
+  const treeRef = useRef<TreeApi<GmailItem> | null>(null);
 
   const onMove: MoveHandler<GmailItem> = (args: {
     dragIds: string[];
@@ -57,7 +59,12 @@ export default function GmailSidebar({ onSelectNode, filename, initialData }: Gm
   };
 
   const onCreate: CreateHandler<GmailItem> = ({ parentId, index, type }) => {
-    const data = { id: `simple-tree-id-${nextId++}`, name: "" } as any;
+    const data = { 
+      id: `simple-tree-id-${nextId++}`, 
+      name: "", 
+      type: type === "leaf" ? "PlainText" : "Folder",
+      content: ""
+    } as any;
     if (type === "internal") data.children = [];
     tree.create({ parentId, index, data });
     setData(tree.data);
@@ -78,14 +85,7 @@ export default function GmailSidebar({ onSelectNode, filename, initialData }: Gm
     }
   };
 
-  const handleContextMenu = (event: React.MouseEvent) => {
-    event.preventDefault();
-    // 这里简单处理，实际项目中可能需要更精确的节点定位
-    const nodeData = { name: "Selected Node" } as GmailItem;
-    // 创建一个简单的NodeApi对象
-    const node = { data: nodeData } as unknown as NodeApi<GmailItem>;
-    setContextMenu({ x: event.clientX, y: event.clientY, node });
-  };
+
 
   const closeContextMenu = () => {
     setContextMenu(null);
@@ -122,6 +122,7 @@ export default function GmailSidebar({ onSelectNode, filename, initialData }: Gm
               // 只传递height以确保垂直滚动正常工作
               return (
                 <Tree
+                  ref={treeRef}
                   data={data}
                   height={height}
                   rowHeight={28}
@@ -139,13 +140,15 @@ export default function GmailSidebar({ onSelectNode, filename, initialData }: Gm
                       return false;
                     }
                   }}
-                  onContextMenu={handleContextMenu}
+                  onContextMenu={() => {
+                    // 让节点自己处理右键事件，这里不处理
+                  }}
                   onMove={onMove}
                   onCreate={onCreate}
                   onRename={onRename}
                   onDelete={onDelete}
                 >
-                  {(props) => <Node {...props} selectedId={selectedNodeId} onSelectNode={handleNodeSelection} />}
+                  {(props) => <Node {...props} selectedId={selectedNodeId} onSelectNode={handleNodeSelection} setContextMenu={setContextMenu} />}
                 </Tree>
               );
             }}
@@ -155,6 +158,8 @@ export default function GmailSidebar({ onSelectNode, filename, initialData }: Gm
               x={contextMenu.x}
               y={contextMenu.y}
               onClose={closeContextMenu}
+              node={contextMenu.node}
+              onCreate={onCreate}
             />
           )}
         </div>
@@ -163,7 +168,40 @@ export default function GmailSidebar({ onSelectNode, filename, initialData }: Gm
   );
 }
 
-function ContextMenu({ x, y, onClose }: { x: number; y: number; onClose: () => void }) {
+function ContextMenu({ x, y, onClose, node, onCreate }: { 
+  x: number; 
+  y: number; 
+  onClose: () => void;
+  node: NodeApi<GmailItem>;
+  onCreate: CreateHandler<GmailItem>;
+}) {
+  const handleCreateFile = () => {
+    // 创建PlainText类型的节点
+    const newNode = onCreate({
+      parentId: node.data.id,
+      parentNode: node,
+      index: 0,
+      type: "leaf"
+    });
+    
+    // 延迟一下再触发编辑，确保节点已经渲染
+    setTimeout(() => {
+      // 找到新创建的节点并触发编辑
+      if (newNode && typeof newNode === 'object' && 'id' in newNode) {
+        // 使用 tree 的 edit 方法直接编辑新节点
+        node.tree.edit(newNode.id);
+      }
+    }, 100);
+    
+    onClose();
+  };
+
+  const handleDeleteNode = () => {
+    // 实现删除功能
+    node.tree.delete(node.data.id);
+    onClose();
+  };
+
   return (
     <div
       className={styles.contextMenu}
@@ -176,15 +214,13 @@ function ContextMenu({ x, y, onClose }: { x: number; y: number; onClose: () => v
     >
       <div className={styles.contextMenuItem} onClick={(e) => {
         e.stopPropagation();
-        // 这里将来实现创建文件功能
-        onClose();
+        handleCreateFile();
       }}>
         Create File In This Node
       </div>
       <div className={styles.contextMenuItem} onClick={(e) => {
         e.stopPropagation();
-        // 这里将来实现删除节点功能
-        onClose();
+        handleDeleteNode();
       }}>
         Delete This Node
       </div>
@@ -192,9 +228,10 @@ function ContextMenu({ x, y, onClose }: { x: number; y: number; onClose: () => v
   );
 }
 
-function Node({ node, style, dragHandle, selectedId, onSelectNode }: NodeRendererProps<GmailItem> & {
+function Node({ node, style, dragHandle, selectedId, onSelectNode, setContextMenu }: NodeRendererProps<GmailItem> & {
   selectedId: string | null;
-  onSelectNode: (node: GmailItem) => void
+  onSelectNode: (node: GmailItem) => void;
+  setContextMenu: (menu: { x: number; y: number; node: NodeApi<GmailItem> } | null) => void;
 }) {
   const Icon = node.data.icon || BsTree;
   
@@ -202,6 +239,15 @@ function Node({ node, style, dragHandle, selectedId, onSelectNode }: NodeRendere
   const handleDoubleClick = () => {
     node.edit();
   };
+  
+  // 处理右键事件
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({ x: e.clientX, y: e.clientY, node });
+  };
+  
+  
   
   return (
     <div
@@ -217,6 +263,7 @@ function Node({ node, style, dragHandle, selectedId, onSelectNode }: NodeRendere
         onSelectNode(node.data);
       }}
       onDoubleClick={handleDoubleClick}
+      onContextMenu={handleContextMenu}
     >
       <FolderArrow node={node} />
       <span>
