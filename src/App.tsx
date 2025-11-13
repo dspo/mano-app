@@ -2,7 +2,7 @@ import './App.css';
 import { useEffect, useState } from 'react';
 import { listen } from '@tauri-apps/api/event';
 import { path } from '@tauri-apps/api';
-import { exists, writeTextFile } from '@tauri-apps/plugin-fs';
+import { exists } from '@tauri-apps/plugin-fs';
 import GmailSidebar from '@components/GmailSidebar';
 import Welcome from '@components/Welcome';
 import type { GmailItem } from '@components/model';
@@ -10,7 +10,7 @@ import RichTextEditor from '@components/RichTextEditor';
 import PlainTextEditor from '@components/PlainTextEditor';
 import MarkdownEditor from '@components/MarkdownEditor';
 import DirectoryPanel from '@components/DirectoryPanel';
-import { filterDataForSerialization, getDefaultItmes, getExampleItmes, loadDataFromConfig } from '@components/controller';
+import { getDefaultItmes, loadDataFromConfig } from '@components/controller';
 
 function App() {
   const [selectedNode, setSelectedNode] = useState<GmailItem | null>(null);

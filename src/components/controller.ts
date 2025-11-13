@@ -82,7 +82,8 @@ export const loadDataFromConfig = async (filename: string): Promise<GmailItem[]>
         // 处理数据并返回
         const dataWithIcons = addIconsToItems(config);
         console.log("Data successfully loaded from mano.conf.json");
-        return dataWithIcons;
+        // 确保返回GmailItem[]类型，不会是undefined
+        return dataWithIcons || [];
     } catch (error) {
         console.error("Error loading data from config file:", filename, error);
         // 如果加载失败，返回空数组

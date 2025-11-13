@@ -197,6 +197,12 @@ function Node({ node, style, dragHandle, selectedId, onSelectNode }: NodeRendere
   onSelectNode: (node: GmailItem) => void
 }) {
   const Icon = node.data.icon || BsTree;
+  
+  // 处理双击事件，触发编辑状态
+  const handleDoubleClick = () => {
+    node.edit();
+  };
+  
   return (
     <div
       ref={dragHandle}
@@ -210,6 +216,7 @@ function Node({ node, style, dragHandle, selectedId, onSelectNode }: NodeRendere
         // 触发选择事件
         onSelectNode(node.data);
       }}
+      onDoubleClick={handleDoubleClick}
     >
       <FolderArrow node={node} />
       <span>
@@ -223,16 +230,56 @@ function Node({ node, style, dragHandle, selectedId, onSelectNode }: NodeRendere
 }
 
 function Input({ node }: { node: NodeApi<GmailItem> }) {
+  // 获取节点名称，确保有默认值
+  const name = node.data.name || "未命名";
+  
+  // 处理失焦事件
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    // 失焦时提交值，使用trim处理空白，默认为"未命名"
+    const value = e.currentTarget.value.trim() || "未命名";
+    node.submit(value);
+  };
+  
+  // 处理键盘事件
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Escape") {
+      // 按下Escape键时取消编辑
+      e.preventDefault();
+      node.reset();
+    } else if (e.key === "Enter") {
+      // 按下Enter键时提交值
+      e.preventDefault();
+      const value = e.currentTarget.value.trim() || "未命名";
+      node.submit(value);
+    }
+  };
+  
+  // 处理聚焦事件
+  const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    // 保存input元素引用，避免React事件对象重用导致的问题
+    const inputElement = e.currentTarget;
+    // 确保在DOM更新后选中所有文本
+    setTimeout(() => {
+      if (inputElement) {
+        inputElement.select();
+      }
+    }, 0);
+  };
+  
   return (
     <input
       autoFocus
       type="text"
-      defaultValue={node.data.name}
-      onFocus={(e) => e.currentTarget.select()}
-      onBlur={() => node.reset()}
-      onKeyDown={(e) => {
-        if (e.key === "Escape") node.reset();
-        if (e.key === "Enter") node.submit(e.currentTarget.value);
+      defaultValue={name}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
+      onKeyDown={handleKeyDown}
+      style={{
+        minWidth: '100px',
+        padding: '2px 4px',
+        border: '1px solid #ccc',
+        borderRadius: '3px',
+        fontSize: '14px'
       }}
     />
   );
