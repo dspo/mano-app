@@ -1,7 +1,15 @@
-# Tauri + React + Typescript
+# Mano
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+A novel-writing app built with Tauri.
 
-## Recommended IDE Setup
+# Developer
 
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+## Run dev
+
+```bash
+pnpm install
+```
+
+```bash
+cargo tauri dev
+```
