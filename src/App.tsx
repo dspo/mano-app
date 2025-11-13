@@ -3,14 +3,15 @@ import { useEffect, useState } from 'react';
 import { listen } from '@tauri-apps/api/event';
 import { path } from '@tauri-apps/api';
 import { exists } from '@tauri-apps/plugin-fs';
-import GmailSidebar from '@components/GmailSidebar';
-import Welcome from '@components/Welcome';
-import type { GmailItem } from '@components/model';
-import RichTextEditor from '@components/RichTextEditor';
-import PlainTextEditor from '@components/PlainTextEditor';
-import MarkdownEditor from '@components/MarkdownEditor';
-import DirectoryPanel from '@components/DirectoryPanel';
-import { getDefaultItmes, loadDataFromConfig } from '@components/controller';
+import GmailSidebar from './components/GmailSidebar';
+import Welcome from './components/Welcome';
+import type { GmailItem } from './components/model';
+import RichTextEditor from './components/RichTextEditor';
+import PlainTextEditor from './components/PlainTextEditor';
+import MarkdownEditor from './components/MarkdownEditor';
+import DirectoryPanel from './components/DirectoryPanel';
+import { getDefaultItmes, loadDataFromConfig } from './components/controller';
+import { ContextMenuProvider } from '../components/ui/context-menu';
 
 function App() {
   const [selectedNode, setSelectedNode] = useState<GmailItem | null>(null);
@@ -20,19 +21,35 @@ function App() {
   const [filename, setFilename] = useState<string>("");
 
   useEffect(() => {
-    // config tauri listener when component mounted
-    const unlisten = listen<{ workspace: string }>('workspace_updated', async (event) => {
-      const workspace = event.payload.workspace;
-      console.log('workspace updated, workspace:', workspace, new Date().toISOString());
-      // Use functional update to ensure we always get the latest eventCount value
-      setEventCount(prevCount => prevCount + 1);
-      setWorkspace(workspace.trim());
-    });
+    // 仅在 Tauri 环境中监听事件
+    if (typeof window !== 'undefined' && window.__TAURI_INTERNALS__) {
+      // config tauri listener when component mounted
+      const setupListener = async () => {
+        try {
+          const { listen } = await import('@tauri-apps/api/event');
+          const unlisten = await listen<{ workspace: string }>('workspace_updated', (event) => {
+            const workspace = event.payload.workspace;
+            console.log('workspace updated, workspace:', workspace, new Date().toISOString());
+            // Use functional update to ensure we always get the latest eventCount value
+            setEventCount(prevCount => prevCount + 1);
+            setWorkspace(workspace.trim());
+          });
 
-    // terminate tauri listener when component unmounted
-    return () => {
-      unlisten.then(unlistenFn => unlistenFn());
-    };
+          // terminate tauri listener when component unmounted
+          return () => {
+            unlisten();
+          };
+        } catch (error) {
+          console.error('Failed to setup workspace listener:', error);
+        }
+      };
+
+      setupListener();
+    } else {
+      // 非 Tauri 环境，使用默认数据
+      console.log('Running in non-Tauri environment, using default items');
+      setGmailItems(getDefaultItmes());
+    }
   }, []);
 
   useEffect(() => {
@@ -94,17 +111,15 @@ function App() {
   };
 
   return (
-    <div className="ide-layout">
+    <ContextMenuProvider>
+      <div className="ide-layout">
       {/* 主布局 */}
       <div className="main-layout">
         {/* 左侧资源管理器 */}
         <div className="sidebar">
           <GmailSidebar onSelectNode={setSelectedNode} filename={filename} initialData={gmailItems} />
 
-          {/* 底部快速操作按钮 */}
-          <div className="sidebar-footer">
-            <button className="create-file-btn">新建文件</button>
-          </div>
+
         </div>
 
         {/* 可拖拽分隔条 */}
@@ -153,7 +168,8 @@ function App() {
           {renderEditor()}
         </div>
       </div>
-    </div>
+      </div>
+    </ContextMenuProvider>
   );
 }
 

@@ -534,35 +534,7 @@ body, html, #root {
   background-color: rgba(255, 255, 255, 0.9);
 }
 
-/* 侧边栏底部样式 */
-.sidebar-footer {
-  padding: 12px;
-  border-top: 1px solid var(--border-color);
-  background-color: rgba(241, 245, 249, 0.85);
-}
 
-.create-file-btn {
-  width: 100%;
-  font-size: 12px;
-  padding: 8px 12px;
-  font-weight: 500;
-  background-color: var(--accent-color);
-  color: white;
-  border-radius: var(--radius-sm);
-  border: none;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.create-file-btn:hover {
-  background-color: var(--accent-hover);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px var(--shadow-hover);
-}
-
-.create-file-btn:active {
-  transform: translateY(0);
-}
 
 /* 右侧面板样式已移除 */
 

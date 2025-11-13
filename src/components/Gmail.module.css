@@ -392,13 +392,13 @@
 
 /* 右键菜单基础样式 */
 .contextMenu {
-    background-color: white;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    background-color: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     padding: 4px 0;
-    min-width: 200px;
-    max-width: 300px;
+    min-width: 180px;
+    max-width: 280px;
     position: fixed;
     z-index: 1000;
     overflow: hidden;
@@ -407,6 +407,21 @@
     flex: none;
     width: auto;
     max-height: 400px;
+    backdrop-filter: blur(4px);
+    transition: all 0.15s ease-out;
+    transform-origin: top left;
+    animation: contextMenuShow 0.15s ease-out;
+}
+
+@keyframes contextMenuShow {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
 /* 重置全局样式对右键菜单的影响 */
@@ -424,11 +439,11 @@
 
 /* 右键菜单项样式 */
 .contextMenuItem {
-    padding: 8px 16px;
+    padding: 6px 12px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 12px;
     color: #333;
-    transition: background-color 0.2s;
+    transition: all 0.2s ease;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -437,6 +452,29 @@
     min-width: auto;
     max-width: none;
     display: block;
+    font-weight: normal;
+    line-height: 1.4;
+}
+
+.contextMenuItem:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+}
+
+/* 深色主题支持 */
+@media (prefers-color-scheme: dark) {
+    .contextMenu {
+        background-color: rgba(30, 30, 30, 0.95);
+        border-color: rgba(255, 255, 255, 0.1);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+    
+    .contextMenuItem {
+        color: #e0e0e0;
+    }
+    
+    .contextMenuItem:hover {
+        background-color: rgba(255, 255, 255, 0.08);
+    }
 }
 
 .contextMenuItem:hover {
