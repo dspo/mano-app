@@ -66,12 +66,12 @@ export const loadDataFromConfig = async (filename: string): Promise<GmailItem[]>
 
                 const gmailItem: GmailItem = {
                     id: item.id,
-                    name: item.name,
-                    icon: randomIcon,
+                    name: item.id === '__trash__' ? '垃圾篓' : item.name,
+                    icon: item.id === '__trash__' ? icons.MdOutlineDelete : randomIcon,
                     unread: item.unread,
                     moreInfo: item.moreInfo,
-                    readOnly: item.readOnly,
-                    nodeType: item.nodeType,
+                    readOnly: item.id === '__trash__',
+                    nodeType: item.id === '__trash__' ? Directory : item.nodeType,
                     children: item.children ? addIconsToItems(item.children) : undefined
                 };
 
@@ -137,7 +137,7 @@ export const saveDataToConfig = async (filename: string, data: readonly GmailIte
 };
 
 
-export const getDefaultItmes = (): GmailItem[] => {
+export const getDefaultItems = (): GmailItem[] => {
     return defaultItems;
 };
 
@@ -157,7 +157,7 @@ const defaultItems: GmailItem[] = [
         children: []
     },
     {
-        id: "100",
+        id: "__trash__",
         name: "垃圾篓",
         unread: 0,
         readOnly: true,
@@ -365,7 +365,7 @@ const exampleItems: GmailItem[] = [
         nodeType: Directory,
     },
     {
-        id: "7",
+        id: "__trash__",
         name: "垃圾篓",
         unread: 11,
         readOnly: false,

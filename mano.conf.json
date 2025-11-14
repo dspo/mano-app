@@ -186,10 +186,10 @@
       "nodeType": "Directory"
     },
     {
-      "id": "7",
+      "id": "__trash__",
       "name": "垃圾篓",
       "unread": 11,
-      "readOnly": false,
+      "readOnly": true,
       "nodeType": "Directory",
       "children": [
         {
@@ -239,5 +239,5 @@
       ]
     }
   ],
-  "lastUpdated": "2025-11-13T02:30:17.912Z"
+  "lastUpdated": "2025-11-14T01:28:28.899Z"
 }

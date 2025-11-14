@@ -9,7 +9,7 @@ import RichTextEditor from './components/RichTextEditor';
 import PlainTextEditor from './components/PlainTextEditor';
 import MarkdownEditor from './components/MarkdownEditor';
 import DirectoryPanel from './components/DirectoryPanel';
-import { getDefaultItmes, loadDataFromConfig } from './components/controller';
+import { getDefaultItems, loadDataFromConfig } from './components/controller';
 import { ContextMenuProvider } from '../components/ui/context-menu';
 
 function App() {
@@ -47,7 +47,7 @@ function App() {
     } else {
       // 非 Tauri 环境，使用默认数据
       console.log('Running in non-Tauri environment, using default items');
-      setGmailItems(getDefaultItmes());
+      setGmailItems(getDefaultItems());
     }
   }, []);
 
@@ -57,7 +57,7 @@ function App() {
     // if workspace is empty, use default items
     if (!workspace || workspace === '') {
       console.log('empty workspace found');
-      setGmailItems(getDefaultItmes());
+      setGmailItems(getDefaultItems());
       return;
     }
 
@@ -73,7 +73,7 @@ function App() {
           });
         } else {
           console.log(filename, "not exists", "set default");
-          setGmailItems(getDefaultItmes());
+          setGmailItems(getDefaultItems());
         }
       });
     });

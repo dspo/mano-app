@@ -85,13 +85,10 @@ export default function GmailSidebar({ onSelectNode, filename, initialData }: Gm
     }
   };
 
-
-
   const closeContextMenu = () => {
     setContextMenu(null);
   };
 
-  // 监听initialData变化，当数据更新时更新treeData状态
   useEffect(() => { setData(initialData); }, [initialData]);
   useEffect(saveDataToLocal, [data]);
 
@@ -129,16 +126,10 @@ export default function GmailSidebar({ onSelectNode, filename, initialData }: Gm
                   renderCursor={Cursor}
                   searchTerm={term}
                   paddingBottom={32}
-                  disableEdit={(data) => data.readOnly}
+                  disableEdit={(data) => data.readOnly || data.id === '__trash__' }
                   disableDrop={({ parentNode, dragNodes }) => {
-                    if (
-                      parentNode.data.name === "Categories" &&
-                      dragNodes.some((drag) => drag.data.name === "Inbox")
-                    ) {
-                      return true;
-                    } else {
-                      return false;
-                    }
+                    return parentNode.data.name === "Categories" &&
+                        dragNodes.some((drag) => drag.data.name === "Inbox");
                   }}
                   onContextMenu={() => {
                     // 让节点自己处理右键事件，这里不处理
