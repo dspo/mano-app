@@ -1,6 +1,5 @@
 import React, { useRef, useEffect } from 'react';
 import Quill from 'quill';
-import { Delta } from 'quill';
 import 'quill/dist/quill.snow.css';
 import { GmailItem } from '@components/model';
 import { getGmailItemFilename } from '@components/model';
@@ -24,7 +23,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ node, workspace, onClos
         if (editorContentRef.current) {
             // 确保容器完全清空，避免重复创建
             editorContentRef.current.innerHTML = '';
-            
+
             // 创建新的Quill实例
             const quill = new Quill(editorContentRef.current, {
                 theme: 'snow',
@@ -32,11 +31,11 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ node, workspace, onClos
                     toolbar: {
                         container: [
                             [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
-                             ['bold', 'italic', 'underline', 'strike'],
+                            ['bold', 'italic', 'underline', 'strike'],
                             [{ 'color': [] }, { 'background': [] }],
-                            [{ 'script': 'sub'}, { 'script': 'super' }],
-                            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                            [{ 'indent': '-1'}, { 'indent': '+1' }],
+                            [{ 'script': 'sub' }, { 'script': 'super' }],
+                            [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                            [{ 'indent': '-1' }, { 'indent': '+1' }],
                             [{ 'direction': 'rtl' }],
                             [{ 'align': [] }],
                             ['link', 'image', 'video'],
@@ -46,7 +45,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ node, workspace, onClos
                             ['close-editor'] // 添加自定义关闭按钮
                         ],
                         handlers: {
-                            'close-editor': function() {
+                            'close-editor': function () {
                                 // 这里将通过引用调用onClose
                                 const win = window as any;
                                 if (win.closeEditorHandler) {
@@ -82,7 +81,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ node, workspace, onClos
                         color: #64748b !important;
                         padding: 0 !important;
                     `;
-                    
+
                     // 添加悬停效果
                     closeButton.addEventListener('mouseenter', () => {
                         closeButton.style.backgroundColor = 'rgba(255, 255, 255, 1)';
@@ -90,7 +89,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ node, workspace, onClos
                         closeButton.style.color = '#ef4444';
                         closeButton.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.15)';
                     });
-                    
+
                     closeButton.addEventListener('mouseleave', () => {
                         closeButton.style.backgroundColor = 'rgba(255, 255, 255, 0.95)';
                         closeButton.style.borderColor = 'transparent';
@@ -111,12 +110,12 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ node, workspace, onClos
                     // 尝试读取文件内容
                     const { readTextFile } = await import('@tauri-apps/plugin-fs');
                     const { join } = await import('@tauri-apps/api/path');
-                    
+
                     // 使用 workspace 路径，如果没有则使用当前目录
                     const workspacePath = workspace || '.';
                     const filePath = await join(workspacePath, fileName);
                     const content = await readTextFile(filePath);
-                    
+
                     if (content) {
                         try {
                             // 解析 Delta 格式
@@ -146,21 +145,21 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ node, workspace, onClos
                     try {
                         const currentContent = quill.getContents(); // 获取 Delta 格式内容
                         const fileName = filename; // 使用 filename() 方法获取文件名
-                        
+
                         const { writeTextFile, exists, mkdir } = await import('@tauri-apps/plugin-fs');
                         const { join } = await import('@tauri-apps/api/path');
-                        
+
                         // 使用 workspace 路径，如果没有则使用当前目录
                         const workspacePath = workspace || '.';
                         const dirExists = await exists(workspacePath);
                         if (!dirExists) {
                             await mkdir(workspacePath);
                         }
-                        
+
                         const filePath = await join(workspacePath, fileName);
                         // 将 Delta 转换为 JSON 字符串保存
                         await writeTextFile(filePath, JSON.stringify(currentContent, null, 2));
-                        
+
                         console.log('Delta 文件已保存:', fileName);
                     } catch (error) {
                         console.error('保存文件失败:', error);
@@ -176,19 +175,19 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ node, workspace, onClos
                 if (quill) {
                     // 移除事件监听器
                     quill.off('text-change');
-                    
+
                     // 销毁Quill实例
-        if (quill.theme && quill.theme.modules && quill.theme.modules.toolbar) {
-          // 清理工具栏
-          const toolbar = quill.theme.modules.toolbar;
-          if (toolbar.container) {
-            const toolbarContainer = toolbar.container as HTMLElement;
-            if (toolbarContainer.parentNode) {
-              toolbarContainer.parentNode.removeChild(toolbarContainer);
-            }
-          }
-        }
-                    
+                    if (quill.theme && quill.theme.modules && quill.theme.modules.toolbar) {
+                        // 清理工具栏
+                        const toolbar = quill.theme.modules.toolbar;
+                        if (toolbar.container) {
+                            const toolbarContainer = toolbar.container as HTMLElement;
+                            if (toolbarContainer.parentNode) {
+                                toolbarContainer.parentNode.removeChild(toolbarContainer);
+                            }
+                        }
+                    }
+
                     // 清空编辑器容器
                     if (quill.container) {
                         // 完全清空容器
@@ -199,11 +198,11 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ node, workspace, onClos
                         }
                     }
                 }
-                
+
                 // 清空引用
                 quillRef.current = null;
             }
-            
+
             // 确保编辑器容器完全清空
             if (editorContentRef.current) {
                 editorContentRef.current.innerHTML = '';
@@ -214,7 +213,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ node, workspace, onClos
     // 设置全局关闭处理函数
     useEffect(() => {
         (window as any).closeEditorHandler = onClose;
-        
+
         return () => {
             delete (window as any).closeEditorHandler;
         };
@@ -234,7 +233,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ node, workspace, onClos
                 flexDirection: 'column'
             }}
         >
-            <div 
+            <div
                 className="editor-content"
                 style={{
                     flex: 1,
@@ -242,8 +241,8 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ node, workspace, onClos
                     position: 'relative'
                 }}
             >
-                <div 
-                    ref={editorContentRef} 
+                <div
+                    ref={editorContentRef}
                     className="quill-editor"
                     style={{
                         height: '100%'
