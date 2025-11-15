@@ -1,5 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import Quill from 'quill';
+import { Delta } from 'quill';
 import 'quill/dist/quill.snow.css';
 import { GmailItem } from '@components/model';
 import { getGmailItemFilename } from '@components/model';
@@ -117,12 +118,20 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ node, workspace, onClos
                     const content = await readTextFile(filePath);
                     
                     if (content) {
-                        quill.setText(content);
+                        try {
+                            // 解析 Delta 格式
+                            const delta = JSON.parse(content);
+                            quill.setContents(delta);
+                        } catch (parseError) {
+                            console.log('Delta 格式解析失败，使用纯文本:', parseError);
+                            // 如果解析失败，尝试作为纯文本处理
+                            quill.setText(content);
+                        }
                     }
                 } catch (error) {
                     // 文件不存在或读取失败，使用空编辑器
                     console.log('文件不存在或读取失败，创建新文件:', error);
-                    quill.setText('');
+                    quill.setContents([]); // 空的 Delta
                 }
             };
 
@@ -135,7 +144,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ node, workspace, onClos
                 clearTimeout(saveTimeout);
                 saveTimeout = setTimeout(async () => {
                     try {
-                        const currentContent = quill.getText();
+                        const currentContent = quill.getContents(); // 获取 Delta 格式内容
                         const fileName = filename; // 使用 filename() 方法获取文件名
                         
                         const { writeTextFile, exists, mkdir } = await import('@tauri-apps/plugin-fs');
@@ -149,9 +158,10 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ node, workspace, onClos
                         }
                         
                         const filePath = await join(workspacePath, fileName);
-                        await writeTextFile(filePath, currentContent);
+                        // 将 Delta 转换为 JSON 字符串保存
+                        await writeTextFile(filePath, JSON.stringify(currentContent, null, 2));
                         
-                        console.log('文件已保存:', fileName);
+                        console.log('Delta 文件已保存:', fileName);
                     } catch (error) {
                         console.error('保存文件失败:', error);
                     }
