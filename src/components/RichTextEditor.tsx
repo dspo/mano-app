@@ -1,261 +1,245 @@
-import { useState, useRef, useEffect } from 'react';
-import type { GmailItem } from '@components/model';
+import React, { useRef, useEffect } from 'react';
+import Quill from 'quill';
+import 'quill/dist/quill.snow.css';
+import { GmailItem } from '@components/model';
+import { getGmailItemFilename } from '@components/model';
 
 interface RichTextEditorProps {
     node: GmailItem;
+    workspace?: string;
     onClose: () => void;
 }
 
-/**
- * RichTextEditor component for editing rich text content with drag, resize, maximize and window functionality
- */
-const RichTextEditor = ({ node: _node, onClose }: RichTextEditorProps) => {
-    const [isMaximized, setIsMaximized] = useState(false);
-    const [isWindowed, setIsWindowed] = useState(false);
-    const [dimensions, setDimensions] = useState({ width: '100%', height: '100%' });
-    const [position, setPosition] = useState({ x: 0, y: 0 });
+const RichTextEditor: React.FC<RichTextEditorProps> = ({ node, workspace, onClose }) => {
     const editorRef = useRef<HTMLDivElement>(null);
-    // 暂时移除未使用的resizeRef
-    const isResizing = useRef(false);
-    const isDragging = useRef(false);
-    const initialDimensions = useRef({ width: '100%', height: '100%' });
-    const initialPosition = useRef({ x: 0, y: 0 });
+    const editorContentRef = useRef<HTMLDivElement>(null);
+    const quillRef = useRef<Quill | null>(null);
 
-    // 处理最大化/还原
-    const handleMaximize = () => {
-        if (!isMaximized) {
-            // 保存当前尺寸
-            if (editorRef.current) {
-                initialDimensions.current = {
-                    width: editorRef.current.style.width || '100%',
-                    height: editorRef.current.style.height || '100%'
-                };
-            }
-            setDimensions({ width: '100%', height: '100%' });
-            setIsWindowed(false); // 最大化时取消窗口化状态
-        } else {
-            // 还原到之前的尺寸
-            setDimensions(initialDimensions.current);
-        }
-        setIsMaximized(!isMaximized);
-    };
+    // 获取文件名
+    const filename = getGmailItemFilename(node);
 
-    // 处理窗口化
-    const handleWindow = () => {
-        if (!isWindowed) {
-            // 保存当前尺寸和位置
-            if (editorRef.current) {
-                initialDimensions.current = {
-                    width: editorRef.current.style.width || '100%',
-                    height: editorRef.current.style.height || '100%'
-                };
-                initialPosition.current = { ...position };
-            }
-            // 设置为窗口化尺寸（略微缩小）
-            if (editorRef.current && editorRef.current.parentElement) {
-                const parentWidth = editorRef.current.parentElement.offsetWidth;
-                const parentHeight = editorRef.current.parentElement.offsetHeight;
-                setDimensions({
-                    width: `${parentWidth * 0.9}px`,
-                    height: `${parentHeight * 0.9}px`
-                });
-                // 居中显示
-                setPosition({
-                    x: parentWidth * 0.05,
-                    y: parentHeight * 0.05
-                });
-            }
-            setIsMaximized(false); // 窗口化时取消最大化状态
-        } else {
-            // 还原到之前的尺寸和位置
-            setDimensions(initialDimensions.current);
-            setPosition(initialPosition.current);
-        }
-        setIsWindowed(!isWindowed);
-    };
-
-    // 开始拖拽
-    const startDrag = (e: React.MouseEvent) => {
-        // 只有在窗口化状态下可以拖拽
-        if (!isWindowed || isMaximized) return;
-
-        e.preventDefault();
-        isDragging.current = true;
-        document.body.style.userSelect = 'none';
-
-        const startX = e.clientX;
-        const startY = e.clientY;
-        const currentX = position.x;
-        const currentY = position.y;
-
-        const handleMouseMove = (moveEvent: MouseEvent) => {
-            if (!isDragging.current || !editorRef.current || !editorRef.current.parentElement) return;
-
-            const deltaX = moveEvent.clientX - startX;
-            const deltaY = moveEvent.clientY - startY;
-
-            // 计算新位置并限制在父容器内
-            const parentRect = editorRef.current.parentElement.getBoundingClientRect();
-            const editorRect = editorRef.current.getBoundingClientRect();
-
-            let newX = currentX + deltaX;
-            let newY = currentY + deltaY;
-
-            // 限制在父容器边界内
-            newX = Math.max(0, Math.min(newX, parentRect.width - editorRect.width));
-            newY = Math.max(0, Math.min(newY, parentRect.height - editorRect.height));
-
-            setPosition({ x: newX, y: newY });
-        };
-
-        const handleMouseUp = () => {
-            isDragging.current = false;
-            document.body.style.userSelect = '';
-            document.removeEventListener('mousemove', handleMouseMove);
-            document.removeEventListener('mouseup', handleMouseUp);
-        };
-
-        document.addEventListener('mousemove', handleMouseMove);
-        document.addEventListener('mouseup', handleMouseUp);
-    };
-
-    // 开始调整大小
-    const startResize = (e: React.MouseEvent, direction: string = 'bottom-right') => {
-        e.preventDefault();
-        isResizing.current = true;
-        document.body.style.userSelect = 'none';
-
-        const startX = e.clientX;
-        const startY = e.clientY;
-        const startWidth = editorRef.current?.offsetWidth || 0;
-        const startHeight = editorRef.current?.offsetHeight || 0;
-        const startPosition = { ...position };
-
-        const handleMouseMove = (moveEvent: MouseEvent) => {
-            if (!isResizing.current || !editorRef.current) return;
-
-            const deltaX = moveEvent.clientX - startX;
-            const deltaY = moveEvent.clientY - startY;
-
-            let newWidth = startWidth;
-            let newHeight = startHeight;
-            let newX = startPosition.x;
-            let newY = startPosition.y;
-
-            // 根据方向调整尺寸和位置
-            switch (direction) {
-                case 'top-left':
-                    newWidth = Math.max(200, startWidth - deltaX);
-                    newHeight = Math.max(150, startHeight - deltaY);
-                    newX = startPosition.x + deltaX;
-                    newY = startPosition.y + deltaY;
-                    break;
-                case 'top':
-                    newHeight = Math.max(150, startHeight - deltaY);
-                    newY = startPosition.y + deltaY;
-                    break;
-                case 'top-right':
-                    newWidth = Math.max(200, startWidth + deltaX);
-                    newHeight = Math.max(150, startHeight - deltaY);
-                    newY = startPosition.y + deltaY;
-                    break;
-                case 'right':
-                    newWidth = Math.max(200, startWidth + deltaX);
-                    break;
-                case 'bottom-right':
-                    newWidth = Math.max(200, startWidth + deltaX);
-                    newHeight = Math.max(150, startHeight + deltaY);
-                    break;
-                case 'bottom':
-                    newHeight = Math.max(150, startHeight + deltaY);
-                    break;
-                case 'bottom-left':
-                    newWidth = Math.max(200, startWidth - deltaX);
-                    newHeight = Math.max(150, startHeight + deltaY);
-                    newX = startPosition.x + deltaX;
-                    break;
-                case 'left':
-                    newWidth = Math.max(200, startWidth - deltaX);
-                    newX = startPosition.x + deltaX;
-                    break;
-            }
-
-            setDimensions({
-                width: `${newWidth}px`,
-                height: `${newHeight}px`
+    // 初始化 Quill 编辑器
+    useEffect(() => {
+        if (editorContentRef.current) {
+            // 确保容器完全清空，避免重复创建
+            editorContentRef.current.innerHTML = '';
+            
+            // 创建新的Quill实例
+            const quill = new Quill(editorContentRef.current, {
+                theme: 'snow',
+                modules: {
+                    toolbar: {
+                        container: [
+                            [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+                             ['bold', 'italic', 'underline', 'strike'],
+                            [{ 'color': [] }, { 'background': [] }],
+                            [{ 'script': 'sub'}, { 'script': 'super' }],
+                            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                            [{ 'indent': '-1'}, { 'indent': '+1' }],
+                            [{ 'direction': 'rtl' }],
+                            [{ 'align': [] }],
+                            ['link', 'image', 'video'],
+                            ['clean'],
+                            ['blockquote', 'code-block'],
+                            [{ 'font': [] }],
+                            ['close-editor'] // 添加自定义关闭按钮
+                        ],
+                        handlers: {
+                            'close-editor': function() {
+                                // 这里将通过引用调用onClose
+                                const win = window as any;
+                                if (win.closeEditorHandler) {
+                                    win.closeEditorHandler();
+                                }
+                            }
+                        }
+                    }
+                },
+                placeholder: '请开始你的灵感之旅吧...'
             });
 
-            // 如果在窗口化状态下，同时更新位置
-            if (isWindowed) {
-                setPosition({ x: newX, y: newY });
+            // 添加自定义关闭按钮的图标和样式
+            const toolbar = quill.getModule('toolbar') as any;
+            if (toolbar && toolbar.container) {
+                const closeButton = toolbar.container.querySelector('.ql-close-editor');
+                if (closeButton) {
+                    closeButton.innerHTML = '<svg viewBox="0 0 18 18" width="16" height="16"><path d="M14.53 4.53l-1.06-1.06L9 7.94 4.53 3.47 3.47 4.53 7.94 9l-4.47 4.47 1.06 1.06L9 10.06l4.47 4.47 1.06-1.06L10.06 9z"/></svg>';
+                    closeButton.style.cssText = `
+                        margin-left: auto !important;
+                        margin-right: 0px !important;
+                        background: rgba(255, 255, 255, 0.95) !important;
+                        border: none !important;
+                        border-radius: 0 !important;
+                        width: 24px !important;
+                        height: 24px !important;
+                        display: flex !important;
+                        align-items: center !important;
+                        justify-content: center !important;
+                        cursor: pointer !important;
+                        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+                        transition: all 0.2s ease !important;
+                        color: #64748b !important;
+                        padding: 0 !important;
+                    `;
+                    
+                    // 添加悬停效果
+                    closeButton.addEventListener('mouseenter', () => {
+                        closeButton.style.backgroundColor = 'rgba(255, 255, 255, 1)';
+                        closeButton.style.borderColor = 'transparent';
+                        closeButton.style.color = '#ef4444';
+                        closeButton.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.15)';
+                    });
+                    
+                    closeButton.addEventListener('mouseleave', () => {
+                        closeButton.style.backgroundColor = 'rgba(255, 255, 255, 0.95)';
+                        closeButton.style.borderColor = 'transparent';
+                        closeButton.style.color = '#64748b';
+                        closeButton.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.1)';
+                    });
+                }
             }
 
-            // 调整大小时自动进入窗口化状态
-            if (!isWindowed && !isMaximized) {
-                setIsWindowed(true);
-            }
-        };
+            quillRef.current = quill;
 
-        const handleMouseUp = () => {
-            isResizing.current = false;
-            document.body.style.userSelect = '';
-            document.removeEventListener('mousemove', handleMouseMove);
-            document.removeEventListener('mouseup', handleMouseUp);
-        };
+            // 加载文件内容
+            const loadFileContent = async () => {
+                try {
+                    // 使用 filename() 方法获取文件名
+                    const fileName = filename;
 
-        document.addEventListener('mousemove', handleMouseMove);
-        document.addEventListener('mouseup', handleMouseUp);
-    };
+                    // 尝试读取文件内容
+                    const { readTextFile } = await import('@tauri-apps/plugin-fs');
+                    const { join } = await import('@tauri-apps/api/path');
+                    
+                    // 使用 workspace 路径，如果没有则使用当前目录
+                    const workspacePath = workspace || '.';
+                    const filePath = await join(workspacePath, fileName);
+                    const content = await readTextFile(filePath);
+                    
+                    if (content) {
+                        quill.setText(content);
+                    }
+                } catch (error) {
+                    // 文件不存在或读取失败，使用空编辑器
+                    console.log('文件不存在或读取失败，创建新文件:', error);
+                    quill.setText('');
+                }
+            };
 
-    // 组件卸载时清理事件监听器
-    useEffect(() => {
+            loadFileContent();
+
+            // 监听内容变化，自动保存到文件
+            let saveTimeout: ReturnType<typeof setTimeout>;
+            quill.on('text-change', () => {
+                // 防抖处理，避免频繁保存
+                clearTimeout(saveTimeout);
+                saveTimeout = setTimeout(async () => {
+                    try {
+                        const currentContent = quill.getText();
+                        const fileName = filename; // 使用 filename() 方法获取文件名
+                        
+                        const { writeTextFile, exists, mkdir } = await import('@tauri-apps/plugin-fs');
+                        const { join } = await import('@tauri-apps/api/path');
+                        
+                        // 使用 workspace 路径，如果没有则使用当前目录
+                        const workspacePath = workspace || '.';
+                        const dirExists = await exists(workspacePath);
+                        if (!dirExists) {
+                            await mkdir(workspacePath);
+                        }
+                        
+                        const filePath = await join(workspacePath, fileName);
+                        await writeTextFile(filePath, currentContent);
+                        
+                        console.log('文件已保存:', fileName);
+                    } catch (error) {
+                        console.error('保存文件失败:', error);
+                    }
+                }, 1000); // 1 秒防抖
+            });
+        }
+
         return () => {
-            document.body.style.userSelect = '';
-            document.removeEventListener('mousemove', () => { });
-            document.removeEventListener('mouseup', () => { });
+            if (quillRef.current) {
+                // 清理 Quill 编辑器实例和事件监听器
+                const quill = quillRef.current;
+                if (quill) {
+                    // 移除事件监听器
+                    quill.off('text-change');
+                    
+                    // 销毁Quill实例
+        if (quill.theme && quill.theme.modules && quill.theme.modules.toolbar) {
+          // 清理工具栏
+          const toolbar = quill.theme.modules.toolbar;
+          if (toolbar.container) {
+            const toolbarContainer = toolbar.container as HTMLElement;
+            if (toolbarContainer.parentNode) {
+              toolbarContainer.parentNode.removeChild(toolbarContainer);
+            }
+          }
+        }
+                    
+                    // 清空编辑器容器
+                    if (quill.container) {
+                        // 完全清空容器
+                        quill.container.innerHTML = '';
+                        // 确保所有子节点都被移除
+                        while (quill.container.firstChild) {
+                            quill.container.removeChild(quill.container.firstChild);
+                        }
+                    }
+                }
+                
+                // 清空引用
+                quillRef.current = null;
+            }
+            
+            // 确保编辑器容器完全清空
+            if (editorContentRef.current) {
+                editorContentRef.current.innerHTML = '';
+            }
         };
-    }, []);
+    }, [node, workspace]);
+
+    // 设置全局关闭处理函数
+    useEffect(() => {
+        (window as any).closeEditorHandler = onClose;
+        
+        return () => {
+            delete (window as any).closeEditorHandler;
+        };
+    }, [onClose]);
+
+
 
     return (
         <div
             ref={editorRef}
-            className={`editor rich-text-editor ${isMaximized ? 'maximized' : ''} ${isWindowed ? 'windowed' : ''} ${isDragging.current ? 'dragging' : ''}`}
+            className="editor rich-text-editor"
             style={{
-                width: dimensions.width,
-                height: dimensions.height,
-                position: isWindowed ? 'absolute' : 'relative',
-                left: isWindowed ? `${position.x}px` : 0,
-                top: isWindowed ? `${position.y}px` : 0,
-                resize: 'both',
-                overflow: 'hidden'
+                width: '100%',
+                height: '100%',
+                position: 'relative',
+                display: 'flex',
+                flexDirection: 'column'
             }}
         >
-            <div className="editor-header" onMouseDown={startDrag}>
-                <div className="editor-title">Rich Text Editor</div>
-                <div className="editor-controls">
-                    <button className="editor-close-btn" onClick={onClose}>
-                        ×
-                    </button>
-                    <button className="editor-window-btn" onClick={handleWindow}>
-                        ⥢
-                    </button>
-                    <button className="editor-maximize-btn" onClick={handleMaximize}>
-                        {isMaximized ? '⤦' : '⤢'}
-                    </button>
-                </div>
+            <div 
+                className="editor-content"
+                style={{
+                    flex: 1,
+                    overflow: 'auto',
+                    position: 'relative'
+                }}
+            >
+                <div 
+                    ref={editorContentRef} 
+                    className="quill-editor"
+                    style={{
+                        height: '100%'
+                    }}
+                />
             </div>
-            <div className="editor-content">
-                <div className="editor-placeholder">RichTextEditor 组件</div>
-            </div>
-      // 八个方向的调整大小器
-            <div className="editor-resizer top-left" onMouseDown={(e) => startResize(e, 'top-left')}></div>
-            <div className="editor-resizer top" onMouseDown={(e) => startResize(e, 'top')}></div>
-            <div className="editor-resizer top-right" onMouseDown={(e) => startResize(e, 'top-right')}></div>
-            <div className="editor-resizer right" onMouseDown={(e) => startResize(e, 'right')}></div>
-            <div className="editor-resizer bottom-right" onMouseDown={(e) => startResize(e, 'bottom-right')}></div>
-            <div className="editor-resizer bottom" onMouseDown={(e) => startResize(e, 'bottom')}></div>
-            <div className="editor-resizer bottom-left" onMouseDown={(e) => startResize(e, 'bottom-left')}></div>
-            <div className="editor-resizer left" onMouseDown={(e) => startResize(e, 'left')}></div>
         </div>
     );
 };

@@ -17,9 +17,10 @@ import { saveDataToConfig } from "@components/controller";
 import { SiGmail } from "react-icons/si";
 import { BsTree } from "react-icons/bs";
 import { MdArrowDropDown, MdArrowRight } from "react-icons/md";
+import { FaFileAlt } from "react-icons/fa";
 import styles from "./Gmail.module.css";
 
-import type { GmailItem } from "@components/model";
+import {GmailItem, PlainText} from "@components/model";
 
 // 导入FillFlexParent组件
 import { FillFlexParent } from "@components/fill-flex-parent";
@@ -29,8 +30,6 @@ interface GmailSidebarProps {
   filename: string;
   initialData: GmailItem[];
 }
-
-// Workspace directory is defined in controller.ts
 
 let nextId = 0;
 
@@ -59,13 +58,16 @@ export default function GmailSidebar({ onSelectNode, filename, initialData }: Gm
   };
 
   const onCreate: CreateHandler<GmailItem> = ({ parentId, index, type }) => {
-    const data = { 
-      id: `simple-tree-id-${nextId++}`, 
-      name: "", 
-      type: type === "leaf" ? "PlainText" : "Folder",
-      content: ""
-    } as any;
-    if (type === "internal") data.children = [];
+    const data: GmailItem = {
+      id: `simple-tree-id-${nextId++}`,
+      name: "",
+      icon: type === "leaf" ? BsTree : BsTree,
+      nodeType: type === "leaf" ? "PlainText" : "Directory",
+      readOnly: false
+    };
+    if (type === "internal") {
+      (data as any).children = [];
+    }
     tree.create({ parentId, index, data });
     setData(tree.data);
     return data;
@@ -126,10 +128,10 @@ export default function GmailSidebar({ onSelectNode, filename, initialData }: Gm
                   renderCursor={Cursor}
                   searchTerm={term}
                   paddingBottom={32}
-                  disableEdit={(data) => data.readOnly || data.id === '__trash__' }
+                  disableEdit={(data) => data.readOnly || data.id === '__trash__'}
                   disableDrop={({ parentNode, dragNodes }) => {
-                    return parentNode.data.name === "Categories" &&
-                        dragNodes.some((drag) => drag.data.name === "Inbox");
+                    return parentNode.data.id === "__trash__" ||
+                      dragNodes.some((drag) => drag.data.id === "__trash__");
                   }}
                   onContextMenu={() => {
                     // 让节点自己处理右键事件，这里不处理
@@ -151,6 +153,8 @@ export default function GmailSidebar({ onSelectNode, filename, initialData }: Gm
               onClose={closeContextMenu}
               node={contextMenu.node}
               onCreate={onCreate}
+              tree={tree}
+              setData={setData}
             />
           )}
         </div>
@@ -159,36 +163,61 @@ export default function GmailSidebar({ onSelectNode, filename, initialData }: Gm
   );
 }
 
-function ContextMenu({ x, y, onClose, node, onCreate }: { 
-  x: number; 
-  y: number; 
+function ContextMenu({ x, y, onClose, node, tree, setData }: {
+  x: number;
+  y: number;
   onClose: () => void;
   node: NodeApi<GmailItem>;
   onCreate: CreateHandler<GmailItem>;
+  tree: SimpleTree<GmailItem>;
+  setData: (data: GmailItem[]) => void;
 }) {
-  const handleCreateFile = () => {
-    // 创建PlainText类型的节点
-    const newNode = onCreate({
-      parentId: node.data.id,
-      parentNode: node,
-      index: 0,
-      type: "leaf"
-    });
-    
+  const handleCreatePlainText = () => {
+    const data: GmailItem = {
+      id: `simple-tree-id-${nextId++}`,
+      name: "",
+      icon: BsTree, // todo choose icon
+      nodeType: PlainText,
+      readOnly: false
+    };
+
+    tree.create({ parentId: node.data.id, index: 0, data });
+    setData(tree.data);
+
     // 延迟一下再触发编辑，确保节点已经渲染
     setTimeout(() => {
-      // 找到新创建的节点并触发编辑
-      if (newNode && typeof newNode === 'object' && 'id' in newNode) {
-        // 使用 tree 的 edit 方法直接编辑新节点
-        node.tree.edit(newNode.id);
-      }
+      // 使用 tree 的 edit 方法直接编辑新节点
+      node.tree.edit(data.id);
     }, 100);
-    
+
+    onClose();
+  };
+
+  const handleCreateRichText = () => {
+    const data: GmailItem = {
+      id: `simple-tree-id-${nextId++}`,
+      name: "",
+      icon: FaFileAlt,
+      nodeType: "RichText",
+      readOnly: false
+    };
+
+    tree.create({ parentId: node.data.id, index: 0, data });
+    setData(tree.data);
+
+    // 延迟一下再触发编辑，确保节点已经渲染
+    setTimeout(() => {
+      // 使用 tree 的 edit 方法直接编辑新节点
+      node.tree.edit(data.id);
+    }, 100);
+
     onClose();
   };
 
   const handleDeleteNode = () => {
-    // 实现删除功能
+    if (node.id === '__trash__') {
+        return;
+    }
     node.tree.delete(node.data.id);
     onClose();
   };
@@ -205,9 +234,15 @@ function ContextMenu({ x, y, onClose, node, onCreate }: {
     >
       <div className={styles.contextMenuItem} onClick={(e) => {
         e.stopPropagation();
-        handleCreateFile();
+        handleCreatePlainText();
       }}>
-        Create File In This Node
+        Create PlainText
+      </div>
+      <div className={styles.contextMenuItem} onClick={(e) => {
+        e.stopPropagation();
+        handleCreateRichText();
+      }}>
+        Create RichText
       </div>
       <div className={styles.contextMenuItem} onClick={(e) => {
         e.stopPropagation();
@@ -224,22 +259,36 @@ function Node({ node, style, dragHandle, selectedId, onSelectNode, setContextMen
   onSelectNode: (node: GmailItem) => void;
   setContextMenu: (menu: { x: number; y: number; node: NodeApi<GmailItem> } | null) => void;
 }) {
-  const Icon = node.data.icon || BsTree;
-  
+  // 根据节点类型选择图标
+  const getIcon = () => {
+    if (node.data.icon) return node.data.icon;
+
+    // 根据节点类型返回相应图标
+    if (node.data.nodeType === "RichText") {
+      return FaFileAlt;
+    } else if (node.data.nodeType === "PlainText") {
+      return BsTree;
+    } else if (node.data.nodeType === "Markdown") {
+      return BsTree;
+    }
+
+    return BsTree; // 默认图标
+  };
+
+  const Icon = getIcon();
+
   // 处理双击事件，触发编辑状态
   const handleDoubleClick = () => {
     node.edit();
   };
-  
+
   // 处理右键事件
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setContextMenu({ x: e.clientX, y: e.clientY, node });
   };
-  
-  
-  
+
   return (
     <div
       ref={dragHandle}
@@ -270,14 +319,14 @@ function Node({ node, style, dragHandle, selectedId, onSelectNode, setContextMen
 function Input({ node }: { node: NodeApi<GmailItem> }) {
   // 获取节点名称，确保有默认值
   const name = node.data.name || "未命名";
-  
+
   // 处理失焦事件
   const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     // 失焦时提交值，使用trim处理空白，默认为"未命名"
     const value = e.currentTarget.value.trim() || "未命名";
     node.submit(value);
   };
-  
+
   // 处理键盘事件
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Escape") {
@@ -291,7 +340,7 @@ function Input({ node }: { node: NodeApi<GmailItem> }) {
       node.submit(value);
     }
   };
-  
+
   // 处理聚焦事件
   const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
     // 保存input元素引用，避免React事件对象重用导致的问题
@@ -303,7 +352,7 @@ function Input({ node }: { node: NodeApi<GmailItem> }) {
       }
     }, 0);
   };
-  
+
   return (
     <input
       autoFocus

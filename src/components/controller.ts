@@ -154,7 +154,15 @@ const defaultItems: GmailItem[] = [
         readOnly: false,
         icon: icons.MdInbox,
         nodeType: Directory,
-        children: []
+        children: [
+            {
+                id: "__example_rich_text__",
+                name: "rich text",
+                readOnly: false,
+                icon: icons.MdTextSnippet,
+                nodeType: RichText,
+            }
+        ]
     },
     {
         id: "__trash__",

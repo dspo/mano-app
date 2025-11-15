@@ -17,7 +17,7 @@ const DirectoryPanel = ({ node, onClose }: DirectoryPanelProps) => {
       {/* 简单的标题栏 */}
       <div className="editor-header">
         <div className="editor-title">
-          {React.createElement(node.icon)} {node.name}
+          {node.icon ? React.createElement(node.icon) : '📁'} {node.name}
         </div>
         <div className="editor-controls">
           <button className="control-btn close" onClick={onClose}>
@@ -44,7 +44,7 @@ const DirectoryPanel = ({ node, onClose }: DirectoryPanelProps) => {
               {children.map((child) => (
                 <React.Fragment key={child.id}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '16px' }}>{React.createElement(child.icon)}</span>
+                    <span style={{ fontSize: '16px' }}>{child.icon ? React.createElement(child.icon) : '📄'}</span>
                     <span>{child.name}</span>
                   </div>
                   <div style={{ color: '#999' }}>

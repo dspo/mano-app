@@ -92,14 +92,18 @@ function App() {
 
     // 根据节点类型选择编辑器
     const nodeType = selectedNode.nodeType || 'PlainText';
+    
+    // 使用更强制的方式确保组件完全重新创建
+    const uniqueKey = `${selectedNode.id}-${Date.now()}`;
+    
     if (nodeType === 'Directory') {
-      return <DirectoryPanel node={selectedNode} onClose={handleCloseEditor} />;
+      return <DirectoryPanel key={uniqueKey} node={selectedNode} onClose={handleCloseEditor} />;
     } else if (nodeType === 'RichText') {
-      return <RichTextEditor node={selectedNode} onClose={handleCloseEditor} />;
+      return <RichTextEditor key={uniqueKey} node={selectedNode} onClose={handleCloseEditor} workspace={workspace} />;
     } else if (nodeType === 'PlainText') {
-      return <PlainTextEditor node={selectedNode} onClose={handleCloseEditor} />;
+      return <PlainTextEditor key={uniqueKey} node={selectedNode} onClose={handleCloseEditor} />;
     } else if (nodeType === 'Markdown') {
-      return <MarkdownEditor node={selectedNode} onClose={handleCloseEditor} />;
+      return <MarkdownEditor key={uniqueKey} node={selectedNode} onClose={handleCloseEditor} />;
     }
 
     return (

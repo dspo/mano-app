@@ -17,3 +17,9 @@ export type GmailItem = {
     nodeType?: NodeType;
     children?: GmailItem[];
 };
+
+// GmailItem 的 filename 方法实现
+export const getGmailItemFilename = (item: GmailItem): string => {
+    const safeName = item.name.replace(/[^a-zA-Z0-9一-龥]/g, '_');
+    return `${safeName}.rtf`;
+};

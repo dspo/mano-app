@@ -260,16 +260,7 @@ const PlainTextEditor = ({ node: _node, onClose }: PlainTextEditorProps) => {
       </div>
       <div className="editor-content">
         <div className="editor-placeholder">TextEditor 组件</div>
-      </div>
-      // 八个方向的调整大小器
-      <div className="editor-resizer top-left" onMouseDown={(e) => startResize(e, 'top-left')}></div>
-      <div className="editor-resizer top" onMouseDown={(e) => startResize(e, 'top')}></div>
-      <div className="editor-resizer top-right" onMouseDown={(e) => startResize(e, 'top-right')}></div>
-      <div className="editor-resizer right" onMouseDown={(e) => startResize(e, 'right')}></div>
-      <div className="editor-resizer bottom-right" onMouseDown={(e) => startResize(e, 'bottom-right')}></div>
-      <div className="editor-resizer bottom" onMouseDown={(e) => startResize(e, 'bottom')}></div>
-      <div className="editor-resizer bottom-left" onMouseDown={(e) => startResize(e, 'bottom-left')}></div>
-      <div className="editor-resizer left" onMouseDown={(e) => startResize(e, 'left')}></div>
+      </div>ß
     </div>
   );
 };
