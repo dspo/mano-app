@@ -1,11 +1,12 @@
 import { ElementType } from "react";
 
-export type NodeType = "Directory" | "RichText" | "PlainText" | "Markdown";
+export type NodeType = "Directory" | "RichText" | "PlainText" | "Markdown"| "YooptaText";
 
 export const Directory: NodeType = "Directory";
 export const RichText: NodeType = "RichText";
 export const PlainText: NodeType = "PlainText";
 export const Markdown: NodeType = "Markdown";
+export const YooptaText: NodeType = "YooptaText";
 
 export type GmailItem = {
     id: string;

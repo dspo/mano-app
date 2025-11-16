@@ -20,7 +20,7 @@ import { MdArrowDropDown, MdArrowRight } from "react-icons/md";
 import { FaFileAlt } from "react-icons/fa";
 import styles from "./Gmail.module.css";
 
-import {GmailItem, PlainText} from "@components/model";
+import {GmailItem, PlainText, YooptaText} from "@components/model";
 
 // 导入FillFlexParent组件
 import { FillFlexParent } from "@components/fill-flex-parent";
@@ -214,9 +214,30 @@ function ContextMenu({ x, y, onClose, node, tree, setData }: {
     onClose();
   };
 
+  const handleCreateYoopta = () => {
+    const data: GmailItem = {
+      id: `simple-tree-id-${nextId++}`,
+      name: "",
+      icon: FaFileAlt,
+      nodeType: YooptaText,
+      readOnly: false
+    };
+
+    tree.create({ parentId: node.data.id, index: 0, data });
+    setData(tree.data);
+
+    // 延迟一下再触发编辑，确保节点已经渲染
+    setTimeout(() => {
+      // 使用 tree 的 edit 方法直接编辑新节点
+      node.tree.edit(data.id);
+    }, 100);
+
+    onClose();
+  };
+
   const handleDeleteNode = () => {
     if (node.id === '__trash__') {
-        return;
+      return;
     }
     node.tree.delete(node.data.id);
     onClose();
@@ -243,6 +264,12 @@ function ContextMenu({ x, y, onClose, node, tree, setData }: {
         handleCreateRichText();
       }}>
         Create RichText
+      </div>
+      <div className={styles.contextMenuItem} onClick={(e) => {
+        e.stopPropagation();
+        handleCreateYoopta();
+      }}>
+        Create Novel
       </div>
       <div className={styles.contextMenuItem} onClick={(e) => {
         e.stopPropagation();

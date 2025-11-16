@@ -1,5 +1,5 @@
 import { readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
-import { Directory, GmailItem, Markdown, PlainText, RichText } from "@components/model";
+import { Directory, GmailItem, Markdown, PlainText, RichText, YooptaText } from "@components/model";
 import * as icons from "react-icons/md";
 import { BsTree } from "react-icons/bs";
 
@@ -161,7 +161,28 @@ const defaultItems: GmailItem[] = [
                 readOnly: false,
                 icon: icons.MdTextSnippet,
                 nodeType: RichText,
-            }
+            },
+            {
+                id: "__example_plain_text__",
+                name: "plain text",
+                readOnly: false,
+                icon: icons.MdTextSnippet,
+                nodeType: PlainText,
+            },
+            {
+                id: "__example_markdown__",
+                name: "markdown text",
+                readOnly: false,
+                icon: icons.MdTextSnippet,
+                nodeType: Markdown,
+            },
+            {
+                id: "__example_yoopta__",
+                name: "yoopta text",
+                readOnly: false,
+                icon: icons.MdTextSnippet,
+                nodeType: YooptaText,
+            },
         ]
     },
     {

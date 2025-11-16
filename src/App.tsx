@@ -4,10 +4,11 @@ import { path } from '@tauri-apps/api';
 import { exists } from '@tauri-apps/plugin-fs';
 import GmailSidebar from './components/GmailSidebar';
 import Welcome from './components/Welcome';
-import type { GmailItem } from './components/model';
+import { Directory, Markdown, YooptaText, PlainText, RichText, type GmailItem } from './components/model';
 import RichTextEditor from './components/RichTextEditor';
 import PlainTextEditor from './components/PlainTextEditor';
 import MarkdownEditor from './components/MarkdownEditor';
+import YEditor from '@components/YooptaEditor.tsx';
 import DirectoryPanel from './components/DirectoryPanel';
 import { getDefaultItems, loadDataFromConfig } from './components/controller';
 import { ContextMenuProvider } from '../components/ui/context-menu';
@@ -104,6 +105,8 @@ function App() {
       return <PlainTextEditor key={uniqueKey} node={selectedNode} onClose={handleCloseEditor} />;
     } else if (nodeType === 'Markdown') {
       return <MarkdownEditor key={uniqueKey} node={selectedNode} onClose={handleCloseEditor} />;
+    } else if (nodeType === YooptaText) {
+        return <YEditor/>
     }
 
     return (
