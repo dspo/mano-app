@@ -106,7 +106,8 @@ function App() {
     } else if (nodeType === 'Markdown') {
       return <MarkdownEditor key={uniqueKey} node={selectedNode} onClose={handleCloseEditor} />;
     } else if (nodeType === YooptaText) {
-        return <YEditor/>
+        console.log("open YooptaText")
+        return <YEditor key={uniqueKey} node={selectedNode} onClose={handleCloseEditor} workspace={workspace} />
     }
 
     return (

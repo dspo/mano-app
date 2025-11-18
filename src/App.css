@@ -688,3 +688,7 @@ button:active {
     height: 200px;
   }
 }
+
+.yoopta-button {
+  color: black;
+}
