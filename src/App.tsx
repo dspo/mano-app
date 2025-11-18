@@ -4,7 +4,7 @@ import { path } from '@tauri-apps/api';
 import { exists } from '@tauri-apps/plugin-fs';
 import GmailSidebar from './components/GmailSidebar';
 import Welcome from './components/Welcome';
-import { Directory, Markdown, YooptaText, PlainText, RichText, type GmailItem } from './components/model';
+import { YooptaText, type GmailItem } from './components/model';
 import RichTextEditor from './components/RichTextEditor';
 import PlainTextEditor from './components/PlainTextEditor';
 import MarkdownEditor from './components/MarkdownEditor';

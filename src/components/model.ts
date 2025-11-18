@@ -1,6 +1,6 @@
 import { ElementType } from "react";
 
-export type NodeType = "Directory" | "RichText" | "PlainText" | "Markdown"| "YooptaText";
+export type NodeType = "Directory" | "RichText" | "PlainText" | "Markdown" | "YooptaText";
 
 export const Directory: NodeType = "Directory";
 export const RichText: NodeType = "RichText";
