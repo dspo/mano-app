@@ -19,7 +19,6 @@ cargo tauri dev
 - [Tauri](https://tauri.app/)
 - [React](https://react.dev/)
 - [react-arborist](https://react-arborist.netlify.app/)
-- ![](https://lexical.dev/img/logo.svg)[lexical](https://lexical.dev/)
+- [![](https://lexical.dev/img/logo.svg)](https://lexical.dev/)
 - [shadcn.io/ui](https://www.shadcn.io/ui)
 - [Tailwind](https://tailwindcss.com/)
-
