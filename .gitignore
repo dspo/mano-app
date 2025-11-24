@@ -141,3 +141,7 @@ coverage/lcov-report/src/components/model.ts.html
 coverage/lcov-report/src/components/PlainTextEditor.tsx.html
 coverage/lcov-report/src/components/RichTextEditor.tsx.html
 coverage/lcov-report/src/components/Welcome.tsx.html
+/.vscode/extensions.json
+/_examples/lexical/packages/lexical-playground/src/EmbeddedPlayground.tsx
+/_examples/lexical/pnpm-lock.yaml
+/_examples/

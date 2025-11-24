@@ -6,6 +6,15 @@ const host = process.env.TAURI_DEV_HOST;
 
 // https://vite.dev/config/
 export default defineConfig(async () => ({
+  root: '.',
+  build: {
+    rollupOptions: {
+      input: {
+        main: 'index.html',
+        preview: 'preview.html'
+      }
+    }
+  },
   resolve: {
     alias: {
       "@": "/src",
@@ -31,8 +40,16 @@ export default defineConfig(async () => ({
         }
       : undefined,
     watch: {
-      // 3. tell Vite to ignore watching `src-tauri`
-      ignored: ["**/src-tauri/**"],
+      // 3. tell Vite to ignore watching `src-tauri`, _examples, _deps, and src-tauri/target
+      ignored: ["**/src-tauri/**", "**/_examples/**", "**/_deps/**", "**/target/**"],
     },
+    fs: {
+      // Only allow serving files from these directories
+      allow: ['src', 'public', 'node_modules', '.']
+    }
+  },
+  optimizeDeps: {
+    entries: ['index.html', 'preview.html'],
+    exclude: [],
   },
 }));
