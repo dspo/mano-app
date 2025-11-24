@@ -10,7 +10,7 @@ import PlainTextEditor from './components/PlainTextEditor';
 import MarkdownEditor from './components/MarkdownEditor';
 import DirectoryPanel from './components/DirectoryPanel';
 import { getDefaultItems, loadDataFromConfig } from './components/controller';
-import { ContextMenuProvider } from '../components/ui/context-menu';
+import { ContextMenuProvider } from './components/context-menu';
 
 function App() {
   const [selectedNode, setSelectedNode] = useState<GmailItem | null>(null);
