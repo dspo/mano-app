@@ -121,7 +121,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ node, workspace, onClos
                     }
                 } catch (error) {
                     // 文件不存在或读取失败，使用空编辑器
-                    console.log('文件不存在或读取失败，创建新文件:', error);
+                    console.log('RichTextEditor', '文件不存在或读取失败，创建新文件:', error);
                     quill.setText('');
                 }
             };

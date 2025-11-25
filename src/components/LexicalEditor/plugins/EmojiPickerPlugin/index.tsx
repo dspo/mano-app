@@ -19,6 +19,7 @@ import {
   TextNode,
 } from 'lexical';
 import {useCallback, useEffect, useMemo, useState} from 'react';
+import {createTypeaheadMenuRenderFn} from '../../ui/TypeaheadMenu';
 
 class EmojiOption extends MenuOption {
   title: string;
@@ -119,12 +120,18 @@ export default function EmojiPickerPlugin() {
     [editor],
   );
 
+  const menuRenderFn = useMemo(
+    () => createTypeaheadMenuRenderFn<EmojiOption>(),
+    [],
+  );
+
   return (
     <LexicalTypeaheadMenuPlugin
       onQueryChange={setQueryString}
       onSelectOption={onSelectOption}
       triggerFn={checkForTriggerMatch}
       options={options}
+      menuRenderFn={menuRenderFn}
     />
   );
 }

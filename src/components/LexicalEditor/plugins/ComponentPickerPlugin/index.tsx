@@ -47,6 +47,7 @@ import InsertLayoutDialog from '../LayoutPlugin/InsertLayoutDialog';
 import {INSERT_PAGE_BREAK} from '../PageBreakPlugin';
 import {InsertPollDialog} from '../PollPlugin';
 import {InsertTableDialog} from '../TablePlugin';
+import {createTypeaheadMenuRenderFn} from '../../ui/TypeaheadMenu';
 
 class ComponentPickerOption extends MenuOption {
   // What shows up in the editor
@@ -363,6 +364,11 @@ export default function ComponentPickerMenuPlugin(): JSX.Element {
     [editor],
   );
 
+  const menuRenderFn = useMemo(
+    () => createTypeaheadMenuRenderFn<ComponentPickerOption>(),
+    [],
+  );
+
   return (
     <>
       {modal}
@@ -371,6 +377,7 @@ export default function ComponentPickerMenuPlugin(): JSX.Element {
         onSelectOption={onSelectOption}
         triggerFn={checkForTriggerMatch}
         options={options}
+        menuRenderFn={menuRenderFn}
       />
     </>
   );

@@ -19,6 +19,7 @@ import {TextNode} from 'lexical';
 import {useCallback, useEffect, useMemo, useState} from 'react';
 
 import {$createMentionNode} from '../../nodes/MentionNode';
+import {createTypeaheadMenuRenderFn} from '../../ui/TypeaheadMenu';
 
 const PUNCTUATION =
   '\\.,\\+\\*\\?\\$\\@\\|#{}\\(\\)\\^\\-\\[\\]\\\\/!%\'"~=<>_:;';
@@ -627,12 +628,18 @@ export default function NewMentionsPlugin(): JSX.Element | null {
     [checkForSlashTriggerMatch, editor],
   );
 
+  const menuRenderFn = useMemo(
+    () => createTypeaheadMenuRenderFn<MentionTypeaheadOption>(),
+    [],
+  );
+
   return (
     <LexicalTypeaheadMenuPlugin<MentionTypeaheadOption>
       onQueryChange={setQueryString}
       onSelectOption={onSelectOption}
       triggerFn={checkForMentionMatch}
       options={options}
+      menuRenderFn={menuRenderFn}
     />
   );
 }

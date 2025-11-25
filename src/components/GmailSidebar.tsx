@@ -20,10 +20,17 @@ import { MdArrowDropDown, MdArrowRight } from "react-icons/md";
 import { FaFileAlt } from "react-icons/fa";
 import styles from "./Gmail.module.css";
 
-import {GmailItem, PlainText} from "@components/model";
+import {
+  GmailItem,
+  LexicalText,
+  Markdown,
+  PlainText,
+  RichText,
+} from "@components/model";
 
 // 导入FillFlexParent组件
 import { FillFlexParent } from "@components/fill-flex-parent";
+import * as icons from "react-icons/md";
 
 interface GmailSidebarProps {
   onSelectNode: (node: GmailItem) => void;
@@ -264,12 +271,14 @@ function Node({ node, style, dragHandle, selectedId, onSelectNode, setContextMen
     if (node.data.icon) return node.data.icon;
 
     // 根据节点类型返回相应图标
-    if (node.data.nodeType === "RichText") {
+    if (node.data.nodeType === RichText) {
       return FaFileAlt;
-    } else if (node.data.nodeType === "PlainText") {
+    } else if (node.data.nodeType === PlainText) {
       return BsTree;
-    } else if (node.data.nodeType === "Markdown") {
+    } else if (node.data.nodeType === Markdown) {
       return BsTree;
+    } else if (node.data.nodeType === LexicalText) {
+      return icons.MdTextSnippet;
     }
 
     return BsTree; // 默认图标

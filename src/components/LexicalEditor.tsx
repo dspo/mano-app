@@ -3,10 +3,14 @@
  * Based on Lexical Playground
  */
 
-import PlaygroundApp from './LexicalEditor/App';
+import { GmailItem } from './model';
+import LexicalEditorWithFile from './LexicalEditor/AppWithFile';
 import './LexicalEditor/index.css';
 
 export interface LexicalEditorProps {
+  node?: GmailItem;
+  workspace?: string;
+  onClose?: () => void;
   className?: string;
 }
 
@@ -34,6 +38,10 @@ export interface LexicalEditorProps {
  * - History (undo/redo)
  * - And much more!
  * 
+ * @param node - The GmailItem node containing file information
+ * @param workspace - The workspace path where files are stored
+ * @param onClose - Callback function when editor is closed
+ * 
  * @example
  * ```tsx
  * import { LexicalEditor } from './components/LexicalEditor';
@@ -41,16 +49,20 @@ export interface LexicalEditorProps {
  * function MyApp() {
  *   return (
  *     <div>
- *       <LexicalEditor />
+ *       <LexicalEditor 
+ *         node={selectedNode}
+ *         workspace="/path/to/workspace"
+ *         onClose={() => console.log('Editor closed')}
+ *       />
  *     </div>
  *   );
  * }
  * ```
  */
-export default function LexicalEditor({ className }: LexicalEditorProps) {
+export default function LexicalEditor({ node, workspace, onClose, className }: LexicalEditorProps) {
   return (
-    <div className={className}>
-      <PlaygroundApp />
+    <div className={className} style={{ width: '100%', height: '100%' }}>
+      <LexicalEditorWithFile node={node} workspace={workspace} onClose={onClose} />
     </div>
   );
 }
