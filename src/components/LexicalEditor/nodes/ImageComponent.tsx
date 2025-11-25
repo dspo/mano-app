@@ -6,22 +6,22 @@
  *
  */
 
-import type {LexicalCommand, LexicalEditor, NodeKey} from 'lexical';
-import type {JSX} from 'react';
+import type { LexicalCommand, LexicalEditor, NodeKey } from 'lexical';
+import type { JSX } from 'react';
 
 import './ImageNode.css';
 
-import {useCollaborationContext} from '@lexical/react/LexicalCollaborationContext';
-import {CollaborationPlugin} from '@lexical/react/LexicalCollaborationPlugin';
-import {useLexicalComposerContext} from '@lexical/react/LexicalComposerContext';
-import {LexicalErrorBoundary} from '@lexical/react/LexicalErrorBoundary';
-import {HashtagPlugin} from '@lexical/react/LexicalHashtagPlugin';
-import {HistoryPlugin} from '@lexical/react/LexicalHistoryPlugin';
-import {LexicalNestedComposer} from '@lexical/react/LexicalNestedComposer';
-import {RichTextPlugin} from '@lexical/react/LexicalRichTextPlugin';
-import {useLexicalEditable} from '@lexical/react/useLexicalEditable';
-import {useLexicalNodeSelection} from '@lexical/react/useLexicalNodeSelection';
-import {mergeRegister} from '@lexical/utils';
+import { useCollaborationContext } from '@lexical/react/LexicalCollaborationContext';
+import { CollaborationPlugin } from '@lexical/react/LexicalCollaborationPlugin';
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
+import { HashtagPlugin } from '@lexical/react/LexicalHashtagPlugin';
+import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
+import { LexicalNestedComposer } from '@lexical/react/LexicalNestedComposer';
+import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
+import { useLexicalEditable } from '@lexical/react/useLexicalEditable';
+import { useLexicalNodeSelection } from '@lexical/react/useLexicalNodeSelection';
+import { mergeRegister } from '@lexical/utils';
 import {
   $getNodeByKey,
   $getRoot,
@@ -49,22 +49,21 @@ import {
   useState,
 } from 'react';
 
-import {createWebsocketProvider} from '../collaboration';
-import {useSettings} from '../context/SettingsContext';
-import {useSharedHistoryContext} from '../context/SharedHistoryContext';
+import { createWebsocketProvider } from '../collaboration';
+import { useSettings } from '../context/SettingsContext';
+import { useSharedHistoryContext } from '../context/SharedHistoryContext';
 import brokenImage from '../images/image-broken.svg';
 import EmojisPlugin from '../plugins/EmojisPlugin';
 import KeywordsPlugin from '../plugins/KeywordsPlugin';
 import LinkPlugin from '../plugins/LinkPlugin';
 import MentionsPlugin from '../plugins/MentionsPlugin';
-import TreeViewPlugin from '../plugins/TreeViewPlugin';
 import ContentEditable from '../ui/ContentEditable';
 import ImageResizer from '../ui/ImageResizer';
-import {$isCaptionEditorEmpty, $isImageNode} from './ImageNode';
+import { $isCaptionEditorEmpty, $isImageNode } from './ImageNode';
 
 type ImageStatus =
-  | {error: true}
-  | {error: false; width: number; height: number};
+  | { error: true }
+  | { error: false; width: number; height: number };
 
 const imageCache = new Map<string, Promise<ImageStatus> | ImageStatus>();
 
@@ -106,7 +105,7 @@ function useSuspenseImage(src: string): ImageStatus {
           height: img.naturalHeight,
           width: img.naturalWidth,
         });
-      img.onerror = () => resolve({error: true});
+      img.onerror = () => resolve({ error: true });
     }).then((rval) => {
       imageCache.set(src, rval);
       return rval;
@@ -134,7 +133,7 @@ function LazyImage({
   altText: string;
   className: string | null;
   height: 'inherit' | number;
-  imageRef: {current: null | HTMLImageElement};
+  imageRef: { current: null | HTMLImageElement };
   maxWidth: number;
   src: string;
   width: 'inherit' | number;
@@ -222,7 +221,7 @@ function BrokenImage(): JSX.Element {
   );
 }
 
-function noop() {}
+function noop() { }
 
 export default function ImageComponent({
   src,
@@ -252,7 +251,7 @@ export default function ImageComponent({
   const [isSelected, setSelected, clearSelection] =
     useLexicalNodeSelection(nodeKey);
   const [isResizing, setIsResizing] = useState<boolean>(false);
-  const {isCollabActive} = useCollaborationContext();
+  const { isCollabActive } = useCollaborationContext();
   const [editor] = useLexicalComposerContext();
   const activeEditorRef = useRef<LexicalEditor | null>(null);
   const [isLoadError, setIsLoadError] = useState<boolean>(false);
@@ -450,9 +449,9 @@ export default function ImageComponent({
     setIsResizing(true);
   };
 
-  const {historyState} = useSharedHistoryContext();
+  const { historyState } = useSharedHistoryContext();
   const {
-    settings: {showNestedEditorTreeView},
+    settings: { showNestedEditorTreeView },
   } = useSettings();
 
   const draggable = isInNodeSelection && !isResizing;
@@ -509,7 +508,7 @@ export default function ImageComponent({
                 }
                 ErrorBoundary={LexicalErrorBoundary}
               />
-              {showNestedEditorTreeView === true ? <TreeViewPlugin /> : null}
+
             </LexicalNestedComposer>
           </div>
         )}

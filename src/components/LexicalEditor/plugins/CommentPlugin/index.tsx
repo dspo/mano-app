@@ -995,21 +995,20 @@ export default function CommentPlugin({
           document.body,
         )}
 
-      {showComments &&
-        createPortal(
-          <CommentsPanel
-            comments={comments}
-            submitAddComment={submitAddComment}
-            deleteCommentOrThread={deleteCommentOrThread}
-            activeIDs={activeIDs}
-            markNodeMap={markNodeMap}
-            onClose={() => {
-              setShowComments(false);
-              editor.dispatchCommand(COMMENTS_PANEL_COMMAND, false);
-            }}
-          />,
-          document.body,
-        )}
+      {/* CommentsPanel is now rendered directly without portal */}
+      {showComments && (
+        <CommentsPanel
+          comments={comments}
+          submitAddComment={submitAddComment}
+          deleteCommentOrThread={deleteCommentOrThread}
+          activeIDs={activeIDs}
+          markNodeMap={markNodeMap}
+          onClose={() => {
+            setShowComments(false);
+            editor.dispatchCommand(COMMENTS_PANEL_COMMAND, false);
+          }}
+        />
+      )}
     </>
   );
 }
