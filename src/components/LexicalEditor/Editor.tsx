@@ -120,7 +120,7 @@ export default function Editor(): JSX.Element {
   const placeholder = isCollab
     ? 'Enter some collaborative rich text...'
     : isRichText
-      ? 'Enter some rich text...'
+      ? '开启灵感之旅吧...'
       : 'Enter some plain text...';
   const [floatingAnchorElem, setFloatingAnchorElem] =
     useState<HTMLDivElement | null>(null);
@@ -169,140 +169,143 @@ export default function Editor(): JSX.Element {
           setIsLinkEditMode={setIsLinkEditMode}
         />
       )}
-      <div
-        className={`editor-container ${!isRichText ? 'plain-text' : ''
-          }`}>
-        {isMaxLength && <MaxLengthPlugin maxLength={30} />}
-        <DragDropPaste />
-        <AutoFocusPlugin />
-        {selectionAlwaysOnDisplay && <SelectionAlwaysOnDisplay />}
-        <ClearEditorPlugin />
-        <ComponentPickerPlugin />
-        <EmojiPickerPlugin />
-        <AutoEmbedPlugin />
-        <MentionsPlugin />
-        <EmojisPlugin />
-        <HashtagPlugin />
-        <KeywordsPlugin />
-        <SpeechToTextPlugin />
-        <AutoLinkPlugin />
-        <DateTimePlugin />
-        {!(isCollab && useCollabV2) && (
-          <CommentPlugin
-            providerFactory={isCollab ? createWebsocketProvider : undefined}
-          />
-        )}
-        {isRichText ? (
-          <>
-            {isCollab ? (
-              useCollabV2 ? (
-                <>
-                  <CollabV2
+      <div className="editor-container" style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div
+          className={`${!isRichText ? 'plain-text' : ''
+            }`} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          {isMaxLength && <MaxLengthPlugin maxLength={30} />}
+          <DragDropPaste />
+          <AutoFocusPlugin />
+          {selectionAlwaysOnDisplay && <SelectionAlwaysOnDisplay />}
+          <ClearEditorPlugin />
+          <ComponentPickerPlugin />
+          <EmojiPickerPlugin />
+          <AutoEmbedPlugin />
+          <MentionsPlugin />
+          <EmojisPlugin />
+          <HashtagPlugin />
+          <KeywordsPlugin />
+          <SpeechToTextPlugin />
+          <AutoLinkPlugin />
+          <DateTimePlugin />
+          {!(isCollab && useCollabV2) && (
+            <CommentPlugin
+              providerFactory={isCollab ? createWebsocketProvider : undefined}
+            />
+          )}
+          {isRichText ? (
+            <>
+              {isCollab ? (
+                useCollabV2 ? (
+                  <>
+                    <CollabV2
+                      id={COLLAB_DOC_ID}
+                      shouldBootstrap={!skipCollaborationInit}
+                    />
+                    <VersionsPlugin id={COLLAB_DOC_ID} />
+                  </>
+                ) : (
+                  <CollaborationPlugin
                     id={COLLAB_DOC_ID}
+                    providerFactory={createWebsocketProvider}
                     shouldBootstrap={!skipCollaborationInit}
                   />
-                  <VersionsPlugin id={COLLAB_DOC_ID} />
+                )
+              ) : (
+                <HistoryPlugin externalHistoryState={historyState} />
+              )}
+              <div style={{ flex: 1, overflow: 'auto' }}>
+                <RichTextPlugin
+                  contentEditable={
+                    <ContentEditable
+                      placeholder={placeholder}
+                      className="editor ContentEditable__root"
+                      ref={onRef}
+                    />
+                  }
+                  ErrorBoundary={LexicalErrorBoundary}
+                />
+              </div>
+              <MarkdownShortcutPlugin />
+              {isCodeHighlighted &&
+                (isCodeShiki ? (
+                  <CodeHighlightShikiPlugin />
+                ) : (
+                  <CodeHighlightPrismPlugin />
+                ))}
+              <ListPlugin hasStrictIndent={listStrictIndent} />
+              <CheckListPlugin />
+              <TablePlugin
+                hasCellMerge={tableCellMerge}
+                hasCellBackgroundColor={tableCellBackgroundColor}
+                hasHorizontalScroll={tableHorizontalScroll}
+              />
+              <TableCellResizer />
+              <ImagesPlugin />
+              <LinkPlugin hasLinkAttributes={hasLinkAttributes} />
+              <PollPlugin />
+              <TwitterPlugin />
+              <YouTubePlugin />
+              <FigmaPlugin />
+              <ClickableLinkPlugin disabled={isEditable} />
+              <HorizontalRulePlugin />
+              <EquationsPlugin />
+              <ExcalidrawPlugin />
+              <TabFocusPlugin />
+              <TabIndentationPlugin maxIndent={7} />
+              <CollapsiblePlugin />
+              <PageBreakPlugin />
+              <LayoutPlugin />
+              {floatingAnchorElem && (
+                <>
+                  <FloatingLinkEditorPlugin
+                    anchorElem={floatingAnchorElem}
+                    isLinkEditMode={isLinkEditMode}
+                    setIsLinkEditMode={setIsLinkEditMode}
+                  />
+                  <TableCellActionMenuPlugin
+                    anchorElem={floatingAnchorElem}
+                    cellMerge={true}
+                  />
                 </>
-              ) : (
-                <CollaborationPlugin
-                  id={COLLAB_DOC_ID}
-                  providerFactory={createWebsocketProvider}
-                  shouldBootstrap={!skipCollaborationInit}
-                />
-              )
-            ) : (
+              )}
+              {floatingAnchorElem && !isSmallWidthViewport && (
+                <>
+                  <DraggableBlockPlugin anchorElem={floatingAnchorElem} />
+                  <CodeActionMenuPlugin anchorElem={floatingAnchorElem} />
+                  <TableHoverActionsPlugin anchorElem={floatingAnchorElem} />
+                  <FloatingTextFormatToolbarPlugin
+                    anchorElem={floatingAnchorElem}
+                    setIsLinkEditMode={setIsLinkEditMode}
+                  />
+                </>
+              )}
+            </>
+          ) : (
+            <>
+              <PlainTextPlugin
+                contentEditable={<ContentEditable placeholder={placeholder} />}
+                ErrorBoundary={LexicalErrorBoundary}
+              />
               <HistoryPlugin externalHistoryState={historyState} />
-            )}
-            <RichTextPlugin
-              contentEditable={
-                <div className="editor-scroller">
-                  <div className="editor" ref={onRef}>
-                    <ContentEditable placeholder={placeholder} />
-                  </div>
-                </div>
-              }
-              ErrorBoundary={LexicalErrorBoundary}
+            </>
+          )}
+          {(isCharLimit || isCharLimitUtf8) && (
+            <CharacterLimitPlugin
+              charset={isCharLimit ? 'UTF-16' : 'UTF-8'}
+              maxLength={5}
             />
-            <MarkdownShortcutPlugin />
-            {isCodeHighlighted &&
-              (isCodeShiki ? (
-                <CodeHighlightShikiPlugin />
-              ) : (
-                <CodeHighlightPrismPlugin />
-              ))}
-            <ListPlugin hasStrictIndent={listStrictIndent} />
-            <CheckListPlugin />
-            <TablePlugin
-              hasCellMerge={tableCellMerge}
-              hasCellBackgroundColor={tableCellBackgroundColor}
-              hasHorizontalScroll={tableHorizontalScroll}
-            />
-            <TableCellResizer />
-            <ImagesPlugin />
-            <LinkPlugin hasLinkAttributes={hasLinkAttributes} />
-            <PollPlugin />
-            <TwitterPlugin />
-            <YouTubePlugin />
-            <FigmaPlugin />
-            <ClickableLinkPlugin disabled={isEditable} />
-            <HorizontalRulePlugin />
-            <EquationsPlugin />
-            <ExcalidrawPlugin />
-            <TabFocusPlugin />
-            <TabIndentationPlugin maxIndent={7} />
-            <CollapsiblePlugin />
-            <PageBreakPlugin />
-            <LayoutPlugin />
-            {floatingAnchorElem && (
-              <>
-                <FloatingLinkEditorPlugin
-                  anchorElem={floatingAnchorElem}
-                  isLinkEditMode={isLinkEditMode}
-                  setIsLinkEditMode={setIsLinkEditMode}
-                />
-                <TableCellActionMenuPlugin
-                  anchorElem={floatingAnchorElem}
-                  cellMerge={true}
-                />
-              </>
-            )}
-            {floatingAnchorElem && !isSmallWidthViewport && (
-              <>
-                <DraggableBlockPlugin anchorElem={floatingAnchorElem} />
-                <CodeActionMenuPlugin anchorElem={floatingAnchorElem} />
-                <TableHoverActionsPlugin anchorElem={floatingAnchorElem} />
-                <FloatingTextFormatToolbarPlugin
-                  anchorElem={floatingAnchorElem}
-                  setIsLinkEditMode={setIsLinkEditMode}
-                />
-              </>
-            )}
-          </>
-        ) : (
-          <>
-            <PlainTextPlugin
-              contentEditable={<ContentEditable placeholder={placeholder} />}
-              ErrorBoundary={LexicalErrorBoundary}
-            />
-            <HistoryPlugin externalHistoryState={historyState} />
-          </>
-        )}
-        {(isCharLimit || isCharLimitUtf8) && (
-          <CharacterLimitPlugin
-            charset={isCharLimit ? 'UTF-16' : 'UTF-8'}
-            maxLength={5}
+          )}
+          {isAutocomplete && <AutocompletePlugin />}
+          <div>{showTableOfContents && <TableOfContentsPlugin />}</div>
+          {shouldUseLexicalContextMenu && <ContextMenuPlugin />}
+          {shouldAllowHighlightingWithBrackets && <SpecialTextPlugin />}
+          <ActionsPlugin
+            shouldPreserveNewLinesInMarkdown={shouldPreserveNewLinesInMarkdown}
+            useCollabV2={useCollabV2}
           />
-        )}
-        {isAutocomplete && <AutocompletePlugin />}
-        <div>{showTableOfContents && <TableOfContentsPlugin />}</div>
-        {shouldUseLexicalContextMenu && <ContextMenuPlugin />}
-        {shouldAllowHighlightingWithBrackets && <SpecialTextPlugin />}
-        <ActionsPlugin
-          shouldPreserveNewLinesInMarkdown={shouldPreserveNewLinesInMarkdown}
-          useCollabV2={useCollabV2}
-        />
+        </div>
       </div>
-
     </>
   );
 }
