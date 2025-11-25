@@ -220,9 +220,30 @@ function ContextMenu({ x, y, onClose, node, tree, setData }: {
     onClose();
   };
 
+  const handleCreateLexical = () => {
+    const data: GmailItem = {
+      id: `simple-tree-id-${nextId++}`,
+      name: "",
+      icon: icons.MdTextSnippet,
+      nodeType: LexicalText,
+      readOnly: false
+    };
+
+    tree.create({ parentId: node.data.id, index: 0, data });
+    setData(tree.data);
+
+    // 延迟一下再触发编辑，确保节点已经渲染
+    setTimeout(() => {
+      // 使用 tree 的 edit 方法直接编辑新节点
+      node.tree.edit(data.id);
+    }, 100);
+
+    onClose();
+  };
+
   const handleDeleteNode = () => {
     if (node.id === '__trash__') {
-        return;
+      return;
     }
     node.tree.delete(node.data.id);
     onClose();
@@ -249,6 +270,12 @@ function ContextMenu({ x, y, onClose, node, tree, setData }: {
         handleCreateRichText();
       }}>
         Create RichText
+      </div>
+      <div className={styles.contextMenuItem} onClick={(e) => {
+        e.stopPropagation();
+        handleCreateLexical();
+      }}>
+        Create Lexical
       </div>
       <div className={styles.contextMenuItem} onClick={(e) => {
         e.stopPropagation();
