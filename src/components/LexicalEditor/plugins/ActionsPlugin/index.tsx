@@ -6,10 +6,11 @@
  *
  */
 
-import type {LexicalEditor} from 'lexical';
-import type {JSX} from 'react';
+import type { LexicalEditor } from 'lexical';
+import type { JSX } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
-import {$createCodeNode, $isCodeNode} from '@lexical/code';
+import { $createCodeNode, $isCodeNode } from '@lexical/code';
 import {
   editorStateFromSerializedDocument,
   exportFile,
@@ -21,11 +22,12 @@ import {
   $convertFromMarkdownString,
   $convertToMarkdownString,
 } from '@lexical/markdown';
-import {useCollaborationContext} from '@lexical/react/LexicalCollaborationContext';
-import {useLexicalComposerContext} from '@lexical/react/LexicalComposerContext';
-import {mergeRegister} from '@lexical/utils';
-import {CONNECTED_COMMAND, TOGGLE_CONNECT_COMMAND} from '@lexical/yjs';
+import { useCollaborationContext } from '@lexical/react/LexicalCollaborationContext';
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+import { mergeRegister } from '@lexical/utils';
+import { CONNECTED_COMMAND, TOGGLE_CONNECT_COMMAND } from '@lexical/yjs';
 import {
+  $createParagraphNode,
   $createTextNode,
   $getRoot,
   $isParagraphNode,
@@ -35,19 +37,19 @@ import {
   COMMAND_PRIORITY_EDITOR,
   HISTORIC_TAG,
 } from 'lexical';
-import {useCallback, useEffect, useState} from 'react';
 
-import {INITIAL_SETTINGS} from '../../appSettings';
+import { INITIAL_SETTINGS } from '../../appSettings';
 import useFlashMessage from '../../hooks/useFlashMessage';
 import useModal from '../../hooks/useModal';
 import Button from '../../ui/Button';
-import {docFromHash, docToHash} from '../../utils/docSerialization';
-import {PLAYGROUND_TRANSFORMERS} from '../MarkdownTransformers';
+import { docFromHash, docToHash } from '../../utils/docSerialization';
+import { PLAYGROUND_TRANSFORMERS } from '../MarkdownTransformers';
 import {
   SPEECH_TO_TEXT_COMMAND,
   SUPPORT_SPEECH_RECOGNITION,
 } from '../SpeechToTextPlugin';
-import {SHOW_VERSIONS_COMMAND} from '../VersionsPlugin';
+import { SHOW_VERSIONS_COMMAND } from '../VersionsPlugin';
+import { COMMENTS_PANEL_COMMAND } from '../CommentPlugin';
 
 async function sendEditorState(editor: LexicalEditor): Promise<void> {
   const stringifiedEditorState = JSON.stringify(editor.getEditorState());
@@ -107,9 +109,10 @@ export default function ActionsPlugin({
   const [isSpeechToText, setIsSpeechToText] = useState(false);
   const [connected, setConnected] = useState(false);
   const [isEditorEmpty, setIsEditorEmpty] = useState(true);
+  const [showComments, setShowComments] = useState(false);
   const [modal, showModal] = useModal();
   const showFlashMessage = useFlashMessage();
-  const {isCollabActive} = useCollaborationContext();
+  const { isCollabActive } = useCollaborationContext();
   useEffect(() => {
     if (INITIAL_SETTINGS.isCollab) {
       return;
@@ -140,7 +143,7 @@ export default function ActionsPlugin({
 
   useEffect(() => {
     return editor.registerUpdateListener(
-      ({dirtyElements, prevEditorState, tags}) => {
+      ({ dirtyElements, tags }) => {
         // If we are in read only mode, send the editor state
         // to server and ask for validation if possible.
         if (
@@ -210,9 +213,8 @@ export default function ActionsPlugin({
             (isSpeechToText ? 'active' : '')
           }
           title="Speech To Text"
-          aria-label={`${
-            isSpeechToText ? 'Enable' : 'Disable'
-          } speech to text`}>
+          aria-label={`${isSpeechToText ? 'Enable' : 'Disable'
+            } speech to text`}>
           <i className="mic" />
         </button>
       )}
@@ -285,6 +287,37 @@ export default function ActionsPlugin({
         aria-label="Convert from markdown">
         <i className="markdown" />
       </button>
+      <button
+        className="action-button"
+        onClick={() => {
+          setShowComments(!showComments);
+          editor.dispatchCommand(COMMENTS_PANEL_COMMAND, !showComments);
+        }}
+        title="Show Comments"
+        aria-label="Show Comments">
+        <i className="comments" />
+      </button>
+      {/* Removed Toggle Text Direction button */}
+      {/* Removed Clear History button */}
+      {/* Removed Insert Paragraph button */}
+      {/* Removed Insert Code Block button */}
+      <button
+        className="action-button"
+        onClick={() => {
+          const doc = document.documentElement;
+          if (doc.requestFullscreen) {
+            if (!document.fullscreenElement) {
+              doc.requestFullscreen().catch(() => { });
+            } else if (document.exitFullscreen) {
+              document.exitFullscreen().catch(() => { });
+            }
+          }
+        }}
+        title="Toggle Fullscreen"
+        aria-label="Toggle fullscreen mode">
+        <i className="fullscreen" />
+      </button>
+      {/* Removed New Button 1-4 */}
       {isCollabActive && (
         <>
           <button
@@ -292,12 +325,10 @@ export default function ActionsPlugin({
             onClick={() => {
               editor.dispatchCommand(TOGGLE_CONNECT_COMMAND, !connected);
             }}
-            title={`${
-              connected ? 'Disconnect' : 'Connect'
-            } Collaborative Editing`}
-            aria-label={`${
-              connected ? 'Disconnect from' : 'Connect to'
-            } a collaborative editing server`}>
+            title={`${connected ? 'Disconnect' : 'Connect'
+              } Collaborative Editing`}
+            aria-label={`${connected ? 'Disconnect from' : 'Connect to'
+              } a collaborative editing server`}>
             <i className={connected ? 'disconnect' : 'connect'} />
           </button>
           {useCollabV2 && (

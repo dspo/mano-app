@@ -86,10 +86,9 @@ export default function GmailSidebar({ onSelectNode, filename, initialData }: Gm
   };
 
   const saveDataToLocal = () => {
-    console.log("filename", filename, "data", data);
     if (filename && filename !== "") {
       saveDataToConfig(filename, data).then(() => {
-        console.log("data saved")
+        console.log("data saved to", filename)
       });
     }
   };

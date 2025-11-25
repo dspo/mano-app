@@ -90,7 +90,7 @@ export class MentionNode extends TextNode {
       element.setAttribute('data-lexical-mention-name', this.__mention);
     }
     element.textContent = this.__text;
-    return {element};
+    return { element };
   }
 
   static importDOM(): DOMConversionMap | null {

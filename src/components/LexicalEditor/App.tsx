@@ -6,11 +6,11 @@
  *
  */
 
-import {$createLinkNode} from '@lexical/link';
-import {$createListItemNode, $createListNode} from '@lexical/list';
-import {LexicalCollaboration} from '@lexical/react/LexicalCollaborationContext';
-import {LexicalExtensionComposer} from '@lexical/react/LexicalExtensionComposer';
-import {$createHeadingNode, $createQuoteNode} from '@lexical/rich-text';
+import { $createLinkNode } from '@lexical/link';
+import { $createListItemNode, $createListNode } from '@lexical/list';
+import { LexicalCollaboration } from '@lexical/react/LexicalCollaborationContext';
+import { LexicalExtensionComposer } from '@lexical/react/LexicalExtensionComposer';
+import { $createHeadingNode, $createQuoteNode } from '@lexical/rich-text';
 import {
   $createParagraphNode,
   $createTextNode,
@@ -19,18 +19,18 @@ import {
 } from 'lexical';
 import {type JSX, useMemo} from 'react';
 
-import {isDevPlayground} from './appSettings';
-import {buildHTMLConfig} from './buildHTMLConfig';
-import {FlashMessageContext} from './context/FlashMessageContext';
-import {SettingsContext, useSettings} from './context/SettingsContext';
-import {SharedHistoryContext} from './context/SharedHistoryContext';
-import {ToolbarContext} from './context/ToolbarContext';
+import { isDevPlayground } from './appSettings';
+import { buildHTMLConfig } from './buildHTMLConfig';
+import { FlashMessageContext } from './context/FlashMessageContext';
+import { SettingsContext, useSettings } from './context/SettingsContext';
+import { SharedHistoryContext } from './context/SharedHistoryContext';
+import { ToolbarContext } from './context/ToolbarContext';
 import Editor from './Editor';
 import logo from './images/logo.svg';
 import PlaygroundNodes from './nodes/PlaygroundNodes';
 import DocsPlugin from './plugins/DocsPlugin';
 import PasteLogPlugin from './plugins/PasteLogPlugin';
-import {TableContext} from './plugins/TablePlugin';
+import { TableContext } from './plugins/TablePlugin';
 import TestRecorderPlugin from './plugins/TestRecorderPlugin';
 import TypingPerfPlugin from './plugins/TypingPerfPlugin';
 import Settings from './Settings';
@@ -50,7 +50,7 @@ function $prepopulatedRichText() {
     quote.append(
       $createTextNode(
         `In case you were wondering what the black box at the bottom is – it's the debug view, showing the current state of the editor. ` +
-          `You can disable it by pressing on the settings control in the bottom-left of your screen and toggling the debug view setting.`,
+        `You can disable it by pressing on the settings control in the bottom-left of your screen and toggling the debug view setting.`,
       ),
     );
     root.append(quote);
@@ -122,7 +122,7 @@ function $prepopulatedRichText() {
 
 function App(): JSX.Element {
   const {
-    settings: {isCollab, emptyEditor, measureTypingPerf},
+    settings: { isCollab, emptyEditor, measureTypingPerf },
   } = useSettings();
 
   const app = useMemo(

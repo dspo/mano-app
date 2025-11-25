@@ -6,7 +6,7 @@
  *
  */
 
-import {IS_CHROME} from '@lexical/utils';
+import { IS_CHROME } from '@lexical/utils';
 import {
   DOMConversionMap,
   DOMConversionOutput,
@@ -18,8 +18,8 @@ import {
   SerializedElementNode,
 } from 'lexical';
 
-import {$isCollapsibleContainerNode} from './CollapsibleContainerNode';
-import {domOnBeforeMatch, setDomHiddenUntilFound} from './CollapsibleUtils';
+import { $isCollapsibleContainerNode } from './CollapsibleContainerNode';
+import { domOnBeforeMatch, setDomHiddenUntilFound } from './CollapsibleUtils';
 
 type SerializedCollapsibleContentNode = SerializedElementNode;
 
@@ -95,7 +95,7 @@ export class CollapsibleContentNode extends ElementNode {
     const element = document.createElement('div');
     element.classList.add('Collapsible__content');
     element.setAttribute('data-lexical-collapsible-content', 'true');
-    return {element};
+    return { element };
   }
 
   static importJSON(

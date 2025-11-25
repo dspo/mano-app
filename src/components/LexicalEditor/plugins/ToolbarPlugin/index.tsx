@@ -495,8 +495,8 @@ function ElementFormatDropdown({
         <i
           className={`icon ${
             isRTL
-              ? ELEMENT_FORMAT_OPTIONS.start.iconRTL
-              : ELEMENT_FORMAT_OPTIONS.start.icon
+            ? ELEMENT_FORMAT_OPTIONS.start.iconRTL
+            : ELEMENT_FORMAT_OPTIONS.start.icon
           }`}
         />
         <span className="text">Start Align</span>
@@ -509,8 +509,8 @@ function ElementFormatDropdown({
         <i
           className={`icon ${
             isRTL
-              ? ELEMENT_FORMAT_OPTIONS.end.iconRTL
-              : ELEMENT_FORMAT_OPTIONS.end.icon
+            ? ELEMENT_FORMAT_OPTIONS.end.iconRTL
+            : ELEMENT_FORMAT_OPTIONS.end.icon
           }`}
         />
         <span className="text">End Align</span>

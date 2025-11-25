@@ -198,15 +198,14 @@ function App({ node, workspace, onClose }: AppWithFileProps): JSX.Element {
             <ToolbarContext>
               <div className="editor-shell">
                 <Editor />
+                <Settings />
+                {isDevPlayground ? <DocsPlugin /> : null}
+                {isDevPlayground ? <PasteLogPlugin /> : null}
+                {isDevPlayground ? <TestRecorderPlugin /> : null}
+                {measureTypingPerf ? <TypingPerfPlugin /> : null}
                 <FilePlugin node={node} workspace={workspace} />
                 <CloseButtonPlugin onClose={onClose} />
               </div>
-              <Settings />
-              {isDevPlayground ? <DocsPlugin /> : null}
-              {isDevPlayground ? <PasteLogPlugin /> : null}
-              {isDevPlayground ? <TestRecorderPlugin /> : null}
-
-              {measureTypingPerf ? <TypingPerfPlugin /> : null}
             </ToolbarContext>
           </TableContext>
         </SharedHistoryContext>

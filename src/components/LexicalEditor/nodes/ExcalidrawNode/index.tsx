@@ -17,9 +17,9 @@ import type {
   SerializedLexicalNode,
   Spread,
 } from 'lexical';
-import type {JSX} from 'react';
+import type { JSX } from 'react';
 
-import {DecoratorNode} from 'lexical';
+import { DecoratorNode } from 'lexical';
 import * as React from 'react';
 
 type Dimension = number | 'inherit';
@@ -151,7 +151,7 @@ export class ExcalidrawNode extends DecoratorNode<JSX.Element> {
       this.__height === 'inherit' ? 'inherit' : `${this.__height}px`;
 
     element.setAttribute('data-lexical-excalidraw-json', this.__data);
-    return {element};
+    return { element };
   }
 
   setData(data: string): void {

@@ -6,11 +6,11 @@
  *
  */
 
-import type {BaseSelection, LexicalEditor} from 'lexical';
-import type {JSX} from 'react';
+import type { BaseSelection, LexicalEditor } from 'lexical';
+import type { JSX } from 'react';
 
-import {useLexicalComposerContext} from '@lexical/react/LexicalComposerContext';
-import {IS_APPLE} from '@lexical/utils';
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+import { IS_APPLE } from '@lexical/utils';
 import {
   $createParagraphNode,
   $createTextNode,
@@ -18,7 +18,7 @@ import {
   getDOMSelection,
 } from 'lexical';
 import * as React from 'react';
-import {useCallback, useEffect, useLayoutEffect, useRef, useState} from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 const copy = (text: string | null) => {
   const textArea = document.createElement('textarea');
@@ -108,15 +108,15 @@ export function isSelectAll(event: KeyboardEvent): boolean {
 
 // stolen from LexicalSelection-test
 function sanitizeSelection(selection: Selection) {
-  const {anchorNode, focusNode} = selection;
-  let {anchorOffset, focusOffset} = selection;
+  const { anchorNode, focusNode } = selection;
+  let { anchorOffset, focusOffset } = selection;
   if (anchorOffset !== 0) {
     anchorOffset--;
   }
   if (focusOffset !== 0) {
     focusOffset--;
   }
-  return {anchorNode, anchorOffset, focusNode, focusOffset};
+  return { anchorNode, anchorOffset, focusNode, focusOffset };
 }
 
 function getPathFromNodeToEditor(node: Node, rootElement: HTMLElement | null) {
@@ -230,21 +230,21 @@ ${steps.map(formatStep).join(`\n`)}
               // for typing events we just append the text
               return [
                 ...steps.slice(0, currentIndex),
-                {...lastStep, value: lastStep.value + value},
+                { ...lastStep, value: lastStep.value + value },
               ];
             } else {
               // for other events we bump the counter if their values are the same
               if (lastStep.value === value) {
                 return [
                   ...steps.slice(0, currentIndex),
-                  {...lastStep, count: lastStep.count + 1},
+                  { ...lastStep, count: lastStep.count + 1 },
                 ];
               }
             }
           }
         }
         // could not group, just append a new one
-        return [...currentSteps, {count: 1, name, value}];
+        return [...currentSteps, { count: 1, name, value }];
       });
     },
     [steps, setSteps],
@@ -314,7 +314,7 @@ ${steps.map(formatStep).join(`\n`)}
 
   useEffect(() => {
     const removeUpdateListener = editor.registerUpdateListener(
-      ({editorState, dirtyLeaves, dirtyElements}) => {
+      ({ editorState, dirtyLeaves, dirtyElements }) => {
         if (!isRecording) {
           return;
         }
@@ -392,7 +392,7 @@ ${steps.map(formatStep).join(`\n`)}
     ) {
       return;
     }
-    const {anchorNode, anchorOffset, focusNode, focusOffset} =
+    const { anchorNode, anchorOffset, focusNode, focusOffset } =
       sanitizeSelection(browserSelection);
     const rootElement = getCurrentEditor().getRootElement();
     let anchorPath;
@@ -461,13 +461,6 @@ ${steps.map(formatStep).join(`\n`)}
 }
 
 export default function TestRecorderPlugin(): JSX.Element {
-  const [editor] = useLexicalComposerContext();
-  const [testRecorderButton, testRecorderOutput] = useTestRecorder(editor);
-
-  return (
-    <>
-      {testRecorderButton}
-      {testRecorderOutput}
-    </>
-  );
+  // Removed Test Recorder button
+  return null;
 }
