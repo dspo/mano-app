@@ -48,6 +48,7 @@ import {
 import * as React from 'react';
 import {ReactPortal, useCallback, useEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
+import {getPortalRoot} from '../../utils/portalRoot';
 
 import useModal from '../../hooks/useModal';
 import ColorPicker from '../../ui/ColorPicker';
@@ -674,7 +675,7 @@ function TableActionMenu({
         </span>
       </button>
     </div>,
-    document.body,
+    getPortalRoot(),
   );
 }
 
@@ -919,13 +920,18 @@ function TableCellActionMenuContainer({
 }
 
 export default function TableActionMenuPlugin({
-  anchorElem = document.body,
+  anchorElem,
   cellMerge = false,
+  portalContainer = getPortalRoot(),
 }: {
   anchorElem?: HTMLElement;
   cellMerge?: boolean;
+  portalContainer?: HTMLElement;
 }): null | ReactPortal {
   const isEditable = useLexicalEditable();
+  if (!anchorElem) {
+    return null;
+  }
   return createPortal(
     isEditable ? (
       <TableCellActionMenuContainer
@@ -933,6 +939,6 @@ export default function TableActionMenuPlugin({
         cellMerge={cellMerge}
       />
     ) : null,
-    anchorElem,
+    portalContainer,
   );
 }

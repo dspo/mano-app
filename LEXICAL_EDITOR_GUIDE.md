@@ -145,6 +145,19 @@ function MyComponent() {
 3. 如果文件不存在，会创建新的空文档
 4. 需要 Tauri 环境支持文件系统操作
 
+## 浮层 Portal 经验记录
+
+- **背景**：Lexical Playground 自带的大量浮层组件（格式工具条、链接编辑器、拖拽菜单、表格操作面板等）默认都会通过 `document.body` 上的 portal Host 渲染，而不是直接挂在 `ContentEditable` DOM 里。我们在自定义改造过程中，让部分浮层直接出现在 `.editor ContentEditable__root` 下，导致 React 卸载节点时频繁抛出 `NotFoundError: Failed to execute 'removeChild'`。
+- **症状**：切换侧边栏节点或关闭编辑器时，控制台持续输出 `removeChild mismatch`（由 `src/main.tsx` 中的 `patchedRemoveChild` instrumentation 打印），定位到的 `childHTML` 就是诸如 `div.floating-text-format-popup`、`div.draggable-block-menu` 等浮层 DOM。
+- **根因**：这些浮层既被 React 当作编辑器内容的子节点管理，又被插件内部的 `ReactDOM.createPortal`/手写 DOM 操作独立处理，最终进入 “React 想删除，但真实父节点已经被改动” 的冲突状态。
+- **解决方案**：
+  1. 在 `src/components/LexicalEditor/utils/portalRoot.ts` 中实现 `getPortalRoot/acquirePortalRoot`，保证所有浮层公用一个稳定的宿主元素。
+  2. 替换问题插件，让其渲染层统一指向该宿主。例如：自定义 `DraggableBlockPlugin` 内联了官方实现但将 `createPortal(..., portalContainer)` 指向 `getPortalRoot()`；`FloatingTextFormatToolbarPlugin` 也新增 `portalContainer`，默认使用共享 host。
+  3. 保留 `patchedRemoveChild` 调试逻辑，以便快速发现后续新加入的浮层是否又插入了 ContentEditable。
+- **实操建议**：新增浮层插件时，第一步确认 `createPortal` 目标是否来自 `getPortalRoot()`；若插件本身无法指定 portal，则需要像 `DraggableBlockPlugin` 一样复制/封装官方逻辑，使 UI 与定位 anchor 解耦。
+- **Playground 正常的原因**：Lexical 官方 Playground 里的所有浮层组件（源码在 `packages/lexical-playground`）默认已经调用 `createPortal(..., document.body)` 或内部的共享 host，因此它们从未进入内容树，也就不会触发我们的 `removeChild mismatch`。问题完全源自我们改造过程中把浮层直接渲染在 `ContentEditable` 下的自定义行为。
+- **什么是 Portal**：在 React 中，Portal 是指 `ReactDOM.createPortal(children, container)` 这种“把 React 子树渲染到父组件 DOM 层次之外”的机制。它允许我们逻辑上仍由某个组件控制 UI（含生命周期与事件冒泡），但真实 DOM 被挂在 `container`（通常是 `document.body` 下的某个固定元素）内。利用 portal，可以让浮层、模态框等脱离内容 DOM，既确保定位自由，也避免 React 卸载时与编辑器 DOM 互相干扰。
+
 ## 与 RichTextEditor 的区别
 
 | 特性 | RichTextEditor | LexicalEditor |

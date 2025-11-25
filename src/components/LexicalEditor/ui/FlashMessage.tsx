@@ -12,6 +12,7 @@ import './FlashMessage.css';
 
 import {ReactNode} from 'react';
 import {createPortal} from 'react-dom';
+import {getPortalRoot} from '../utils/portalRoot';
 
 export interface FlashMessageProps {
   children: ReactNode;
@@ -26,6 +27,6 @@ export default function FlashMessage({
         {children}
       </p>
     </div>,
-    document.body,
+    getPortalRoot(),
   );
 }

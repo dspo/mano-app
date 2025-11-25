@@ -21,6 +21,7 @@ import {$getNearestNodeFromDOMNode, isHTMLElement} from 'lexical';
 import {useEffect, useRef, useState} from 'react';
 import * as React from 'react';
 import {createPortal} from 'react-dom';
+import {getPortalRoot} from '../../utils/portalRoot';
 
 import {CopyButton} from './components/CopyButton';
 import {canBePrettier, PrettierButton} from './components/PrettierButton';
@@ -181,7 +182,7 @@ function getMouseInfo(event: MouseEvent): {
 }
 
 export default function CodeActionMenuPlugin({
-  anchorElem = document.body,
+  anchorElem = getPortalRoot(),
 }: {
   anchorElem?: HTMLElement;
 }): React.ReactPortal | null {

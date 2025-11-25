@@ -25,9 +25,10 @@ import {
   LexicalEditor,
   SELECTION_CHANGE_COMMAND,
 } from 'lexical';
-import {Dispatch, useCallback, useEffect, useRef, useState} from 'react';
+import {Dispatch, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import * as React from 'react';
 import {createPortal} from 'react-dom';
+import {getPortalRoot} from '../../utils/portalRoot';
 
 import {getDOMRangeRect} from '../../utils/getDOMRangeRect';
 import {getSelectedNode} from '../../utils/getSelectedNode';
@@ -321,6 +322,7 @@ function useFloatingTextFormatToolbar(
   editor: LexicalEditor,
   anchorElem: HTMLElement,
   setIsLinkEditMode: Dispatch<boolean>,
+  portalContainer: HTMLElement,
 ): JSX.Element | null {
   const [isText, setIsText] = useState(false);
   const [isLink, setIsLink] = useState(false);
@@ -439,17 +441,28 @@ function useFloatingTextFormatToolbar(
       isCode={isCode}
       setIsLinkEditMode={setIsLinkEditMode}
     />,
-    anchorElem,
+    portalContainer,
   );
 }
 
 export default function FloatingTextFormatToolbarPlugin({
-  anchorElem = document.body,
+  anchorElem = getPortalRoot(),
   setIsLinkEditMode,
+  portalContainer,
 }: {
   anchorElem?: HTMLElement;
   setIsLinkEditMode: Dispatch<boolean>;
+  portalContainer?: HTMLElement;
 }): JSX.Element | null {
   const [editor] = useLexicalComposerContext();
-  return useFloatingTextFormatToolbar(editor, anchorElem, setIsLinkEditMode);
+  const resolvedPortal = useMemo(
+    () => portalContainer ?? getPortalRoot(),
+    [portalContainer],
+  );
+  return useFloatingTextFormatToolbar(
+    editor,
+    anchorElem,
+    setIsLinkEditMode,
+    resolvedPortal,
+  );
 }

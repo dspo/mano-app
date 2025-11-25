@@ -33,6 +33,7 @@ import {
 import {useEffect, useMemo, useRef, useState} from 'react';
 import * as React from 'react';
 import {createPortal} from 'react-dom';
+import {getPortalRoot} from '../../utils/portalRoot';
 
 import {getThemeSelector} from '../../utils/getThemeSelector';
 import {useDebounce} from '../CodeActionMenuPlugin/utils';
@@ -316,7 +317,7 @@ function getMouseInfo(
 }
 
 export default function TableHoverActionsPlugin({
-  anchorElem = document.body,
+  anchorElem = getPortalRoot(),
 }: {
   anchorElem?: HTMLElement;
 }): React.ReactPortal | null {

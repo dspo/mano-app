@@ -19,6 +19,7 @@ import {
   useState,
 } from 'react';
 import {createPortal} from 'react-dom';
+import {getPortalRoot} from '../utils/portalRoot';
 
 import {focusNearestDescendant, isKeyboardInput} from '../utils/focusUtils';
 
@@ -283,7 +284,7 @@ export default function DropDown({
             autofocus={shouldAutofocus}>
             {children}
           </DropDownItems>,
-          document.body,
+          getPortalRoot(),
         )}
     </>
   );

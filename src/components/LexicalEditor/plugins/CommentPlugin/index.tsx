@@ -64,6 +64,7 @@ import {
 } from 'react';
 import * as React from 'react';
 import { createPortal } from 'react-dom';
+import {getPortalRoot} from '../../utils/portalRoot';
 
 import {
   Comment,
@@ -981,7 +982,7 @@ export default function CommentPlugin({
             cancelAddComment={cancelAddComment}
             submitAddComment={submitAddComment}
           />,
-          document.body,
+          getPortalRoot(),
         )}
       {activeAnchorKey !== null &&
         activeAnchorKey !== undefined &&
@@ -992,7 +993,7 @@ export default function CommentPlugin({
             editor={editor}
             onAddComment={onAddComment}
           />,
-          document.body,
+          getPortalRoot(),
         )}
 
       {/* CommentsPanel is now rendered directly without portal */}

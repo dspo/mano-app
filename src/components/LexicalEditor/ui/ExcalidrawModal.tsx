@@ -21,6 +21,7 @@ import {isDOMNode} from 'lexical';
 import * as React from 'react';
 import {ReactPortal, useEffect, useLayoutEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
+import {getPortalRoot} from '../utils/portalRoot';
 
 import Button from './Button';
 import Modal from './Modal';
@@ -96,17 +97,17 @@ export default function ExcalidrawModal({
     const clickOutsideHandler = (event: MouseEvent) => {
       const target = event.target;
       if (
-        excaliDrawModelRef.current !== null &&
+        closeOnClickOutside &&
         isDOMNode(target) &&
-        !excaliDrawModelRef.current.contains(target) &&
-        closeOnClickOutside
+        excaliDrawModelRef.current &&
+        !excaliDrawModelRef.current.contains(target)
       ) {
         onDelete();
       }
     };
 
-    if (excaliDrawModelRef.current !== null) {
-      modalOverlayElement = excaliDrawModelRef.current?.parentElement;
+    if (closeOnClickOutside) {
+      modalOverlayElement = excaliDrawModelRef.current?.parentElement ?? null;
       modalOverlayElement?.addEventListener('click', clickOutsideHandler);
     }
 
@@ -228,6 +229,6 @@ export default function ExcalidrawModal({
         </div>
       </div>
     </div>,
-    document.body,
+    getPortalRoot(),
   );
 }

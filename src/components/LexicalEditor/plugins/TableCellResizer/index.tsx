@@ -41,6 +41,7 @@ import {
   useState,
 } from 'react';
 import {createPortal} from 'react-dom';
+import {getPortalRoot} from '../../utils/portalRoot';
 
 type PointerPosition = {
   x: number;
@@ -462,7 +463,7 @@ export default function TableCellResizerPlugin(): null | ReactPortal {
   return useMemo(
     () =>
       isEditable
-        ? createPortal(<TableCellResizer editor={editor} />, document.body)
+        ? createPortal(<TableCellResizer editor={editor} />, getPortalRoot())
         : null,
     [editor, isEditable],
   );

@@ -28,6 +28,7 @@ import TypingPerfPlugin from './plugins/TypingPerfPlugin';
 import Settings from './Settings';
 import PlaygroundEditorTheme from './themes/PlaygroundEditorTheme';
 import { GmailItem } from '../model';
+import {acquirePortalRoot, releasePortalRoot} from './utils/portalRoot';
 
 // 获取 Lexical JSON 格式的文件名
 function getLexicalFilename(node: GmailItem): string {
@@ -189,6 +190,13 @@ function App({ node, workspace, onClose }: AppWithFileProps): JSX.Element {
       }),
     [],
   );
+
+  useEffect(() => {
+    acquirePortalRoot();
+    return () => {
+      releasePortalRoot();
+    };
+  }, []);
 
   return (
     <LexicalCollaboration>

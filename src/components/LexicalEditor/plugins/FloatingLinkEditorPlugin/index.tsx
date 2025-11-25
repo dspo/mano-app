@@ -35,6 +35,7 @@ import {
 import {Dispatch, useCallback, useEffect, useRef, useState} from 'react';
 import * as React from 'react';
 import {createPortal} from 'react-dom';
+import {getPortalRoot} from '../../utils/portalRoot';
 
 import {getSelectedNode} from '../../utils/getSelectedNode';
 import {setFloatingElemPositionForLinkEditor} from '../../utils/setFloatingElemPositionForLinkEditor';
@@ -349,6 +350,7 @@ function useFloatingLinkEditorToolbar(
   anchorElem: HTMLElement,
   isLinkEditMode: boolean,
   setIsLinkEditMode: Dispatch<boolean>,
+  portalContainer?: HTMLElement,
 ): JSX.Element | null {
   const [activeEditor, setActiveEditor] = useState(editor);
   const [isLink, setIsLink] = useState(false);
@@ -445,24 +447,30 @@ function useFloatingLinkEditorToolbar(
       isLinkEditMode={isLinkEditMode}
       setIsLinkEditMode={setIsLinkEditMode}
     />,
-    anchorElem,
+    portalContainer ?? anchorElem,
   );
 }
 
 export default function FloatingLinkEditorPlugin({
-  anchorElem = document.body,
+  anchorElem,
   isLinkEditMode,
   setIsLinkEditMode,
+  portalContainer = getPortalRoot(),
 }: {
   anchorElem?: HTMLElement;
   isLinkEditMode: boolean;
   setIsLinkEditMode: Dispatch<boolean>;
+  portalContainer?: HTMLElement;
 }): JSX.Element | null {
   const [editor] = useLexicalComposerContext();
+  if (!anchorElem) {
+    return null;
+  }
   return useFloatingLinkEditorToolbar(
     editor,
     anchorElem,
     isLinkEditMode,
     setIsLinkEditMode,
+    portalContainer,
   );
 }

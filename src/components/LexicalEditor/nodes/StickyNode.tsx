@@ -21,6 +21,7 @@ import type {JSX} from 'react';
 import {$setSelection, createEditor, DecoratorNode} from 'lexical';
 import * as React from 'react';
 import {createPortal} from 'react-dom';
+import {getPortalRoot} from '../utils/portalRoot';
 
 const StickyComponent = React.lazy(() => import('./StickyComponent'));
 
@@ -131,7 +132,7 @@ export class StickyNode extends DecoratorNode<JSX.Element> {
         nodeKey={this.getKey()}
         caption={this.__caption}
       />,
-      document.body,
+      getPortalRoot(),
     );
   }
 

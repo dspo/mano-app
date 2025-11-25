@@ -101,8 +101,8 @@ function App() {
     // 根据节点类型选择编辑器
     const nodeType = selectedNode.nodeType || 'PlainText';
     
-    // 使用更强制的方式确保组件完全重新创建
-    const uniqueKey = `${selectedNode.id}-${Date.now()}`;
+    // 使用稳定 key：仅在选择的节点或类型变化时重新创建
+    const uniqueKey = `${selectedNode.id}-${nodeType}`;
     
     if (nodeType === Directory) {
       return <DirectoryPanel key={uniqueKey} node={selectedNode} onClose={handleCloseEditor} />;
