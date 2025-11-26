@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
-import { cn } from '../../lib/utils';
+import { cn } from '@/lib/utils';
 
 // Context types for context menu
 interface ContextMenuContextType {
