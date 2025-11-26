@@ -85,17 +85,19 @@ jobs:
             echo ""
             
             # DMG files
-            if ls $BUNDLE_DIR/dmg/*.dmg 1> /dev/null 2>&1; then
-              for file in $BUNDLE_DIR/dmg/*.dmg; do
-                size=$(du -h "$file" | cut -f1)
+            if [ -d "$BUNDLE_DIR/dmg" ] && [ -n "$(find "$BUNDLE_DIR/dmg" -name "*.dmg" -print -quit)" ]; then
+              for file in "$BUNDLE_DIR/dmg"/*.dmg; do
+                [ -f "$file" ] || continue
+                size=$(du -sh "$file" | cut -f1)
                 name=$(basename "$file")
                 echo "  • $name: $size"
               done
             fi
             
             # App bundles
-            if ls $BUNDLE_DIR/macos/*.app 1> /dev/null 2>&1; then
-              for file in $BUNDLE_DIR/macos/*.app; do
+            if [ -d "$BUNDLE_DIR/macos" ] && [ -n "$(find "$BUNDLE_DIR/macos" -name "*.app" -print -quit)" ]; then
+              for file in "$BUNDLE_DIR/macos"/*.app; do
+                [ -e "$file" ] || continue
                 size=$(du -sh "$file" | cut -f1)
                 name=$(basename "$file")
                 echo "  • $name: $size"
@@ -115,6 +117,7 @@ jobs:
         with:
           script: |
             const fs = require('fs');
+            const path = require('path');
             const { execSync } = require('child_process');
             
             const bundleDir = 'mano-tauri/target/aarch64-apple-darwin/release/bundle';
@@ -124,19 +127,29 @@ jobs:
               return;
             }
             
+            function getDirectorySize(dirPath) {
+              try {
+                // Use safe shell escaping by passing the path as a separate argument
+                const result = execSync(`du -sh "${dirPath.replace(/"/g, '\\"')}" | cut -f1`);
+                return result.toString().trim();
+              } catch (error) {
+                return 'N/A';
+              }
+            }
+            
             let comment = '## 📦 Build Artifacts\n\n';
             comment += '### macOS ARM64 Build\n\n';
             
             try {
               // DMG files
-              const dmgDir = `${bundleDir}/dmg`;
+              const dmgDir = path.join(bundleDir, 'dmg');
               if (fs.existsSync(dmgDir)) {
                 const dmgFiles = fs.readdirSync(dmgDir).filter(f => f.endsWith('.dmg'));
                 if (dmgFiles.length > 0) {
                   comment += '**DMG Installer:**\n';
                   dmgFiles.forEach(file => {
-                    const filePath = `${dmgDir}/${file}`;
-                    const size = execSync(`du -h "${filePath}" | cut -f1`).toString().trim();
+                    const filePath = path.join(dmgDir, file);
+                    const size = getDirectorySize(filePath);
                     comment += `- \`${file}\`: **${size}**\n`;
                   });
                   comment += '\n';
@@ -144,14 +157,14 @@ jobs:
               }
               
               // App bundles
-              const macosDir = `${bundleDir}/macos`;
+              const macosDir = path.join(bundleDir, 'macos');
               if (fs.existsSync(macosDir)) {
                 const appFiles = fs.readdirSync(macosDir).filter(f => f.endsWith('.app'));
                 if (appFiles.length > 0) {
                   comment += '**App Bundle:**\n';
                   appFiles.forEach(file => {
-                    const filePath = `${macosDir}/${file}`;
-                    const size = execSync(`du -sh "${filePath}" | cut -f1`).toString().trim();
+                    const filePath = path.join(macosDir, file);
+                    const size = getDirectorySize(filePath);
                     comment += `- \`${file}\`: **${size}**\n`;
                   });
                   comment += '\n';
@@ -159,7 +172,7 @@ jobs:
               }
               
               // Total bundle size
-              const totalSize = execSync(`du -sh "${bundleDir}" | cut -f1`).toString().trim();
+              const totalSize = getDirectorySize(bundleDir);
               comment += `**Total bundle size:** ${totalSize}\n`;
               
             } catch (error) {
