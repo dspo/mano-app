@@ -22,6 +22,7 @@ import {useMemo, useState} from 'react';
 import useModal from '../../hooks/useModal';
 import Button from '../../ui/Button';
 import {DialogActions} from '../../ui/Dialog';
+import {createTypeaheadMenuRenderFn} from '../../ui/TypeaheadMenu';
 import {INSERT_FIGMA_COMMAND} from '../FigmaPlugin';
 import {INSERT_TWEET_COMMAND} from '../TwitterPlugin';
 import {INSERT_YOUTUBE_COMMAND} from '../YouTubePlugin';
@@ -228,6 +229,10 @@ export function AutoEmbedDialog({
 
 export default function AutoEmbedPlugin(): JSX.Element {
   const [modal, showModal] = useModal();
+  const menuRenderFn = useMemo(
+    () => createTypeaheadMenuRenderFn<AutoEmbedOption>(),
+    [],
+  );
 
   const openEmbedModal = (embedConfig: PlaygroundEmbedConfig) => {
     showModal(`Embed ${embedConfig.contentName}`, (onClose) => (
@@ -257,6 +262,7 @@ export default function AutoEmbedPlugin(): JSX.Element {
         embedConfigs={EmbedConfigs}
         onOpenEmbedModalForConfig={openEmbedModal}
         getMenuOptions={getMenuOptions}
+        menuRenderFn={menuRenderFn}
       />
     </>
   );

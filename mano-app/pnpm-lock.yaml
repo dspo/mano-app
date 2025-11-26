@@ -29,6 +29,9 @@ importers:
       '@lexical/hashtag':
         specifier: ^0.38.2
         version: 0.38.2
+      '@lexical/headless':
+        specifier: ^0.38.2
+        version: 0.38.2
       '@lexical/html':
         specifier: ^0.38.2
         version: 0.38.2
@@ -748,6 +751,9 @@ packages:
 
   '@lexical/hashtag@0.38.2':
     resolution: {integrity: sha512-jNI4Pv+plth39bjOeeQegMypkjDmoMWBMZtV0lCynBpkkPFlfMnyL9uzW/IxkZnX8LXWSw5mbWk07nqOUNTCrA==}
+
+  '@lexical/headless@0.38.2':
+    resolution: {integrity: sha512-HFlQrw1pSSia3hGHz/OnUBAVMAGDBLSIJrqiHTst/LhDWzY5Um6PZ5Yc5DhTOtWaOp89d/Gl1SPKj935akVNZQ==}
 
   '@lexical/history@0.38.2':
     resolution: {integrity: sha512-QWPwoVDMe/oJ0+TFhy78TDi7TWU/8bcDRFUNk1nWgbq7+2m+5MMoj90LmOFwakQHnCVovgba2qj+atZrab1dsQ==}
@@ -1521,6 +1527,9 @@ packages:
   '@types/ms@2.1.0':
     resolution: {integrity: sha512-GsCCIZDE/p3i96vtEqx+7dBUGXrc7zeSK3wwPHIaRThS+9OhWIXRqzs4d6k1SVU8g91DrNRWxWUGhp5KXQb2VA==}
 
+  '@types/node@20.19.25':
+    resolution: {integrity: sha512-ZsJzA5thDQMSQO788d7IocwwQbI8B5OPzmqNvpf3NY/+MHDAS759Wo0gd2WQeXYt5AAAQjzcrTVC6SKCuYgoCQ==}
+
   '@types/node@24.10.1':
     resolution: {integrity: sha512-GNWcUTRBgIRJD5zj+Tq0fKOJ5XZajIiBroOF0yvj2bSU1WvNdYS/dn9UxwsujGW4JX06dnHyjV2y9rRaybH0iQ==}
 
@@ -1546,6 +1555,9 @@ packages:
 
   '@types/use-sync-external-store@0.0.6':
     resolution: {integrity: sha512-zFDAD+tlpf2r4asuHEj0XH6pY6i0g5NeAHPn+15wk3BV6JA69eERFXC1gyGThDkVa1zCyKr5jox1+2LbV/AMLg==}
+
+  '@types/whatwg-mimetype@3.0.2':
+    resolution: {integrity: sha512-c2AKvDT8ToxLIOUlN51gTiHXflsfIFisS4pO7pDPoKouJCESkhZnEy623gwP9laCy5lnLDAw1vAzu2vM2YLOrA==}
 
   '@types/yargs-parser@21.0.3':
     resolution: {integrity: sha512-I4q9QU9MQv4oEOz4tAHJtNz1cwuLxn2F3xcc2iV5WdqLPpUnj30aUuxt1mAxYTG+oe8CZMV/+6rU4S4gRDzqtQ==}
@@ -2252,6 +2264,10 @@ packages:
     resolution: {integrity: sha512-vafaFqs8MZkRrSX7sFVUdo3ap/eNiLnb4IakshzvP56X5Nr1iGKAIqdX6tMlm6HcNRIkr6AxO5jFEoJzzpT8aQ==}
     engines: {node: '>=0.4.7'}
     hasBin: true
+
+  happy-dom@20.0.10:
+    resolution: {integrity: sha512-6umCCHcjQrhP5oXhrHQQvLB0bwb1UzHAHdsXy+FjtKoYjUhmNZsQL8NivwM1vDvNEChJabVrUYxUnp/ZdYmy2g==}
+    engines: {node: '>=20.0.0'}
 
   has-flag@4.0.0:
     resolution: {integrity: sha512-EykJT/Q1KjTWctppgIAgfSO0tKVuZUjhgMr17kqTumMl6Afv3EISleU7qZUzoXDFTAHTDC4NOoG/ZxU3EvlMPQ==}
@@ -3380,6 +3396,9 @@ packages:
     engines: {node: '>=0.8.0'}
     hasBin: true
 
+  undici-types@6.21.0:
+    resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
+
   undici-types@7.16.0:
     resolution: {integrity: sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw==}
 
@@ -3512,6 +3531,10 @@ packages:
 
   webworkify@1.5.0:
     resolution: {integrity: sha512-AMcUeyXAhbACL8S2hqqdqOLqvJ8ylmIbNwUIqQujRSouf4+eUFaXbG6F1Rbu+srlJMmxQWsiU7mOJi0nMBfM1g==}
+
+  whatwg-mimetype@3.0.0:
+    resolution: {integrity: sha512-nt+N2dzIutVRxARx1nghPKGv1xHikU7HKdfafKkLNLindmPU/ch3U31NOCGGA/dmPcmb1VlofO0vnKAcsm0o/Q==}
+    engines: {node: '>=12'}
 
   which@2.0.2:
     resolution: {integrity: sha512-BLI3Tl1TW3Pvl70l3yq3Y64i+awpwXqsGBYWkkqMtnbXgrMD+yj7rhW0kuEDxzJaYXGjEW5ogapKNMEKNMjibA==}
@@ -4246,6 +4269,11 @@ snapshots:
     dependencies:
       '@lexical/text': 0.38.2
       '@lexical/utils': 0.38.2
+      lexical: 0.38.2
+
+  '@lexical/headless@0.38.2':
+    dependencies:
+      happy-dom: 20.0.10
       lexical: 0.38.2
 
   '@lexical/history@0.38.2':
@@ -5019,6 +5047,10 @@ snapshots:
 
   '@types/ms@2.1.0': {}
 
+  '@types/node@20.19.25':
+    dependencies:
+      undici-types: 6.21.0
+
   '@types/node@24.10.1':
     dependencies:
       undici-types: 7.16.0
@@ -5040,6 +5072,8 @@ snapshots:
   '@types/unist@3.0.3': {}
 
   '@types/use-sync-external-store@0.0.6': {}
+
+  '@types/whatwg-mimetype@3.0.2': {}
 
   '@types/yargs-parser@21.0.3': {}
 
@@ -5734,6 +5768,12 @@ snapshots:
       wordwrap: 1.0.0
     optionalDependencies:
       uglify-js: 3.19.3
+
+  happy-dom@20.0.10:
+    dependencies:
+      '@types/node': 20.19.25
+      '@types/whatwg-mimetype': 3.0.2
+      whatwg-mimetype: 3.0.0
 
   has-flag@4.0.0: {}
 
@@ -7059,6 +7099,8 @@ snapshots:
   uglify-js@3.19.3:
     optional: true
 
+  undici-types@6.21.0: {}
+
   undici-types@7.16.0: {}
 
   unist-util-is@6.0.1:
@@ -7191,6 +7233,8 @@ snapshots:
   web-worker@1.5.0: {}
 
   webworkify@1.5.0: {}
+
+  whatwg-mimetype@3.0.0: {}
 
   which@2.0.2:
     dependencies:

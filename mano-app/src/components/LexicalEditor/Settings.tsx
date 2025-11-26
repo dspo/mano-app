@@ -15,7 +15,7 @@ import { INITIAL_SETTINGS, isDevPlayground } from './appSettings';
 import { useSettings } from './context/SettingsContext';
 import Switch from './ui/Switch';
 
-export default function Settings(): JSX.Element {
+export default function Settings(): JSX.Element | null {
   const windowLocation = window.location;
   const {
     setOption,

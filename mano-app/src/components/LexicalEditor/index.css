@@ -1105,7 +1105,7 @@ i.page-break,
 .editor-shell .editor-image .image-edit-button {
   border: 1px solid rgba(0, 0, 0, 0.3);
   border-radius: 5px;
-  background-image: url(/src/images/icons/pencil-fill.svg);
+  background-image: url(images/icons/pencil-fill.svg);
   background-size: 16px;
   background-position: center;
   background-repeat: no-repeat;
@@ -1199,7 +1199,7 @@ i.page-break,
   background-color: rgba(150, 150, 150, 0.4);
 }
 
-.emoji-inner::moz-selection {
+.emoji-inner::-moz-selection {
   color: transparent;
   background-color: rgba(150, 150, 150, 0.4);
 }

@@ -1,6 +1,7 @@
 import './App.css';
 import { useEffect, useState } from 'react';
 import { path } from '@tauri-apps/api';
+import { listen } from '@tauri-apps/api/event';
 import { exists } from '@tauri-apps/plugin-fs';
 import GmailSidebar from './components/GmailSidebar';
 import Welcome from './components/Welcome';
@@ -29,23 +30,20 @@ function App() {
 
   useEffect(() => {
     // 仅在 Tauri 环境中监听事件
+    let cleanup: (() => void) | undefined;
+
     if (typeof window !== 'undefined' && (window as any).__TAURI_INTERNALS__) {
-      // config tauri listener when component mounted
       const setupListener = async () => {
         try {
-          const { listen } = await import('@tauri-apps/api/event');
-          const unlisten = await listen<{ workspace: string }>('workspace_updated', (event) => {
-            const workspace = event.payload.workspace;
-            console.log('workspace updated, workspace:', workspace, new Date().toISOString());
-            // Use functional update to ensure we always get the latest eventCount value
-            setEventCount(prevCount => prevCount + 1);
-            setWorkspace(workspace.trim());
-          });
-
-          // terminate tauri listener when component unmounted
-          return () => {
-            unlisten();
-          };
+          cleanup = await listen<{ workspace: string }>(
+            'workspace_updated',
+            (event) => {
+              const workspace = event.payload.workspace;
+              console.log('workspace updated, workspace:', workspace, new Date().toISOString());
+              setEventCount((prevCount) => prevCount + 1);
+              setWorkspace(workspace.trim());
+            },
+          );
         } catch (error) {
           console.error('Failed to setup workspace listener:', error);
         }
@@ -57,6 +55,9 @@ function App() {
       console.log('Running in non-Tauri environment, using default items');
       setGmailItems(getDefaultItems());
     }
+    return () => {
+      cleanup?.();
+    };
   }, []);
 
   useEffect(() => {

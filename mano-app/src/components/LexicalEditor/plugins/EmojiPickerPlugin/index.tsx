@@ -18,8 +18,9 @@ import {
   $isRangeSelection,
   TextNode,
 } from 'lexical';
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import {createTypeaheadMenuRenderFn} from '../../ui/TypeaheadMenu';
+import emojiList from '../../utils/emoji-list';
 
 class EmojiOption extends MenuOption {
   title: string;
@@ -56,11 +57,7 @@ const MAX_EMOJI_SUGGESTION_COUNT = 10;
 export default function EmojiPickerPlugin() {
   const [editor] = useLexicalComposerContext();
   const [queryString, setQueryString] = useState<string | null>(null);
-  const [emojis, setEmojis] = useState<Array<Emoji>>([]);
-
-  useEffect(() => {
-    import('../../utils/emoji-list').then((file) => setEmojis(file.default));
-  }, []);
+  const emojis = emojiList as Array<Emoji>;
 
   const emojiOptions = useMemo(
     () =>

@@ -460,7 +460,7 @@ ${steps.map(formatStep).join(`\n`)}
   return [button, output];
 }
 
-export default function TestRecorderPlugin(): JSX.Element {
+export default function TestRecorderPlugin(): JSX.Element | null {
   // Removed Test Recorder button
   return null;
 }

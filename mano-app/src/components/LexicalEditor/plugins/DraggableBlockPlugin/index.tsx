@@ -333,8 +333,8 @@ function hideTargetLine(targetLineElem: HTMLElement | null): void {
 function useDraggableBlockMenu(
   editor: LexicalEditor,
   anchorElem: HTMLElement,
-  menuRef: React.RefObject<HTMLDivElement>,
-  targetLineRef: React.RefObject<HTMLDivElement>,
+  menuRef: React.RefObject<HTMLDivElement | null>,
+  targetLineRef: React.RefObject<HTMLDivElement | null>,
   isEditable: boolean,
   menuComponent: ReactNode,
   targetLineComponent: ReactNode,
@@ -488,8 +488,8 @@ function useDraggableBlockMenu(
 
 type PatchedPluginProps = {
   anchorElem?: HTMLElement;
-  menuRef: React.RefObject<HTMLDivElement>;
-  targetLineRef: React.RefObject<HTMLDivElement>;
+  menuRef: React.RefObject<HTMLDivElement | null>;
+  targetLineRef: React.RefObject<HTMLDivElement | null>;
   menuComponent: ReactNode;
   targetLineComponent: ReactNode;
   isOnMenu: (element: HTMLElement) => boolean;

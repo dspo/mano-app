@@ -31,7 +31,7 @@ if (import.meta.env.DEV && typeof Node !== 'undefined') {
     child: T,
   ): T {
     try {
-      return originalRemoveChild.call(this, child);
+      return originalRemoveChild.call(this, child) as T;
     } catch (error) {
       if (!reported) {
         reported = true;

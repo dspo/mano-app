@@ -14,17 +14,21 @@ import * as url from 'url';
 
 import PlaygroundNodes from '../nodes/PlaygroundNodes';
 
+declare global {
+  var __DEV__: boolean | undefined;
+}
+
 const hostname = 'localhost';
 const port = 1235;
 
 let stringifiedEditorStateJSON = '';
 
-global.__DEV__ = true;
+globalThis.__DEV__ = true;
 
 const editor = createHeadlessEditor({
   namespace: 'validation',
   nodes: [...PlaygroundNodes],
-  onError: (error) => {
+  onError: (error: Error) => {
     console.error(error);
   },
 });

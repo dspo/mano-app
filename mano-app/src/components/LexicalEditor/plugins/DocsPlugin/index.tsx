@@ -10,7 +10,7 @@ import type { JSX } from 'react';
 
 import * as React from 'react';
 
-export default function DocsPlugin(): JSX.Element {
+export default function DocsPlugin(): JSX.Element | null {
   // Removed Docs button
   return null;
 }
