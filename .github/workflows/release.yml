@@ -59,6 +59,14 @@ jobs:
           cd mano-app
           pnpm install
 
+      - name: Delete existing dev release
+        continue-on-error: true
+        run: |
+          gh release delete dev --yes || true
+          git push origin :refs/tags/dev || true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build and Release Tauri app
         uses: tauri-apps/tauri-action@v0
         env:
@@ -68,6 +76,6 @@ jobs:
           args: ${{ matrix.args }}
           tagName: dev
           releaseName: 'Dev Build'
-          releaseBody: 'Automated development build from main branch'
+          releaseBody: 'Automated development build from main branch. Updated: ${{ github.event.head_commit.timestamp }}'
           releaseDraft: false
           prerelease: true
