@@ -121,7 +121,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ node, workspace, onClos
                     }
                 } catch (error) {
                     // 文件不存在或读取失败，使用空编辑器
-                    console.log('文件不存在或读取失败，创建新文件:', error);
+                    console.log('RichTextEditor', '文件不存在或读取失败，创建新文件:', error);
                     quill.setText('');
                 }
             };
@@ -161,40 +161,15 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ node, workspace, onClos
 
         return () => {
             if (quillRef.current) {
-                // 清理 Quill 编辑器实例和事件监听器
                 const quill = quillRef.current;
-                if (quill) {
-                    // 移除事件监听器
+                // 仅移除事件监听，避免与 React 卸载流程冲突
+                try {
                     quill.off('text-change');
-                    
-                    // 销毁Quill实例
-        if (quill.theme && quill.theme.modules && quill.theme.modules.toolbar) {
-          // 清理工具栏
-          const toolbar = quill.theme.modules.toolbar;
-          if (toolbar.container) {
-            const toolbarContainer = toolbar.container as HTMLElement;
-            if (toolbarContainer.parentNode) {
-              toolbarContainer.parentNode.removeChild(toolbarContainer);
-            }
-          }
-        }
-                    
-                    // 清空编辑器容器
-                    if (quill.container) {
-                        // 完全清空容器
-                        quill.container.innerHTML = '';
-                        // 确保所有子节点都被移除
-                        while (quill.container.firstChild) {
-                            quill.container.removeChild(quill.container.firstChild);
-                        }
-                    }
-                }
-                
-                // 清空引用
+                } catch {}
+                // 释放引用，让 GC 回收；不要手动移除子节点或工具栏
                 quillRef.current = null;
             }
-            
-            // 确保编辑器容器完全清空
+            // 交由 React 卸载 DOM；最多清空容器自身内容即可
             if (editorContentRef.current) {
                 editorContentRef.current.innerHTML = '';
             }

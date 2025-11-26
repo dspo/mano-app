@@ -20,10 +20,17 @@ import { MdArrowDropDown, MdArrowRight } from "react-icons/md";
 import { FaFileAlt } from "react-icons/fa";
 import styles from "./Gmail.module.css";
 
-import {GmailItem, PlainText} from "@components/model";
+import {
+  GmailItem,
+  LexicalText,
+  Markdown,
+  PlainText,
+  RichText,
+} from "@components/model";
 
 // 导入FillFlexParent组件
 import { FillFlexParent } from "@components/fill-flex-parent";
+import * as icons from "react-icons/md";
 
 interface GmailSidebarProps {
   onSelectNode: (node: GmailItem) => void;
@@ -79,10 +86,9 @@ export default function GmailSidebar({ onSelectNode, filename, initialData }: Gm
   };
 
   const saveDataToLocal = () => {
-    console.log("filename", filename, "data", data);
     if (filename && filename !== "") {
       saveDataToConfig(filename, data).then(() => {
-        console.log("data saved")
+        console.log("data saved to", filename)
       });
     }
   };
@@ -214,9 +220,30 @@ function ContextMenu({ x, y, onClose, node, tree, setData }: {
     onClose();
   };
 
+  const handleCreateLexical = () => {
+    const data: GmailItem = {
+      id: `simple-tree-id-${nextId++}`,
+      name: "",
+      icon: icons.MdTextSnippet,
+      nodeType: LexicalText,
+      readOnly: false
+    };
+
+    tree.create({ parentId: node.data.id, index: 0, data });
+    setData(tree.data);
+
+    // 延迟一下再触发编辑，确保节点已经渲染
+    setTimeout(() => {
+      // 使用 tree 的 edit 方法直接编辑新节点
+      node.tree.edit(data.id);
+    }, 100);
+
+    onClose();
+  };
+
   const handleDeleteNode = () => {
     if (node.id === '__trash__') {
-        return;
+      return;
     }
     node.tree.delete(node.data.id);
     onClose();
@@ -246,6 +273,12 @@ function ContextMenu({ x, y, onClose, node, tree, setData }: {
       </div>
       <div className={styles.contextMenuItem} onClick={(e) => {
         e.stopPropagation();
+        handleCreateLexical();
+      }}>
+        Create Lexical
+      </div>
+      <div className={styles.contextMenuItem} onClick={(e) => {
+        e.stopPropagation();
         handleDeleteNode();
       }}>
         Delete This Node
@@ -264,12 +297,14 @@ function Node({ node, style, dragHandle, selectedId, onSelectNode, setContextMen
     if (node.data.icon) return node.data.icon;
 
     // 根据节点类型返回相应图标
-    if (node.data.nodeType === "RichText") {
+    if (node.data.nodeType === RichText) {
       return FaFileAlt;
-    } else if (node.data.nodeType === "PlainText") {
+    } else if (node.data.nodeType === PlainText) {
       return BsTree;
-    } else if (node.data.nodeType === "Markdown") {
+    } else if (node.data.nodeType === Markdown) {
       return BsTree;
+    } else if (node.data.nodeType === LexicalText) {
+      return icons.MdTextSnippet;
     }
 
     return BsTree; // 默认图标

@@ -4,13 +4,21 @@ import { path } from '@tauri-apps/api';
 import { exists } from '@tauri-apps/plugin-fs';
 import GmailSidebar from './components/GmailSidebar';
 import Welcome from './components/Welcome';
-import type { GmailItem } from './components/model';
+import {
+  Directory,
+  GmailItem,
+  LexicalText,
+  Markdown,
+  PlainText,
+  RichText,
+} from "./components/model";
 import RichTextEditor from './components/RichTextEditor';
 import PlainTextEditor from './components/PlainTextEditor';
 import MarkdownEditor from './components/MarkdownEditor';
 import DirectoryPanel from './components/DirectoryPanel';
 import { getDefaultItems, loadDataFromConfig } from './components/controller';
-import { ContextMenuProvider } from '../components/ui/context-menu';
+import { ContextMenuProvider } from './components/context-menu';
+import LexicalEditor from "@components/LexicalEditor.tsx";
 
 function App() {
   const [selectedNode, setSelectedNode] = useState<GmailItem | null>(null);
@@ -93,17 +101,19 @@ function App() {
     // 根据节点类型选择编辑器
     const nodeType = selectedNode.nodeType || 'PlainText';
     
-    // 使用更强制的方式确保组件完全重新创建
-    const uniqueKey = `${selectedNode.id}-${Date.now()}`;
+    // 使用稳定 key：仅在选择的节点或类型变化时重新创建
+    const uniqueKey = `${selectedNode.id}-${nodeType}`;
     
-    if (nodeType === 'Directory') {
+    if (nodeType === Directory) {
       return <DirectoryPanel key={uniqueKey} node={selectedNode} onClose={handleCloseEditor} />;
-    } else if (nodeType === 'RichText') {
+    } else if (nodeType === RichText) {
       return <RichTextEditor key={uniqueKey} node={selectedNode} onClose={handleCloseEditor} workspace={workspace} />;
-    } else if (nodeType === 'PlainText') {
+    } else if (nodeType === PlainText) {
       return <PlainTextEditor key={uniqueKey} node={selectedNode} onClose={handleCloseEditor} />;
-    } else if (nodeType === 'Markdown') {
+    } else if (nodeType === Markdown) {
       return <MarkdownEditor key={uniqueKey} node={selectedNode} onClose={handleCloseEditor} />;
+    } else if (nodeType === LexicalText) {
+      return <LexicalEditor key={uniqueKey} node={selectedNode} onClose={handleCloseEditor} workspace={workspace} />
     }
 
     return (
