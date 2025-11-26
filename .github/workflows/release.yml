@@ -62,8 +62,9 @@ jobs:
       - name: Delete existing dev release
         continue-on-error: true
         run: |
-          gh release delete dev --yes || true
-          git push origin :refs/tags/dev || true
+          echo "Attempting to delete existing dev release and tag..."
+          gh release delete dev --yes 2>&1 || echo "No existing release to delete"
+          git push origin :refs/tags/dev 2>&1 || echo "No existing tag to delete"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
