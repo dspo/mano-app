@@ -6,7 +6,7 @@
   "build": {
     "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "cd ../mano-app && pnpm build",
+    "beforeBuildCommand": "pnpm run --dir mano-app build",
     "frontendDist": "../mano-app/dist"
   },
   "app": {
