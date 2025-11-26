@@ -2,7 +2,7 @@
 
 ## 概述
 
-LexicalEditor 现在已经支持文件加载和保存功能，使用方式与 RichTextEditor 类似。
+LexicalEditor 现在已经支持文件加载和保存功能，并成为项目中唯一的富文本/高级文本编辑解决方案。
 
 ## 主要功能
 
@@ -19,7 +19,7 @@ LexicalEditor 现在已经支持文件加载和保存功能，使用方式与 Ri
 ```typescript
 import LexicalEditor from './components/LexicalEditor';
 
-// 在 renderEditor 函数中添加对 LexicalRichText 类型的支持
+// 在 renderEditor 函数中添加对 LexicalText 类型的支持
 const renderEditor = () => {
   if (!selectedNode) {
     return <Welcome />;
@@ -30,10 +30,8 @@ const renderEditor = () => {
   
   if (nodeType === 'Directory') {
     return <DirectoryPanel key={uniqueKey} node={selectedNode} onClose={handleCloseEditor} />;
-  } else if (nodeType === 'RichText') {
-    return <RichTextEditor key={uniqueKey} node={selectedNode} onClose={handleCloseEditor} workspace={workspace} />;
-  } else if (nodeType === 'LexicalRichText') {
-    // 新增：使用 LexicalEditor
+  } else if (nodeType === 'LexicalText') {
+    // 使用 LexicalEditor 打开高级文本
     return <LexicalEditor key={uniqueKey} node={selectedNode} onClose={handleCloseEditor} workspace={workspace} />;
   } else if (nodeType === 'PlainText') {
     return <PlainTextEditor key={uniqueKey} node={selectedNode} onClose={handleCloseEditor} />;
@@ -140,7 +138,7 @@ function MyComponent() {
 
 ## 注意事项
 
-1. 文件格式为 `.lexical.json`，不同于 RichTextEditor 的 `.rtf` 格式
+1. 富文本内容统一保存为 `.lexical.json`，确保与 LexicalEditor 功能匹配
 2. 自动保存延迟为 1 秒，避免频繁 IO 操作
 3. 如果文件不存在，会创建新的空文档
 4. 需要 Tauri 环境支持文件系统操作
@@ -158,24 +156,3 @@ function MyComponent() {
 - **Playground 正常的原因**：Lexical 官方 Playground 里的所有浮层组件（源码在 `packages/lexical-playground`）默认已经调用 `createPortal(..., document.body)` 或内部的共享 host，因此它们从未进入内容树，也就不会触发我们的 `removeChild mismatch`。问题完全源自我们改造过程中把浮层直接渲染在 `ContentEditable` 下的自定义行为。
 - **什么是 Portal**：在 React 中，Portal 是指 `ReactDOM.createPortal(children, container)` 这种“把 React 子树渲染到父组件 DOM 层次之外”的机制。它允许我们逻辑上仍由某个组件控制 UI（含生命周期与事件冒泡），但真实 DOM 被挂在 `container`（通常是 `document.body` 下的某个固定元素）内。利用 portal，可以让浮层、模态框等脱离内容 DOM，既确保定位自由，也避免 React 卸载时与编辑器 DOM 互相干扰。
 
-## 与 RichTextEditor 的区别
-
-| 特性 | RichTextEditor | LexicalEditor |
-|------|----------------|---------------|
-| 编辑器引擎 | Quill | Lexical |
-| 文件格式 | .rtf (纯文本) | .lexical.json (JSON) |
-| 功能丰富度 | 基础富文本 | 完整富文本 + 高级功能 |
-| 表格支持 | 无 | 完整支持 |
-| 协作编辑 | 无 | 支持 |
-| 自定义节点 | 有限 | 完全可扩展 |
-
-## 下一步
-
-可以在 `model.ts` 中添加新的节点类型：
-
-```typescript
-export type NodeType = "Directory" | "RichText" | "LexicalRichText" | "PlainText" | "Markdown";
-export const LexicalRichText: NodeType = "LexicalRichText";
-```
-
-然后在侧边栏中为节点设置此类型，即可使用 LexicalEditor 打开。

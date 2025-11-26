@@ -52,7 +52,6 @@
     "lodash-es": "^4.17.21",
     "prettier": "^3.6.2",
     "prismjs": "^1.30.0",
-    "quill": "2.0.3",
     "react": "^19.1.0",
     "react-arborist": "^3.4.3",
     "react-day-picker": "^9.11.2",

@@ -1,5 +1,5 @@
 import { readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
-import { Directory, GmailItem, LexicalText, Markdown, PlainText, RichText } from "@components/model";
+import { Directory, GmailItem, LexicalText, Markdown, PlainText } from "@components/model";
 import * as icons from "react-icons/md";
 import { BsTree } from "react-icons/bs";
 
@@ -156,13 +156,6 @@ const defaultItems: GmailItem[] = [
         nodeType: Directory,
         children: [
             {
-                id: "__example_rich_text__",
-                name: "rich text",
-                readOnly: false,
-                icon: icons.MdTextSnippet,
-                nodeType: RichText,
-            },
-            {
                 id: "__example_lexical_text__",
                 name: "lexical text",
                 readOnly: false,
@@ -254,7 +247,7 @@ const exampleItems: GmailItem[] = [
                                 moreInfo: ["仁宗"],
                                 readOnly: false,
                                 icon: icons.MdPersonPinCircle,
-                                nodeType: RichText,
+                                nodeType: LexicalText,
                             },
                             {
                                 id: "1-3-1-2",
@@ -262,7 +255,7 @@ const exampleItems: GmailItem[] = [
                                 moreInfo: ["耶律洪基"],
                                 readOnly: false,
                                 icon: icons.MdPersonPinCircle,
-                                nodeType: RichText,
+                                nodeType: LexicalText,
                             },
                         ]
                     },
@@ -278,14 +271,14 @@ const exampleItems: GmailItem[] = [
                                 name: "丐帮",
                                 readOnly: false,
                                 icon: icons.MdPerson,
-                                nodeType: RichText,
+                                nodeType: LexicalText,
                             },
                             {
                                 id: "1-3-2-2",
                                 name: "大理",
                                 readOnly: false,
                                 icon: icons.MdPerson,
-                                nodeType: RichText,
+                                nodeType: LexicalText,
                             },
                         ]
                     },

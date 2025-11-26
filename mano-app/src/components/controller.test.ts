@@ -34,13 +34,13 @@ describe('loadDataFromConfig', () => {
                     id: '1',
                     name: '收件箱',
                     unread: 5,
-                    nodeType: 'RichText',
+                    nodeType: 'LexicalText',
                     children: [
                         {
                             id: '1-1',
                             name: '测试邮件',
                             unread: true,
-                            nodeType: 'RichText'
+                            nodeType: 'LexicalText'
                         }
                     ]
                 },
@@ -66,7 +66,7 @@ describe('loadDataFromConfig', () => {
         expect(result[0]).toHaveProperty('id', '1');
         expect(result[0]).toHaveProperty('name', '收件箱');
         expect(result[0]).toHaveProperty('unread', 5);
-        expect(result[0]).toHaveProperty('nodeType', 'RichText');
+        expect(result[0]).toHaveProperty('nodeType', 'LexicalText');
         expect(result[0]).toHaveProperty('icon'); // 验证添加了icon
 
         // 验证子节点
@@ -113,7 +113,7 @@ describe('loadDataFromConfig', () => {
                     {
                         id: '1',
                         name: '测试',
-                        nodeType: 'RichText'
+                        nodeType: 'LexicalText'
                     }
                 ]
             };
