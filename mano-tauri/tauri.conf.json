@@ -6,7 +6,7 @@
   "build": {
     "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "pnpm run --dir mano-app build",
+    "beforeBuildCommand": "pnpm build",
     "frontendDist": "../mano-app/dist"
   },
   "app": {
@@ -33,7 +33,7 @@
       "icons/icon.ico"
     ],
     "macOS": {
-      "signingidentity": "-"
+      "signingIdentity": "-"
     }
   }
 }
