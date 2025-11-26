@@ -11,9 +11,7 @@ import {
   LexicalText,
   Markdown,
   PlainText,
-  RichText,
 } from "./components/model";
-import RichTextEditor from './components/RichTextEditor';
 import PlainTextEditor from './components/PlainTextEditor';
 import MarkdownEditor from './components/MarkdownEditor';
 import DirectoryPanel from './components/DirectoryPanel';
@@ -107,8 +105,6 @@ function App() {
     
     if (nodeType === Directory) {
       return <DirectoryPanel key={uniqueKey} node={selectedNode} onClose={handleCloseEditor} />;
-    } else if (nodeType === RichText) {
-      return <RichTextEditor key={uniqueKey} node={selectedNode} onClose={handleCloseEditor} workspace={workspace} />;
     } else if (nodeType === PlainText) {
       return <PlainTextEditor key={uniqueKey} node={selectedNode} onClose={handleCloseEditor} />;
     } else if (nodeType === Markdown) {

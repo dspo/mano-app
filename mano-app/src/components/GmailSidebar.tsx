@@ -17,7 +17,6 @@ import { saveDataToConfig } from "@components/controller";
 import { SiGmail } from "react-icons/si";
 import { BsTree } from "react-icons/bs";
 import { MdArrowDropDown, MdArrowRight } from "react-icons/md";
-import { FaFileAlt } from "react-icons/fa";
 import styles from "./Gmail.module.css";
 
 import {
@@ -25,7 +24,6 @@ import {
   LexicalText,
   Markdown,
   PlainText,
-  RichText,
 } from "@components/model";
 
 // 导入FillFlexParent组件
@@ -199,26 +197,6 @@ function ContextMenu({ x, y, onClose, node, tree, setData }: {
     onClose();
   };
 
-  const handleCreateRichText = () => {
-    const data: GmailItem = {
-      id: `simple-tree-id-${nextId++}`,
-      name: "",
-      icon: FaFileAlt,
-      nodeType: "RichText",
-      readOnly: false
-    };
-
-    tree.create({ parentId: node.data.id, index: 0, data });
-    setData(tree.data);
-
-    // 延迟一下再触发编辑，确保节点已经渲染
-    setTimeout(() => {
-      // 使用 tree 的 edit 方法直接编辑新节点
-      node.tree.edit(data.id);
-    }, 100);
-
-    onClose();
-  };
 
   const handleCreateLexical = () => {
     const data: GmailItem = {
@@ -267,12 +245,6 @@ function ContextMenu({ x, y, onClose, node, tree, setData }: {
       </div>
       <div className={styles.contextMenuItem} onClick={(e) => {
         e.stopPropagation();
-        handleCreateRichText();
-      }}>
-        Create RichText
-      </div>
-      <div className={styles.contextMenuItem} onClick={(e) => {
-        e.stopPropagation();
         handleCreateLexical();
       }}>
         Create Lexical
@@ -297,9 +269,7 @@ function Node({ node, style, dragHandle, selectedId, onSelectNode, setContextMen
     if (node.data.icon) return node.data.icon;
 
     // 根据节点类型返回相应图标
-    if (node.data.nodeType === RichText) {
-      return FaFileAlt;
-    } else if (node.data.nodeType === PlainText) {
+    if (node.data.nodeType === PlainText) {
       return BsTree;
     } else if (node.data.nodeType === Markdown) {
       return BsTree;
