@@ -13,6 +13,7 @@ jobs:
   build-tauri:
     permissions:
       contents: read
+      pull-requests: write
     strategy:
       fail-fast: false
       matrix:
@@ -70,3 +71,104 @@ jobs:
         with:
           projectPath: mano-tauri
           args: ${{ matrix.args }}
+
+      - name: Display artifact sizes
+        run: |
+          echo "=== Build Artifacts ==="
+          echo ""
+          
+          # Find all built artifacts in the target directory
+          BUNDLE_DIR="mano-tauri/target/aarch64-apple-darwin/release/bundle"
+          
+          if [ -d "$BUNDLE_DIR" ]; then
+            echo "📦 macOS Artifacts:"
+            echo ""
+            
+            # DMG files
+            if ls $BUNDLE_DIR/dmg/*.dmg 1> /dev/null 2>&1; then
+              for file in $BUNDLE_DIR/dmg/*.dmg; do
+                size=$(du -h "$file" | cut -f1)
+                name=$(basename "$file")
+                echo "  • $name: $size"
+              done
+            fi
+            
+            # App bundles
+            if ls $BUNDLE_DIR/macos/*.app 1> /dev/null 2>&1; then
+              for file in $BUNDLE_DIR/macos/*.app; do
+                size=$(du -sh "$file" | cut -f1)
+                name=$(basename "$file")
+                echo "  • $name: $size"
+              done
+            fi
+            
+            echo ""
+            echo "📊 Total bundle size:"
+            du -sh "$BUNDLE_DIR" | cut -f1
+          else
+            echo "⚠️  Bundle directory not found at $BUNDLE_DIR"
+          fi
+
+      - name: Comment artifact sizes on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const { execSync } = require('child_process');
+            
+            const bundleDir = 'mano-tauri/target/aarch64-apple-darwin/release/bundle';
+            
+            if (!fs.existsSync(bundleDir)) {
+              console.log('Bundle directory not found');
+              return;
+            }
+            
+            let comment = '## 📦 Build Artifacts\n\n';
+            comment += '### macOS ARM64 Build\n\n';
+            
+            try {
+              // DMG files
+              const dmgDir = `${bundleDir}/dmg`;
+              if (fs.existsSync(dmgDir)) {
+                const dmgFiles = fs.readdirSync(dmgDir).filter(f => f.endsWith('.dmg'));
+                if (dmgFiles.length > 0) {
+                  comment += '**DMG Installer:**\n';
+                  dmgFiles.forEach(file => {
+                    const filePath = `${dmgDir}/${file}`;
+                    const size = execSync(`du -h "${filePath}" | cut -f1`).toString().trim();
+                    comment += `- \`${file}\`: **${size}**\n`;
+                  });
+                  comment += '\n';
+                }
+              }
+              
+              // App bundles
+              const macosDir = `${bundleDir}/macos`;
+              if (fs.existsSync(macosDir)) {
+                const appFiles = fs.readdirSync(macosDir).filter(f => f.endsWith('.app'));
+                if (appFiles.length > 0) {
+                  comment += '**App Bundle:**\n';
+                  appFiles.forEach(file => {
+                    const filePath = `${macosDir}/${file}`;
+                    const size = execSync(`du -sh "${filePath}" | cut -f1`).toString().trim();
+                    comment += `- \`${file}\`: **${size}**\n`;
+                  });
+                  comment += '\n';
+                }
+              }
+              
+              // Total bundle size
+              const totalSize = execSync(`du -sh "${bundleDir}" | cut -f1`).toString().trim();
+              comment += `**Total bundle size:** ${totalSize}\n`;
+              
+            } catch (error) {
+              comment += `\n⚠️ Error reading artifact sizes: ${error.message}\n`;
+            }
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
