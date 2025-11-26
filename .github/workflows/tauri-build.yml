@@ -118,7 +118,7 @@ jobs:
           script: |
             const fs = require('fs');
             const path = require('path');
-            const { execSync } = require('child_process');
+            const { execFileSync } = require('child_process');
             
             const bundleDir = 'mano-tauri/target/aarch64-apple-darwin/release/bundle';
             
@@ -129,9 +129,10 @@ jobs:
             
             function getDirectorySize(dirPath) {
               try {
-                // Use safe shell escaping by passing the path as a separate argument
-                const result = execSync(`du -sh "${dirPath.replace(/"/g, '\\"')}" | cut -f1`);
-                return result.toString().trim();
+                // Use execFileSync for safer execution without shell interpretation
+                const result = execFileSync('du', ['-sh', dirPath]);
+                const output = result.toString().trim();
+                return output.split('\t')[0] || 'N/A';
               } catch (error) {
                 return 'N/A';
               }
@@ -176,7 +177,8 @@ jobs:
               comment += `**Total bundle size:** ${totalSize}\n`;
               
             } catch (error) {
-              comment += `\n⚠️ Error reading artifact sizes: ${error.message}\n`;
+              comment += `\n⚠️ Error reading artifact sizes\n`;
+              console.error('Error details:', error.message);
             }
             
             github.rest.issues.createComment({
