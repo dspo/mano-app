@@ -63,8 +63,8 @@ jobs:
         continue-on-error: true
         run: |
           echo "Attempting to delete existing dev release and tag..."
-          gh release delete dev --yes 2>&1 || echo "No existing release to delete"
-          gh api --method DELETE /repos/${{ github.repository }}/git/refs/tags/dev 2>&1 || echo "No existing tag to delete"
+          gh release delete dev --yes || echo "No existing release to delete"
+          gh api --method DELETE /repos/${{ github.repository }}/git/refs/tags/dev || echo "No existing tag to delete"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -77,6 +77,6 @@ jobs:
           args: ${{ matrix.args }}
           tagName: dev
           releaseName: 'Dev Build'
-          releaseBody: 'Automated development build from main branch. Updated: ${{ github.event.head_commit.timestamp || github.event.repository.updated_at }}'
+          releaseBody: 'Automated development build from main branch'
           releaseDraft: false
           prerelease: true
