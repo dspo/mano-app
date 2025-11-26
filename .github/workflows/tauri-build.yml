@@ -3,10 +3,10 @@ name: Tauri Build
 on:
   pull_request:
     branches:
-      - main
+      - mano-app
   push:
     branches:
-      - main
+      - mano-app
 
 jobs:
   build-tauri:
