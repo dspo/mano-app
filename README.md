@@ -1,24 +1,97 @@
 # Mano
 
-A novel-writing app built with Tauri.
+Mano 是一个基于 Tauri 构建的小说写作应用。
 
-# Developer
+## 功能特性
 
-## Run dev
+- 📝 基于 Lexical 的富文本编辑器，支持代码高亮、表格、列表等多种格式
+- 🎨 使用 shadcn/ui 构建的优雅现代化界面 (TODO)
+- 📁 树形文件管理器，方便组织小说章节和内容
+- 💾 本地文件系统存储，保护数据隐私
+
+## 开发环境
+
+### 环境要求
+
+- pnpm
+- Rust (用于构建 Tauri 应用)
+- Cargo
+
+### 安装依赖
 
 ```bash
 pnpm install
 ```
 
+### 运行开发服务
+
+有两种方式运行开发服务：
+
+**方式 1：使用 Makefile (推荐)**
+
 ```bash
+# 运行 Tauri 开发服务 (同时启动前端和 Tauri)
+make dev
+
+# 或仅运行前端开发服务器
+make mano-app-dev
+```
+
+**方式 2：使用命令行**
+
+```bash
+# 进入前端目录并启动开发服务器
+cd mano-app && pnpm dev
+```
+
+```bash
+# 在项目根目录运行 Tauri 开发服务
 cargo tauri dev
 ```
 
-## Framework && Libs
+## 构建应用
 
-- [Tauri](https://tauri.app/)
-- [React](https://react.dev/)
-- [react-arborist](https://react-arborist.netlify.app/)
-- [![](https://lexical.dev/img/logo.svg)](https://lexical.dev/)
-- [shadcn.io/ui](https://www.shadcn.io/ui)
-- [Tailwind](https://tailwindcss.com/)
+### 生产构建
+
+使用 Makefile：
+
+```bash
+make build
+```
+
+或直接使用 Tauri CLI：
+
+```bash
+cargo tauri build
+```
+
+构建完成后，可执行文件将位于 `mano-tauri/target/release` 目录下。
+
+### 清理构建产物
+
+```bash
+make clean
+```
+
+## 技术栈
+
+### 核心框架
+
+- **[Tauri](https://tauri.app/)** - 使用 Web 技术构建轻量级桌面应用的框架
+- **[React](https://react.dev/)** (v19.1.0) - 用户界面构建库
+
+### 特色功能库
+
+- **[@excalidraw/excalidraw](https://excalidraw.com/)** (v0.18.0) - 手绘风格的图表和白板工具 (TODO)
+- **[react-arborist](https://react-arborist.netlify.app/)** (v3.4.3) - 强大的树形视图组件
+- **[Shiki](https://shiki.style/)** (v3.15.0) - 优雅的代码语法高亮器 (TODO)
+- **[Prism.js](https://prismjs.com/)** (v1.30.0) - 轻量级语法高亮库 (TODO)
+- **[KaTeX](https://katex.org/)** (v0.16.25) - 数学公式渲染 (TODO)
+
+## 贡献
+
+欢迎提交 Issue 和 Pull Request！
+
+## 许可证
+
+请查看项目根目录的 LICENSE 文件了解许可证信息。
