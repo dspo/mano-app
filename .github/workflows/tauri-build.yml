@@ -1,0 +1,189 @@
+name: Tauri Build
+
+on:
+  pull_request:
+    branches:
+      - mano-app
+  push:
+    branches:
+      - mano-app
+  workflow_dispatch:
+
+jobs:
+  build-tauri:
+    permissions:
+      contents: read
+      pull-requests: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: 'macos-latest'
+            args: '--target aarch64-apple-darwin'
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: './mano-tauri -> target'
+
+      - name: Install frontend dependencies
+        run: |
+          cd mano-app
+          pnpm install
+
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: mano-tauri
+          args: ${{ matrix.args }}
+
+      - name: Display artifact sizes
+        run: |
+          echo "=== Build Artifacts ==="
+          echo ""
+          
+          # Find all built artifacts in the target directory
+          BUNDLE_DIR="mano-tauri/target/aarch64-apple-darwin/release/bundle"
+          
+          if [ -d "$BUNDLE_DIR" ]; then
+            echo "📦 macOS Artifacts:"
+            echo ""
+            
+            # DMG files
+            if [ -d "$BUNDLE_DIR/dmg" ] && [ -n "$(find "$BUNDLE_DIR/dmg" -name "*.dmg" -print -quit)" ]; then
+              for file in "$BUNDLE_DIR/dmg"/*.dmg; do
+                [ -f "$file" ] || continue
+                size=$(du -sh "$file" | cut -f1)
+                name=$(basename "$file")
+                echo "  • $name: $size"
+              done
+            fi
+            
+            # App bundles
+            if [ -d "$BUNDLE_DIR/macos" ] && [ -n "$(find "$BUNDLE_DIR/macos" -name "*.app" -print -quit)" ]; then
+              for file in "$BUNDLE_DIR/macos"/*.app; do
+                [ -e "$file" ] || continue
+                size=$(du -sh "$file" | cut -f1)
+                name=$(basename "$file")
+                echo "  • $name: $size"
+              done
+            fi
+            
+            echo ""
+            echo "📊 Total bundle size:"
+            du -sh "$BUNDLE_DIR" | cut -f1
+          else
+            echo "⚠️  Bundle directory not found at $BUNDLE_DIR"
+          fi
+
+      - name: Comment artifact sizes on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const { execFileSync } = require('child_process');
+            
+            const bundleDir = 'mano-tauri/target/aarch64-apple-darwin/release/bundle';
+            
+            if (!fs.existsSync(bundleDir)) {
+              console.log('Bundle directory not found');
+              return;
+            }
+            
+            function getDirectorySize(dirPath) {
+              try {
+                // Use execFileSync for safer execution without shell interpretation
+                const result = execFileSync('du', ['-sh', dirPath]);
+                const output = result.toString().trim();
+                return output.split('\t')[0] || 'N/A';
+              } catch (error) {
+                return 'N/A';
+              }
+            }
+            
+            let comment = '## 📦 Build Artifacts\n\n';
+            comment += '### macOS ARM64 Build\n\n';
+            
+            try {
+              // DMG files
+              const dmgDir = path.join(bundleDir, 'dmg');
+              if (fs.existsSync(dmgDir)) {
+                const dmgFiles = fs.readdirSync(dmgDir).filter(f => f.endsWith('.dmg'));
+                if (dmgFiles.length > 0) {
+                  comment += '**DMG Installer:**\n';
+                  dmgFiles.forEach(file => {
+                    const filePath = path.join(dmgDir, file);
+                    const size = getDirectorySize(filePath);
+                    comment += `- \`${file}\`: **${size}**\n`;
+                  });
+                  comment += '\n';
+                }
+              }
+              
+              // App bundles
+              const macosDir = path.join(bundleDir, 'macos');
+              if (fs.existsSync(macosDir)) {
+                const appFiles = fs.readdirSync(macosDir).filter(f => f.endsWith('.app'));
+                if (appFiles.length > 0) {
+                  comment += '**App Bundle:**\n';
+                  appFiles.forEach(file => {
+                    const filePath = path.join(macosDir, file);
+                    const size = getDirectorySize(filePath);
+                    comment += `- \`${file}\`: **${size}**\n`;
+                  });
+                  comment += '\n';
+                }
+              }
+              
+              // Total bundle size
+              const totalSize = getDirectorySize(bundleDir);
+              comment += `**Total bundle size:** ${totalSize}\n`;
+              
+            } catch (error) {
+              comment += `\n⚠️ Error reading artifact sizes\n`;
+              console.error('Error details:', error.message);
+            }
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
