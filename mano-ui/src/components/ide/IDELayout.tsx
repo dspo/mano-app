@@ -313,7 +313,7 @@ function IDELayoutContent() {
       setSelectedFile(file.id)
       
       // 检测文件类型
-      const isSlateFile = file.name.endsWith('.slate.json')
+      const isSlateFile = file.name.endsWith('.mano')
       let content: unknown
       let fileType: 'text' | 'slate'
       

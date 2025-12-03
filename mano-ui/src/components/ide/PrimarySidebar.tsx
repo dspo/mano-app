@@ -41,7 +41,7 @@ const mockFileTree: FileNode[] = [
   { id: '10', name: 'package.json', type: 'file' },
   { id: '11', name: 'tsconfig.json', type: 'file' },
   { id: '12', name: 'vite.config.ts', type: 'file' },
-  { id: '13', name: 'document.slate.json', type: 'file' },
+  { id: '13', name: 'document.mano', type: 'file' },
 ]
 
 interface FileTreeItemProps {
