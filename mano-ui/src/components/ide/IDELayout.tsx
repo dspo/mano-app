@@ -2,15 +2,28 @@ import { useState, useEffect, useRef } from 'react'
 import { TitleBar } from './TitleBar'
 import { ActivityBar } from './ActivityBar'
 import { PrimarySidebar, type FileNode } from './PrimarySidebar'
-import { EditorGroup, type OpenFile } from './EditorGroup'
+import { EditorContainer } from './EditorContainer'
 import { BottomPanel } from './BottomPanel'
 import { StatusBar } from './StatusBar'
+import { EdgeDropZones } from './EdgeDropZone'
+import { FloatingNotification } from './FloatingNotification'
+import { EditorProvider } from '@/contexts/EditorContext'
+import { useEditor } from '@/hooks/useEditor'
 import {
   ResizablePanelGroup,
   ResizablePanel,
   ResizableHandle,
   type ImperativePanelHandle,
 } from '@/components/ui/resizable'
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+} from '@dnd-kit/core'
 
 // Mock file contents
 const fileContents: Record<string, string> = {
@@ -88,10 +101,20 @@ export default defineConfig({
 }
 
 export function IDELayout() {
+  return (
+    <EditorProvider>
+      <IDELayoutContent />
+    </EditorProvider>
+  )
+}
+
+function IDELayoutContent() {
+  const { dispatch } = useEditor()
+  const { state } = useEditor()
   const [activeActivity, setActiveActivity] = useState('explorer')
-  const [openFiles, setOpenFiles] = useState<OpenFile[]>([])
-  const [activeFile, setActiveFile] = useState<string | null>(null)
   const [selectedFile, setSelectedFile] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<{ id: string; fileName: string } | null>(null)
+  const [notification, setNotification] = useState<{ message: string; x: number; y: number } | null>(null)
   
   // Refs for controlling panels imperatively
   const sidebarRef = useRef<ImperativePanelHandle>(null)
@@ -101,39 +124,124 @@ export function IDELayout() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(false)
 
+  // Configure drag sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // 8px movement to activate drag
+      },
+    })
+  )
+
+  // Handle drag start
+  const handleDragStart = (event: DragStartEvent) => {
+    const dragData = event.active.data.current
+    if (dragData?.tab) {
+      setActiveTab(dragData.tab)
+    }
+  }
+
+  // Handle drag end
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+
+    setActiveTab(null) // Clear active tab
+
+    if (!over) return
+
+    const dragData = active.data.current
+    const dropData = over.data.current
+
+    if (!dragData || !dropData) return
+
+    // Handle tab reordering within the same group
+    if (dragData.type === 'tab-sort' && dropData.type === 'tab-sort' && 
+        dragData.sourceGroupId === dropData.sourceGroupId && 
+        active.id !== over.id) {
+      const group = state.groups[dragData.sourceGroupId]
+      if (!group) return
+
+      const oldIndex = group.tabs.findIndex(t => t.id === active.id)
+      const newIndex = group.tabs.findIndex(t => t.id === over.id)
+
+      if (oldIndex !== -1 && newIndex !== -1) {
+        const newTabs = [...group.tabs]
+        const [movedTab] = newTabs.splice(oldIndex, 1)
+        newTabs.splice(newIndex, 0, movedTab)
+
+        dispatch({
+          type: 'REORDER_TABS',
+          groupId: dragData.sourceGroupId,
+          tabIds: newTabs.map(t => t.id),
+        })
+      }
+      return
+    }
+
+    // Tab dropped on another group
+    if (dropData.type === 'group' && dragData.sourceGroupId !== dropData.groupId) {
+      // Check if target group already has a tab with the same fileId
+      const targetGroup = state.groups[dropData.groupId]
+      const existingTab = targetGroup?.tabs.find(tab => tab.fileId === dragData.tab.fileId)
+      
+      if (existingTab) {
+        // File already exists in target group - activate it and show notification
+        dispatch({
+          type: 'SET_ACTIVE_TAB',
+          tabId: existingTab.id,
+          groupId: dropData.groupId,
+        })
+        
+        // Show notification at mouse position
+        const mouseEvent = event.activatorEvent as MouseEvent
+        if (mouseEvent) {
+          setNotification({
+            message: `"${dragData.tab.fileName}" is already open in this editor group`,
+            x: mouseEvent.clientX,
+            y: mouseEvent.clientY,
+          })
+        }
+      } else {
+        // Move tab to target group
+        dispatch({
+          type: 'MOVE_TAB_BETWEEN_GROUPS',
+          tabId: dragData.tab.id,
+          sourceGroupId: dragData.sourceGroupId,
+          targetGroupId: dropData.groupId,
+        })
+      }
+    }
+
+    // Tab dropped on edge to create new split (always allowed since it creates a new group)
+    if (dropData.type === 'edge') {
+      dispatch({
+        type: 'MOVE_TAB_TO_EDGE',
+        tabId: dragData.tab.id,
+        sourceGroupId: dragData.sourceGroupId,
+        edge: dropData.position,
+      })
+    }
+  }
+
   const handleFileClick = (file: FileNode) => {
     if (file.type === 'file') {
       setSelectedFile(file.id)
       
-      // Check if file is already open
-      const existingFile = openFiles.find(f => f.id === file.id)
-      if (existingFile) {
-        setActiveFile(file.id)
-      } else {
-        // Open new file
-        const newFile: OpenFile = {
-          id: file.id,
-          name: file.name,
-          content: fileContents[file.id] || `// Content of ${file.name}\n\nFile content goes here...`,
-          isDirty: false,
-        }
-        setOpenFiles([...openFiles, newFile])
-        setActiveFile(file.id)
-      }
+      // Open file in the first editor group
+      dispatch({
+        type: 'OPEN_FILE',
+        fileId: file.id,
+        fileName: file.name,
+        content: fileContents[file.id] || `// Content of ${file.name}\n\nFile content goes here...`,
+      })
     }
   }
 
-  const handleFileClose = (fileId: string) => {
-    const newOpenFiles = openFiles.filter(f => f.id !== fileId)
-    setOpenFiles(newOpenFiles)
-    
-    if (activeFile === fileId) {
-      setActiveFile(newOpenFiles.length > 0 ? newOpenFiles[newOpenFiles.length - 1].id : null)
-    }
-    
-    if (selectedFile === fileId) {
-      setSelectedFile(null)
-    }
+  // Note: File closing is now handled inside EditorGroupWrapper
+
+  // Split editor functions
+  const handleSplitEditorRight = () => {
+    dispatch({ type: 'SPLIT_GROUP', groupId: state.lastFocusedGroupId, direction: 'horizontal' })
   }
 
   // Keyboard shortcuts
@@ -163,11 +271,16 @@ export function IDELayout() {
           }
         }
       }
+      // Cmd/Ctrl + \: Split Right
+      if ((e.metaKey || e.ctrlKey) && e.key === '\\') {
+        e.preventDefault()
+        handleSplitEditorRight()
+      }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [])
+  }, [handleSplitEditorRight])
 
   // Toggle functions for buttons/menu
   const toggleSidebar = () => {
@@ -199,6 +312,7 @@ export function IDELayout() {
         showPanel={!isPanelCollapsed}
         onToggleSidebar={toggleSidebar}
         onTogglePanel={togglePanel}
+        onSplitEditorRight={handleSplitEditorRight}
       />
       
       <div className="flex flex-1 overflow-hidden">
@@ -239,12 +353,23 @@ export function IDELayout() {
               autoSaveId="ide-layout-vertical"
             >
               <ResizablePanel defaultSize={70} minSize={30}>
-                <EditorGroup
-                  openFiles={openFiles}
-                  activeFile={activeFile}
-                  onFileSelect={setActiveFile}
-                  onFileClose={handleFileClose}
-                />
+                <DndContext 
+                  sensors={sensors} 
+                  onDragStart={handleDragStart}
+                  onDragEnd={handleDragEnd}
+                >
+                  <div className="relative h-full">
+                    <EditorContainer layout={state.layout} />
+                    <EdgeDropZones />
+                  </div>
+                  <DragOverlay>
+                    {activeTab && (
+                      <div className="px-3 py-1.5 bg-background border border-border rounded-md shadow-lg flex items-center gap-2">
+                        <span className="text-sm">{activeTab.fileName}</span>
+                      </div>
+                    )}
+                  </DragOverlay>
+                </DndContext>
               </ResizablePanel>
               
               <ResizableHandle withHandle />
@@ -276,6 +401,15 @@ export function IDELayout() {
         column={23}
         language="TypeScript"
       />
+      
+      {notification && (
+        <FloatingNotification
+          message={notification.message}
+          x={notification.x}
+          y={notification.y}
+          onClose={() => setNotification(null)}
+        />
+      )}
     </div>
   )
 }
