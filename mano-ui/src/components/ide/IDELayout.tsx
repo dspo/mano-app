@@ -297,7 +297,7 @@ function IDELayoutContent() {
         updated = insertBeforeAfter(newTree as any, targetId, removed as any, mode) as any
       }
       setFileTree(updated)
-      // 持久化到 mano.conf.json
+      // Persist to mano.conf.json
       if (configFileHandle) {
         const { saveManoConfig } = await import('@/services/fileSystem')
         await saveManoConfig(configFileHandle, { data: updated as any, lastUpdated: new Date().toISOString() })
