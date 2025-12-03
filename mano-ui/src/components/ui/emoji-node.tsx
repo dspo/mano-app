@@ -1,6 +1,7 @@
+import { useState, useMemo } from 'react';
+
 'use client';
 
-import * as React from 'react';
 
 import type { PlateElementProps } from 'platejs/react';
 
@@ -24,11 +25,11 @@ const TRAILING_COLON_REGEX = /:$/;
 export function EmojiInputElement(props: PlateElementProps) {
   const { children, editor, element } = props;
   const data = usePluginOption(EmojiPlugin, 'data')!;
-  const [value, setValue] = React.useState('');
+  const [value, setValue] = useState('');
   const debouncedValue = useDebounce(value, 100);
   const isPending = value !== debouncedValue;
 
-  const filteredEmojis = React.useMemo(() => {
+  const filteredEmojis = useMemo(() => {
     if (debouncedValue.trim().length === 0) return [];
 
     return EmojiInlineIndexSearch.getInstance(data)

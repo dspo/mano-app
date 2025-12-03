@@ -21,7 +21,7 @@ export function EditorContainer({ layout }: EditorContainerProps) {
     return <EditorGroupWrapper group={group} />
   }
 
-  // Split layout - 递归渲染嵌套面板
+  // Split layout - recursive rendering of nested panels
   return (
     <ResizablePanelGroup
       direction={layout.direction}

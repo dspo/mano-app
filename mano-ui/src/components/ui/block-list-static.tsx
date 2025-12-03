@@ -1,4 +1,3 @@
-import * as React from 'react';
 
 import type { RenderStaticNodeWrapper, TListElement } from 'platejs';
 import type { SlateRenderElementProps } from 'platejs/static';
