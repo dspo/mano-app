@@ -22,7 +22,7 @@ export function FloatingNotification({ message, x, y, onClose }: FloatingNotific
 
   return (
     <div
-      className={`fixed z-50 pointer-events-none transition-all duration-300 ${
+      className={`fixed z-[9999] pointer-events-none transition-all duration-300 ${
         isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'
       }`}
       style={{
