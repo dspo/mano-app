@@ -265,7 +265,7 @@ export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree =
     const mode = relativeY < 0.5 ? 'before' : 'after'
     
     // 水平缩进控制：指针向右拖动 → 增加层级（into），保持水平 → 同级（after/before）
-    // 基准缩进 = targetLevel * 12px + 8px
+    // Base indent = targetLevel * 12px + 8px
     const baseIndent = targetLevel * 12 + 8
     const pointerIndent = pointerX - rect.left
     
