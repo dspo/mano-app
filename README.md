@@ -34,14 +34,14 @@ pnpm install
 make dev
 
 # 或仅运行前端开发服务器
-make mano-app-dev
+make mano-ui-dev
 ```
 
 **方式 2：使用命令行**
 
 ```bash
 # 进入前端目录并启动开发服务器
-cd mano-app && pnpm dev
+cd mano-ui && pnpm dev
 ```
 
 ```bash
