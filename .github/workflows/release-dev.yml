@@ -57,7 +57,7 @@ jobs:
 
       - name: Install frontend dependencies
         run: |
-          cd mano-app
+          cd mano-ui
           pnpm install
 
       - name: Delete existing dev release

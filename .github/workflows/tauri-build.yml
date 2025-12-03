@@ -58,7 +58,7 @@ jobs:
 
       - name: Install frontend dependencies
         run: |
-          cd mano-app
+          cd mano-ui
           pnpm install
 
       - name: Build Tauri app
