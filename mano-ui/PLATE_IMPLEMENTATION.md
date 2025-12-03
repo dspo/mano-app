@@ -3,11 +3,11 @@
 ## ✅ 已实现功能
 
 ### 1. 文件类型支持
-- **`.slate.json`** - 富文本文件（使用 Plate.js 编辑器）
+- **`.mano`** - 富文本文件（使用 Plate.js 编辑器）
 - **其他文件** - 普通文本（使用只读预览）
 
 ### 2. 自动文件类型检测
-- 打开 `.slate.json` 文件时自动使用 Plate.js 编辑器
+- 打开 `.mano` 文件时自动使用 Plate.js 编辑器
 - 其他文件使用普通文本查看器
 
 ### 3. 实时自动保存
@@ -44,7 +44,7 @@
    访问: http://localhost:5174/
 
 2. **打开富文本文件**
-   - 在左侧文件树中找到 `document.slate.json`
+   - 在左侧文件树中找到 `document.mano`
    - 点击打开文件
 
 3. **编辑内容**
@@ -79,7 +79,7 @@
 ```
 文件点击 → IDELayout.handleFileClick()
   ↓
-检测 .slate.json → 解析 JSON → dispatch OPEN_FILE (fileType: 'slate')
+检测 .mano → 解析 JSON → dispatch OPEN_FILE (fileType: 'slate')
   ↓
 EditorContext → 创建 EditorTab (content: Slate JSON)
   ↓
@@ -110,7 +110,7 @@ useAutoSave → 1秒后 → handleSave() → console.log
 - `src/types/editor.ts` - 添加 `fileType` 和 `content: unknown`
 - `src/components/ide/EditorGroupWrapper.tsx` - 条件渲染编辑器
 - `src/components/ide/IDELayout.tsx` - 文件类型检测 + 示例数据
-- `src/components/ide/PrimarySidebar.tsx` - 添加 `document.slate.json`
+- `src/components/ide/PrimarySidebar.tsx` - 添加 `document.mano`
 
 ## 🔧 配置
 
