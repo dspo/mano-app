@@ -104,8 +104,8 @@ const ColumnDragHandle = memo(function ColumnDragHandle() {
   return (
     <TooltipProvider>
       <Tooltip>
-        <TooltipTrigger asChild>
-          <Button variant="ghost" className="!px-1 h-5">
+        <TooltipTrigger asChild className="px-1!">
+          <Button variant="ghost" className="px-1! h-5">
             <GripHorizontal
               className="text-muted-foreground"
               onClick={(event) => {
