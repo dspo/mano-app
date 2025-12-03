@@ -161,7 +161,7 @@ mano-app/
 │   └── vite.config.ts
 ├── mano-tauri/                # Tauri 后端应用
 │   ├── src/
-│   │   ├── lib.rs            # 库入口
+│   │   ├── lib.rs            # 应用逻辑
 │   │   └── main.rs           # 主程序入口
 │   ├── Cargo.toml            # Rust 依赖配置
 │   └── tauri.conf.json       # Tauri 配置
