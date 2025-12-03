@@ -47,7 +47,7 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
   const showAfter = dragOverId === node.id && dropMode === 'after'
   const hasChildren = node.children && node.children.length > 0
   
-  // 计算高亮线的缩进
+  // Calculate drop line indentation
   const getDropLineIndent = () => {
     if (dropLevel === undefined) return level * 12 + 8
     return dropLevel * 12 + 8
