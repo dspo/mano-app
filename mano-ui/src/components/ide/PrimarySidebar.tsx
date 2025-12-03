@@ -41,6 +41,7 @@ const mockFileTree: FileNode[] = [
   { id: '10', name: 'package.json', type: 'file' },
   { id: '11', name: 'tsconfig.json', type: 'file' },
   { id: '12', name: 'vite.config.ts', type: 'file' },
+  { id: '13', name: 'document.slate.json', type: 'file' },
 ]
 
 interface FileTreeItemProps {
@@ -105,9 +106,10 @@ interface PrimarySidebarProps {
   activity: string
   onFileClick: (file: FileNode) => void
   selectedFile: string | null
+  fileTree?: FileNode[]
 }
 
-export function PrimarySidebar({ activity, onFileClick, selectedFile }: PrimarySidebarProps) {
+export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree = mockFileTree }: PrimarySidebarProps) {
   const getTitle = () => {
     switch (activity) {
       case 'explorer': return 'EXPLORER'
@@ -129,7 +131,7 @@ export function PrimarySidebar({ activity, onFileClick, selectedFile }: PrimaryS
       <ScrollArea className="flex-1">
         {activity === 'explorer' && (
           <div className="py-2">
-            {mockFileTree.map((node) => (
+            {fileTree.map((node) => (
               <FileTreeItem
                 key={node.id}
                 node={node}

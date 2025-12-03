@@ -14,6 +14,8 @@ interface TitleBarProps {
   onToggleSidebar: () => void
   onTogglePanel: () => void
   onSplitEditorRight?: () => void
+  onOpenFolder?: () => void
+  onSave?: () => void
 }
 
 export function TitleBar({ 
@@ -22,6 +24,8 @@ export function TitleBar({
   onToggleSidebar, 
   onTogglePanel,
   onSplitEditorRight,
+  onOpenFolder,
+  onSave,
 }: TitleBarProps) {
   return (
     <div className="h-12 border-b bg-background flex items-center justify-between px-4">
@@ -38,9 +42,14 @@ export function TitleBar({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
               <DropdownMenuItem>New File</DropdownMenuItem>
-              <DropdownMenuItem>Open File...</DropdownMenuItem>
+              <DropdownMenuItem onClick={onOpenFolder}>Open Folder</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Save</DropdownMenuItem>
+              <DropdownMenuItem onClick={onSave}>
+                <div className="flex items-center justify-between w-full gap-8">
+                  <span>Save</span>
+                  <kbd className="px-1.5 py-0.5 text-xs bg-muted rounded">⌘S</kbd>
+                </div>
+              </DropdownMenuItem>
               <DropdownMenuItem>Save All</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem>Close Editor</DropdownMenuItem>
