@@ -304,7 +304,7 @@ function IDELayoutContent() {
       }
     } catch (e) {
       console.error('Reorder failed:', e)
-      toast.error('重排失败')
+      toast.error('Failed to reorder')
     }
   }
 
