@@ -1,4 +1,6 @@
 import { ChevronRight, ChevronDown, FileText, Library, TextQuote, TextAlignStart } from 'lucide-react'
+import { DndContext, useDraggable, useDroppable, PointerSensor, useSensor, useSensors, DragOverlay } from '@dnd-kit/core'
+import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
@@ -12,9 +14,13 @@ interface FileTreeItemProps {
   level: number
   onFileClick: (file: FileNode) => void
   selectedFile: string | null
+  onReorder?: (payload: { sourceId: string; targetId: string; mode: 'before' | 'after' | 'into' }) => void
+  dragOverId?: string | null
+  dropMode?: 'before' | 'after' | 'into' | null
+  dropLevel?: number
 }
 
-function FileTreeItem({ node, level, onFileClick, selectedFile }: FileTreeItemProps) {
+function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragOverId, dropMode, dropLevel }: FileTreeItemProps) {
   const [isOpen, setIsOpen] = useState(true)
   
   // Determine if node is a directory
@@ -32,56 +38,149 @@ function FileTreeItem({ node, level, onFileClick, selectedFile }: FileTreeItemPr
     }
   }
 
+  // DnD kit bindings
+  const { setNodeRef: setDragRef, listeners, attributes, isDragging } = useDraggable({ id: node.id, data: { node, level } })
+  const { setNodeRef: setDropRef } = useDroppable({ id: `row-${node.id}`, data: { node, type: 'row', level } })
+  
+  // drop indicator
+  const showBefore = dragOverId === node.id && dropMode === 'before'
+  const showAfter = dragOverId === node.id && dropMode === 'after'
+  const hasChildren = node.children && node.children.length > 0
+  
+  // Calculate drop line indentation
+  const getDropLineIndent = () => {
+    if (dropLevel === undefined) return level * 12 + 8
+    return dropLevel * 12 + 8
+  }
+
   if (!isDirectory) {
-    // Render file node
+    // Render file node - can also have children now
     return (
-      <button
-        className={cn(
-          'w-full flex items-center gap-2 px-2 py-1 text-sm hover:bg-accent/50 cursor-pointer',
-          selectedFile === node.id && 'bg-accent',
-          node.readOnly && 'opacity-60'
+      <div className="relative">
+        {showBefore && (
+          <div 
+            className="absolute top-0 h-0.5 bg-primary rounded z-10"
+            style={{ left: `${getDropLineIndent()}px`, right: '4px' }}
+          />
         )}
-        style={{ paddingLeft: `${level * 12 + 8}px` }}
-        onClick={() => onFileClick(node)}
-        disabled={node.readOnly}
-      >
-        {getFileIcon()}
-        <span className="truncate">{node.name}</span>
-        {node.unread !== undefined && node.unread > 0 && (
-          <span className="ml-auto text-xs text-muted-foreground">
-            {node.unread}
-          </span>
+
+        <div
+          ref={(el) => {
+            setDragRef(el)
+            setDropRef(el)
+          }}
+          data-id={node.id}
+          className="relative"
+        >
+          <button
+            className={cn(
+              'w-full flex items-center gap-2 px-2 py-1 text-sm hover:bg-accent/50 cursor-pointer relative z-10',
+              selectedFile === node.id && 'bg-accent',
+              node.readOnly && 'opacity-60',
+              isDragging && 'opacity-30'
+            )}
+            style={{ paddingLeft: `${level * 12 + 8}px` }}
+            onClick={(e) => {
+              if (hasChildren && e.shiftKey) {
+                setIsOpen(!isOpen)
+              } else {
+                onFileClick(node)
+              }
+            }}
+            {...listeners}
+            {...attributes}
+            disabled={node.readOnly}
+          >
+            {hasChildren && (
+              isOpen ? (
+                <ChevronDown className="w-3 h-3 shrink-0 opacity-50" />
+              ) : (
+                <ChevronRight className="w-3 h-3 shrink-0 opacity-50" />
+              )
+            )}
+            {getFileIcon()}
+            <span className="truncate">{node.name}</span>
+            {node.unread !== undefined && node.unread > 0 && (
+              <span className="ml-auto text-xs text-muted-foreground">
+                {node.unread}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {isOpen && hasChildren && (
+          <div className="relative">
+            {node.children!.map((child) => (
+              <FileTreeItem
+                key={child.id}
+                node={child}
+                level={level + 1}
+                onFileClick={onFileClick}
+                selectedFile={selectedFile}
+                onReorder={onReorder}
+                dragOverId={dragOverId}
+                dropMode={dropMode}
+                dropLevel={dropLevel}
+              />
+            ))}
+          </div>
         )}
-      </button>
+        {showAfter && (
+          <div 
+            className="absolute bottom-0 h-0.5 bg-primary rounded z-10"
+            style={{ left: `${getDropLineIndent()}px`, right: '4px' }}
+          />
+        )}
+      </div>
     )
   }
 
   // Render directory node
   return (
-    <div>
-      <button
-        className={cn(
-          'w-full flex items-center gap-1 px-2 py-1 text-sm hover:bg-accent/50 cursor-pointer',
-          node.readOnly && 'opacity-60'
-        )}
-        style={{ paddingLeft: `${level * 12 + 8}px` }}
-        onClick={() => setIsOpen(!isOpen)}
+    <div className="relative">
+      {showBefore && (
+        <div 
+          className="absolute top-0 h-0.5 bg-primary rounded z-10"
+          style={{ left: `${getDropLineIndent()}px`, right: '4px' }}
+        />
+      )}
+
+      <div
+        ref={(el) => {
+          setDragRef(el)
+          setDropRef(el)
+        }}
+        data-id={node.id}
+        className="relative"
       >
-        {isOpen ? (
-          <ChevronDown className="w-4 h-4 shrink-0" />
-        ) : (
-          <ChevronRight className="w-4 h-4 shrink-0" />
-        )}
-        <Library className="w-4 h-4 shrink-0" />
-        <span className="truncate">{node.name}</span>
-        {node.unread !== undefined && node.unread > 0 && (
-          <span className="ml-auto text-xs text-muted-foreground">
-            {node.unread}
-          </span>
-        )}
-      </button>
+        <button
+          className={cn(
+            'w-full flex items-center gap-1 px-2 py-1 text-sm hover:bg-accent/50 cursor-pointer relative z-10',
+            node.readOnly && 'opacity-60',
+            isDragging && 'opacity-30'
+          )}
+          style={{ paddingLeft: `${level * 12 + 8}px` }}
+          onClick={() => setIsOpen(!isOpen)}
+          {...listeners}
+          {...attributes}
+        >
+          {isOpen ? (
+            <ChevronDown className="w-4 h-4 shrink-0" />
+          ) : (
+            <ChevronRight className="w-4 h-4 shrink-0" />
+          )}
+          <Library className="w-4 h-4 shrink-0" />
+          <span className="truncate">{node.name}</span>
+          {node.unread !== undefined && node.unread > 0 && (
+            <span className="ml-auto text-xs text-muted-foreground">
+              {node.unread}
+            </span>
+          )}
+        </button>
+      </div>
+
       {isOpen && node.children && (
-        <div>
+        <div className="relative">
           {node.children.map((child) => (
             <FileTreeItem
               key={child.id}
@@ -89,9 +188,19 @@ function FileTreeItem({ node, level, onFileClick, selectedFile }: FileTreeItemPr
               level={level + 1}
               onFileClick={onFileClick}
               selectedFile={selectedFile}
+              onReorder={onReorder}
+              dragOverId={dragOverId}
+              dropMode={dropMode}
+              dropLevel={dropLevel}
             />
           ))}
         </div>
+      )}
+      {showAfter && (
+        <div 
+          className="absolute bottom-0 h-0.5 bg-primary rounded z-10"
+          style={{ left: `${getDropLineIndent()}px`, right: '4px' }}
+        />
       )}
     </div>
   )
@@ -102,9 +211,102 @@ interface PrimarySidebarProps {
   onFileClick: (file: FileNode) => void
   selectedFile: string | null
   fileTree?: FileNode[]
+  onReorder?: (payload: { sourceId: string; targetId: string; mode: 'before' | 'after' | 'into' }) => void
 }
 
-export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree = [] }: PrimarySidebarProps) {
+export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree = [], onReorder }: PrimarySidebarProps) {
+  const [dragOverId, setDragOverId] = useState<string | null>(null)
+  const [dropMode, setDropMode] = useState<'before' | 'after' | 'into' | null>(null)
+  const [dropLevel, setDropLevel] = useState<number>(0)
+  const [activeNode, setActiveNode] = useState<FileNode | null>(null)
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  )
+
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event
+    const node = active.data.current?.node as FileNode | undefined
+    if (node) setActiveNode(node)
+  }
+
+  const handleDragOver = (event: any) => {
+    const { active, over } = event
+    if (!active || !over) {
+      setDragOverId(null)
+      setDropMode(null)
+      setDropLevel(0)
+      return
+    }
+    const overId = String(over.id)
+    const m = overId.match(/^row-(.*)$/)
+    if (!m) {
+      setDragOverId(null)
+      setDropMode(null)
+      setDropLevel(0)
+      return
+    }
+    const targetId = m[1]
+    const targetLevel = over.data.current?.level ?? 0
+    
+    const el = document.querySelector(`[data-id="${targetId}"]`)
+    if (!el) {
+      setDragOverId(targetId)
+      setDropMode('after')
+      setDropLevel(targetLevel)
+      return
+    }
+    
+    const rect = el.getBoundingClientRect()
+    const pointerX = event?.activatorEvent?.clientX ?? rect.left
+    const pointerY = event?.activatorEvent?.clientY ?? (rect.top + rect.height / 2)
+    
+    // Vertical direction: top half -> before, bottom half -> after
+    const relativeY = (pointerY - rect.top) / rect.height
+    const mode = relativeY < 0.5 ? 'before' : 'after'
+    
+    // 水平缩进控制：指针向右拖动 → 增加层级（into），保持水平 → 同级（after/before）
+    // Base indent = targetLevel * 12px + 8px
+    const baseIndent = targetLevel * 12 + 8
+    const pointerIndent = pointerX - rect.left
+    
+    // Calculate target level: in 'after' mode, if pointer exceeds base + 12px, level +1 (indicates placing inside target)
+    let calculatedLevel = targetLevel
+    if (mode === 'after' && pointerIndent > baseIndent + 12) {
+      calculatedLevel = targetLevel + 1
+    }
+    
+    setDragOverId(targetId)
+    setDropMode(mode)
+    setDropLevel(calculatedLevel)
+  }
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    setDragOverId(null)
+    setDropMode(null)
+    const finalDropLevel = dropLevel
+    setDropLevel(0)
+    setActiveNode(null)
+    
+    if (!active || !over || !onReorder) return
+    
+    const sourceId = String(active.id)
+    const overId = String(over.id)
+    const m = overId.match(/^row-(.*)$/)
+    if (!m) return
+    const targetId = m[1]
+    const targetLevel = over.data.current?.level ?? 0
+    
+    // Decide mode based on relationship between dropLevel and targetLevel
+    let mode: 'before' | 'after' | 'into' = dropMode || 'after'
+    if (finalDropLevel > targetLevel) {
+      // Deeper level indicates placing inside target
+      mode = 'into'
+    }
+    
+    onReorder({ sourceId, targetId, mode })
+  }
+
   const getTitle = () => {
     switch (activity) {
       case 'explorer': return 'EXPLORER'
@@ -123,41 +325,60 @@ export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree =
           {getTitle()}
         </h3>
       </div>
-      <ScrollArea className="flex-1">
-        {activity === 'explorer' && (
-          <div className="py-2">
-            {fileTree.map((node) => (
-              <FileTreeItem
-                key={node.id}
-                node={node}
-                level={0}
-                onFileClick={onFileClick}
-                selectedFile={selectedFile}
-              />
-            ))}
-          </div>
-        )}
-        {activity === 'search' && (
-          <div className="p-4 text-sm text-muted-foreground">
-            Search functionality coming soon...
-          </div>
-        )}
-        {activity === 'source-control' && (
-          <div className="p-4 text-sm text-muted-foreground">
-            No source control providers registered.
-          </div>
-        )}
-        {activity === 'run-debug' && (
-          <div className="p-4 text-sm text-muted-foreground">
-            To run and debug, configure launch.json
-          </div>
-        )}
-        {activity === 'extensions' && (
-          <div className="p-4 text-sm text-muted-foreground">
-            Extensions marketplace coming soon...
-          </div>
-        )}
-      </ScrollArea>
+      <DndContext sensors={sensors} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
+        <ScrollArea className="flex-1">
+          {activity === 'explorer' && (
+            <div className="py-2">
+              {fileTree.map((node) => (
+                <FileTreeItem
+                  key={node.id}
+                  node={node}
+                  level={0}
+                  onFileClick={onFileClick}
+                  selectedFile={selectedFile}
+                  onReorder={onReorder}
+                  dragOverId={dragOverId}
+                  dropMode={dropMode}
+                  dropLevel={dropLevel}
+                />
+              ))}
+            </div>
+          )}
+          {activity === 'search' && (
+            <div className="p-4 text-sm text-muted-foreground">
+              Search functionality coming soon...
+            </div>
+          )}
+          {activity === 'source-control' && (
+            <div className="p-4 text-sm text-muted-foreground">
+              No source control providers registered.
+            </div>
+          )}
+          {activity === 'run-debug' && (
+            <div className="p-4 text-sm text-muted-foreground">
+              To run and debug, configure launch.json
+            </div>
+          )}
+          {activity === 'extensions' && (
+            <div className="p-4 text-sm text-muted-foreground">
+              Extensions marketplace coming soon...
+            </div>
+          )}
+        </ScrollArea>
+        <DragOverlay>
+          {activeNode && (
+            <div className="px-1.5 py-1 bg-background border border-border rounded-md shadow-lg flex items-center gap-1.5 opacity-90 max-w-[180px]">
+              {activeNode.nodeType === 'Directory' && <Library className="w-3.5 h-3.5 shrink-0" />}
+              {activeNode.nodeType === 'SlateText' && <TextAlignStart className="w-3.5 h-3.5 shrink-0 text-primary" />}
+              {activeNode.nodeType === 'Markdown' && <TextQuote className="w-3.5 h-3.5 shrink-0" />}
+              {activeNode.nodeType !== 'Directory' && activeNode.nodeType !== 'SlateText' && activeNode.nodeType !== 'Markdown' && <FileText className="w-3.5 h-3.5 shrink-0" />}
+              <span className="text-xs truncate">
+                {activeNode.name.length > 12 ? `${activeNode.name.slice(0, 12)}...` : activeNode.name}
+              </span>
+            </div>
+          )}
+        </DragOverlay>
+      </DndContext>
     </div>
   )
 }

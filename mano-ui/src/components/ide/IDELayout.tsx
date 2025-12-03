@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { TitleBar } from './TitleBar'
 import { ActivityBar } from './ActivityBar'
 import { PrimarySidebar } from './PrimarySidebar'
+import { insertInto, insertBeforeAfter, findNodePath, removeAtPath, isAncestor } from '@/lib/tree-utils'
 import type { ManoNode } from '@/types/mano-config'
 import { EditorContainer } from './EditorContainer'
 import { BottomPanel } from './BottomPanel'
@@ -59,7 +60,7 @@ function App() {
       <h1>Welcome to Mano IDE</h1>
       <Button onClick={() => setCount(c => c + 1)}>
         Count is {count}
-      </Button>
+              onReorder={handleTreeReorder}
     </div>
   )
 }
@@ -276,6 +277,34 @@ function IDELayoutContent() {
         console.error('Failed to open folder:', err)
         toast.error('打开文件夹失败')
       }
+    }
+  }
+
+  // 处理树拖拽重排
+  const handleTreeReorder = async ({ sourceId, targetId, mode }: { sourceId: string; targetId: string; mode: 'before' | 'after' | 'into' }) => {
+    try {
+      // 防止把节点移动到自身或其子孙
+      if (sourceId === targetId || isAncestor(fileTree as any, sourceId, targetId)) return
+      // 移除源节点
+      const sourcePath = findNodePath(fileTree as any, sourceId)
+      if (!sourcePath) return
+      const { removed, newTree } = removeAtPath(fileTree as any, sourcePath)
+      // 插入到目标
+      let updated: FileNode[]
+      if (mode === 'into') {
+        updated = insertInto(newTree as any, targetId, removed as any) as any
+      } else {
+        updated = insertBeforeAfter(newTree as any, targetId, removed as any, mode) as any
+      }
+      setFileTree(updated)
+      // Persist to mano.conf.json
+      if (configFileHandle) {
+        const { saveManoConfig } = await import('@/services/fileSystem')
+        await saveManoConfig(configFileHandle, { data: updated as any, lastUpdated: new Date().toISOString() })
+      }
+    } catch (e) {
+      console.error('Reorder failed:', e)
+      toast.error('Failed to reorder')
     }
   }
 
@@ -504,6 +533,7 @@ function IDELayoutContent() {
               onFileClick={handleFileClick}
               selectedFile={selectedFile}
               fileTree={fileTree}
+              onReorder={handleTreeReorder}
             />
           </ResizablePanel>
           
