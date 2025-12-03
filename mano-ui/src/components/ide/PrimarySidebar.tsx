@@ -269,7 +269,7 @@ export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree =
     const baseIndent = targetLevel * 12 + 8
     const pointerIndent = pointerX - rect.left
     
-    // 计算目标层级：after 模式下，如果指针超过基准 + 12px，层级 +1（表示放入目标内部）
+    // Calculate target level: in 'after' mode, if pointer exceeds base + 12px, level +1 (indicates placing inside target)
     let calculatedLevel = targetLevel
     if (mode === 'after' && pointerIndent > baseIndent + 12) {
       calculatedLevel = targetLevel + 1
