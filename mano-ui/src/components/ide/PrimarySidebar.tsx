@@ -260,7 +260,7 @@ export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree =
     const pointerX = event?.activatorEvent?.clientX ?? rect.left
     const pointerY = event?.activatorEvent?.clientY ?? (rect.top + rect.height / 2)
     
-    // 垂直方向：上半部分 -> before，下半部分 -> after
+    // Vertical direction: top half -> before, bottom half -> after
     const relativeY = (pointerY - rect.top) / rect.height
     const mode = relativeY < 0.5 ? 'before' : 'after'
     
