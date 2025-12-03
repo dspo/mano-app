@@ -1,0 +1,206 @@
+{
+  "data": [
+    {
+      "id": "1",
+      "name": "西游记",
+      "unread": 0,
+      "moreInfo": [
+        "连载中",
+        "[全 3/50 回]"
+      ],
+      "readOnly": false,
+      "nodeType": "Directory",
+      "children": [
+        {
+          "id": "1-1",
+          "name": "卷 I",
+          "unread": 0,
+          "readOnly": false,
+          "nodeType": "Directory",
+          "children": [
+            {
+              "id": "1-1-1",
+              "name": "第一回 灵根育孕源流出 心性修持大道生",
+              "unread": 0,
+              "readOnly": false,
+              "nodeType": "SlateText"
+            }
+          ]
+        },
+        {
+          "id": "1-2",
+          "name": "人物图谱",
+          "unread": 54,
+          "readOnly": false,
+          "nodeType": "SlateText"
+        },
+        {
+          "id": "1-3",
+          "name": "世界观",
+          "unread": 0,
+          "readOnly": false,
+          "nodeType": "Directory",
+          "children": [
+            {
+              "id": "1-3-1",
+              "name": "时空",
+              "moreInfo": [
+                "架空北宋"
+              ],
+              "readOnly": false,
+              "nodeType": "Directory",
+              "children": [
+                {
+                  "id": "1-3-1-1",
+                  "name": "北宋",
+                  "moreInfo": [
+                    "仁宗"
+                  ],
+                  "readOnly": false,
+                  "nodeType": "SlateText"
+                },
+                {
+                  "id": "1-3-1-2",
+                  "name": "大辽",
+                  "moreInfo": [
+                    "耶律洪基"
+                  ],
+                  "readOnly": false,
+                  "nodeType": "SlateText"
+                }
+              ]
+            },
+            {
+              "id": "1-3-2",
+              "name": "门派",
+              "readOnly": false,
+              "nodeType": "Directory",
+              "children": [
+                {
+                  "id": "1-3-2-2",
+                  "name": "大理",
+                  "readOnly": false,
+                  "nodeType": "SlateText"
+                },
+                {
+                  "id": "1-3-2-1",
+                  "name": "丐帮",
+                  "readOnly": false,
+                  "nodeType": "SlateText"
+                }
+              ]
+            },
+            {
+              "id": "1-3-3",
+              "name": "武学",
+              "readOnly": false,
+              "nodeType": "Directory",
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "1-4",
+          "name": "伏笔",
+          "moreInfo": [
+            "[12/18]"
+          ],
+          "readOnly": false,
+          "nodeType": "SlateText"
+        }
+      ]
+    },
+    {
+      "id": "2",
+      "name": "水浒传",
+      "moreInfo": [
+        "已完结[全 4/4 回]"
+      ],
+      "readOnly": false,
+      "nodeType": "Directory",
+      "children": []
+    },
+    {
+      "id": "3",
+      "name": "收藏",
+      "unread": 0,
+      "readOnly": false,
+      "nodeType": "Directory"
+    },
+    {
+      "id": "4",
+      "name": "写作计划",
+      "unread": 0,
+      "readOnly": false,
+      "nodeType": "SlateText"
+    },
+    {
+      "id": "5",
+      "name": "灵感",
+      "unread": 0,
+      "readOnly": false,
+      "nodeType": "Markdown"
+    },
+    {
+      "id": "6",
+      "name": "草稿",
+      "unread": 14,
+      "readOnly": false,
+      "nodeType": "Directory"
+    },
+    {
+      "id": "__trash__",
+      "name": "垃圾篓",
+      "unread": 11,
+      "readOnly": true,
+      "nodeType": "Directory",
+      "children": [
+        {
+          "id": "12",
+          "name": "Categories",
+          "readOnly": false,
+          "nodeType": "Directory",
+          "children": [
+            {
+              "id": "13",
+              "name": "Social",
+              "unread": 946,
+              "readOnly": false,
+              "nodeType": "Directory"
+            },
+            {
+              "id": "14",
+              "name": "Updates",
+              "unread": 4580,
+              "readOnly": false,
+              "nodeType": "Directory"
+            },
+            {
+              "id": "15",
+              "name": "Forums",
+              "unread": 312,
+              "readOnly": false,
+              "nodeType": "Directory",
+              "children": [
+                {
+                  "id": "15-1",
+                  "name": "Github",
+                  "readOnly": false,
+                  "nodeType": "Directory"
+                }
+              ]
+            },
+            {
+              "id": "16",
+              "name": "Promotions",
+              "unread": 312,
+              "readOnly": false,
+              "nodeType": "Directory"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "lastUpdated": "2025-11-26T08:42:18.506Z"
+}

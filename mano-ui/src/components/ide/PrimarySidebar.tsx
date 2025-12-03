@@ -1,48 +1,11 @@
-import { ChevronRight, ChevronDown, FileText, Folder } from 'lucide-react'
+import { ChevronRight, ChevronDown, FileText, Library, TextQuote, TextAlignStart } from 'lucide-react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
+import type { ManoNode } from '@/types/mano-config'
 
-interface FileNode {
-  id: string
-  name: string
-  type: 'file' | 'folder'
-  children?: FileNode[]
-}
-
-const mockFileTree: FileNode[] = [
-  {
-    id: '1',
-    name: 'src',
-    type: 'folder',
-    children: [
-      {
-        id: '2',
-        name: 'components',
-        type: 'folder',
-        children: [
-          { id: '3', name: 'Button.tsx', type: 'file' },
-          { id: '4', name: 'Input.tsx', type: 'file' },
-        ],
-      },
-      { id: '5', name: 'App.tsx', type: 'file' },
-      { id: '6', name: 'main.tsx', type: 'file' },
-      { id: '7', name: 'index.css', type: 'file' },
-    ],
-  },
-  {
-    id: '8',
-    name: 'public',
-    type: 'folder',
-    children: [
-      { id: '9', name: 'vite.svg', type: 'file' },
-    ],
-  },
-  { id: '10', name: 'package.json', type: 'file' },
-  { id: '11', name: 'tsconfig.json', type: 'file' },
-  { id: '12', name: 'vite.config.ts', type: 'file' },
-  { id: '13', name: 'document.mano', type: 'file' },
-]
+// For backward compatibility, keep FileNode as alias
+export type FileNode = ManoNode
 
 interface FileTreeItemProps {
   node: FileNode
@@ -53,27 +16,54 @@ interface FileTreeItemProps {
 
 function FileTreeItem({ node, level, onFileClick, selectedFile }: FileTreeItemProps) {
   const [isOpen, setIsOpen] = useState(true)
+  
+  // Determine if node is a directory
+  const isDirectory = node.nodeType === 'Directory'
+  
+  // Select icon based on node type
+  const getFileIcon = () => {
+    switch (node.nodeType) {
+      case 'SlateText':
+        return <TextAlignStart className="w-4 h-4 shrink-0 text-primary" />
+      case 'Markdown':
+        return <TextQuote className="w-4 h-4 shrink-0" />
+      default:
+        return <FileText className="w-4 h-4 shrink-0" />
+    }
+  }
 
-  if (node.type === 'file') {
+  if (!isDirectory) {
+    // Render file node
     return (
       <button
         className={cn(
           'w-full flex items-center gap-2 px-2 py-1 text-sm hover:bg-accent/50 cursor-pointer',
-          selectedFile === node.id && 'bg-accent'
+          selectedFile === node.id && 'bg-accent',
+          node.readOnly && 'opacity-60'
         )}
         style={{ paddingLeft: `${level * 12 + 8}px` }}
         onClick={() => onFileClick(node)}
+        disabled={node.readOnly}
       >
-        <FileText className="w-4 h-4 shrink-0" />
+        {getFileIcon()}
         <span className="truncate">{node.name}</span>
+        {node.unread !== undefined && node.unread > 0 && (
+          <span className="ml-auto text-xs text-muted-foreground">
+            {node.unread}
+          </span>
+        )}
       </button>
     )
   }
 
+  // Render directory node
   return (
     <div>
       <button
-        className="w-full flex items-center gap-1 px-2 py-1 text-sm hover:bg-accent/50 cursor-pointer"
+        className={cn(
+          'w-full flex items-center gap-1 px-2 py-1 text-sm hover:bg-accent/50 cursor-pointer',
+          node.readOnly && 'opacity-60'
+        )}
         style={{ paddingLeft: `${level * 12 + 8}px` }}
         onClick={() => setIsOpen(!isOpen)}
       >
@@ -82,8 +72,13 @@ function FileTreeItem({ node, level, onFileClick, selectedFile }: FileTreeItemPr
         ) : (
           <ChevronRight className="w-4 h-4 shrink-0" />
         )}
-        <Folder className="w-4 h-4 shrink-0" />
+        <Library className="w-4 h-4 shrink-0" />
         <span className="truncate">{node.name}</span>
+        {node.unread !== undefined && node.unread > 0 && (
+          <span className="ml-auto text-xs text-muted-foreground">
+            {node.unread}
+          </span>
+        )}
       </button>
       {isOpen && node.children && (
         <div>
@@ -109,7 +104,7 @@ interface PrimarySidebarProps {
   fileTree?: FileNode[]
 }
 
-export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree = mockFileTree }: PrimarySidebarProps) {
+export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree = [] }: PrimarySidebarProps) {
   const getTitle = () => {
     switch (activity) {
       case 'explorer': return 'EXPLORER'
@@ -166,5 +161,3 @@ export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree =
     </div>
   )
 }
-
-export type { FileNode }
