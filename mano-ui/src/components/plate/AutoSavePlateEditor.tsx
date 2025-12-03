@@ -1,4 +1,3 @@
-import { useCallback } from 'react'
 import { PlateEditor } from './PlateEditor'
 import { useIndexedDBAutoSave } from '@/hooks/useIndexedDB'
 
