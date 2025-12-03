@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { TitleBar } from './TitleBar'
 import { ActivityBar } from './ActivityBar'
-import { PrimarySidebar, type FileNode } from './PrimarySidebar'
+import { PrimarySidebar } from './PrimarySidebar'
+import type { ManoNode } from '@/types/mano-config'
 import { EditorContainer } from './EditorContainer'
 import { BottomPanel } from './BottomPanel'
 import { StatusBar } from './StatusBar'
@@ -10,6 +11,9 @@ import { FloatingNotification } from './FloatingNotification'
 import { EditorProvider } from '@/contexts/EditorContext'
 import { useEditor } from '@/hooks/useEditor'
 import { toast } from 'sonner'
+
+// Alias for backward compatibility
+type FileNode = ManoNode
 import {
   ResizablePanelGroup,
   ResizablePanel,
@@ -140,6 +144,10 @@ function IDELayoutContent() {
   const [fileContentsMap, setFileContentsMap] = useState<Record<string, string>>(fileContents)
   const [fileHandlesMap, setFileHandlesMap] = useState<Record<string, FileSystemFileHandle>>({})
   
+  // Directory and config handles
+  const [dirHandle, setDirHandle] = useState<FileSystemDirectoryHandle | null>(null)
+  const [configFileHandle, setConfigFileHandle] = useState<FileSystemFileHandle | null>(null)
+  
   // Refs for controlling panels imperatively
   const sidebarRef = useRef<ImperativePanelHandle>(null)
   const panelRef = useRef<ImperativePanelHandle>(null)
@@ -251,98 +259,97 @@ function IDELayoutContent() {
   const handleOpenFolder = async () => {
     try {
       // 使用 File System Access API 打开目录选择对话框
-      const dirHandle = await (window as any).showDirectoryPicker()
+      const directory = await (window as any).showDirectoryPicker()
+      setDirHandle(directory)
       
-      // 生成唯一 ID
-      let idCounter = 1
-      const generateId = () => String(idCounter++)
+      // 读取或创建 mano.conf.json
+      const { readOrCreateManoConfig } = await import('@/services/fileSystem')
+      const { config, fileHandle } = await readOrCreateManoConfig(directory)
       
-      // 递归读取目录结构
-      const readDirectory = async (handle: any, parentPath = ''): Promise<FileNode[]> => {
-        const nodes: FileNode[] = []
-        
-        for await (const entry of handle.values()) {
-          const fullPath = parentPath ? `${parentPath}/${entry.name}` : entry.name
-          
-          if (entry.kind === 'file') {
-            const fileId = generateId()
-            nodes.push({
-              id: fileId,
-              name: entry.name,
-              type: 'file',
-            })
-            
-            // 读取文件内容并存储文件句柄
-            try {
-              const file = await entry.getFile()
-              const text = await file.text()
-              setFileContentsMap(prev => ({ ...prev, [fileId]: text }))
-              setFileHandlesMap(prev => ({ ...prev, [fileId]: entry }))
-            } catch (err) {
-              console.error(`Failed to read file ${fullPath}:`, err)
-            }
-          } else if (entry.kind === 'directory') {
-            const children = await readDirectory(entry, fullPath)
-            nodes.push({
-              id: generateId(),
-              name: entry.name,
-              type: 'folder',
-              children,
-            })
-          }
-        }
-        
-        return nodes.sort((a, b) => {
-          // 文件夹优先，然后按名称排序
-          if (a.type === b.type) return a.name.localeCompare(b.name)
-          return a.type === 'folder' ? -1 : 1
-        })
-      }
+      setConfigFileHandle(fileHandle)
+      setFileTree(config.data)
       
-      const tree = await readDirectory(dirHandle)
-      setFileTree(tree)
+      toast.success(`已打开文件夹: ${directory.name}`)
+      console.log('[IDELayout] Loaded mano.conf.json:', config)
     } catch (err) {
       if ((err as Error).name !== 'AbortError') {
         console.error('Failed to open folder:', err)
+        toast.error('打开文件夹失败')
       }
     }
   }
 
-  const handleFileClick = (file: FileNode) => {
-    if (file.type === 'file') {
-      setSelectedFile(file.id)
+  const handleFileClick = async (file: FileNode) => {
+    // Only handle non-directory nodes
+    if (file.nodeType === 'Directory') {
+      return
+    }
+    
+    // Check if we have directory access
+    if (!dirHandle) {
+      toast.error('请先打开文件夹')
+      return
+    }
+    
+    setSelectedFile(file.id)
+    
+    try {
+      const { getOrCreateFile, getNodeFilename } = await import('@/services/fileSystem')
+      const { DEFAULT_SLATE_CONTENT } = await import('@/types/mano-config')
       
-      // 检测文件类型
-      const isSlateFile = file.name.endsWith('.mano')
-      let content: unknown
-      let fileType: 'text' | 'slate'
+      // Get filename based on node type
+      const filename = getNodeFilename(file)
       
-      if (isSlateFile) {
-        // 尝试解析为 Slate JSON
-        const rawContent = fileContentsMap[file.id]
-        try {
-          content = rawContent ? JSON.parse(rawContent) : [{ type: 'p', children: [{ text: '' }] }]
-          fileType = 'slate'
-        } catch {
-          // 解析失败，作为普通文本
-          content = rawContent || `// Content of ${file.name}\n\nFile content goes here...`
-          fileType = 'text'
-        }
-      } else {
-        // 普通文本文件
-        content = fileContentsMap[file.id] || `// Content of ${file.name}\n\nFile content goes here...`
+      // Determine file type and default content
+      let fileType: 'text' | 'slate' = 'text'
+      let defaultContent: string | unknown = ''
+      
+      if (file.nodeType === 'SlateText') {
+        fileType = 'slate'
+        defaultContent = DEFAULT_SLATE_CONTENT
+      } else if (file.nodeType === 'Markdown') {
         fileType = 'text'
+        defaultContent = `# ${file.name}\n\n`
       }
       
-      // Open file in the editor group
+      // Get or create file
+      const { fileHandle, content } = await getOrCreateFile(
+        dirHandle,
+        filename,
+        defaultContent
+      )
+      
+      // Parse content based on file type
+      let parsedContent: unknown
+      if (fileType === 'slate') {
+        try {
+          parsedContent = JSON.parse(content)
+        } catch {
+          // If parse fails, use default
+          parsedContent = DEFAULT_SLATE_CONTENT
+        }
+      } else {
+        parsedContent = content
+      }
+      
+      // Store file handle and content
+      setFileHandlesMap(prev => ({ ...prev, [file.id]: fileHandle }))
+      setFileContentsMap(prev => ({ ...prev, [file.id]: content }))
+      
+      // Open file in editor
       dispatch({
         type: 'OPEN_FILE',
         fileId: file.id,
         fileName: file.name,
         fileType: fileType,
-        content: content,
-        fileHandle: fileHandlesMap[file.id],
+        content: parsedContent,
+        fileHandle: fileHandle,
       })
+      
+      toast.success(`已打开: ${file.name}`, { duration: 1500 })
+    } catch (error) {
+      console.error('Failed to open file:', error)
+      toast.error(`打开文件失败: ${file.name}`)
     }
   }
 
