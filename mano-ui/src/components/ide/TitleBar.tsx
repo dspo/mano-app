@@ -1,4 +1,4 @@
-import { Minimize2, Maximize2, X, Circle, Check } from 'lucide-react'
+import { Minimize2, Maximize2, X, Circle, Check, PanelRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -13,9 +13,16 @@ interface TitleBarProps {
   showPanel: boolean
   onToggleSidebar: () => void
   onTogglePanel: () => void
+  onSplitEditorRight?: () => void
 }
 
-export function TitleBar({ showSidebar, showPanel, onToggleSidebar, onTogglePanel }: TitleBarProps) {
+export function TitleBar({ 
+  showSidebar, 
+  showPanel, 
+  onToggleSidebar, 
+  onTogglePanel,
+  onSplitEditorRight,
+}: TitleBarProps) {
   return (
     <div className="h-12 border-b bg-background flex items-center justify-between px-4">
       <div className="flex items-center gap-2">
@@ -79,6 +86,14 @@ export function TitleBar({ showSidebar, showPanel, onToggleSidebar, onTogglePane
                     <kbd className="px-1.5 py-0.5 text-xs bg-muted rounded">⌘J</kbd>
                     {showPanel && <Check className="w-4 h-4" />}
                   </div>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={onSplitEditorRight}>
+                <PanelRight className="w-4 h-4 mr-2" />
+                <div className="flex items-center justify-between w-full gap-4">
+                  <span>Split Editor Right</span>
+                  <kbd className="px-1.5 py-0.5 text-xs bg-muted rounded">⌘\</kbd>
                 </div>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
