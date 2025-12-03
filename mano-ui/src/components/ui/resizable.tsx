@@ -55,7 +55,6 @@ export {
   ResizablePanelGroup, 
   ResizablePanel, 
   ResizableHandle,
-  type ResizablePrimitive as PanelResizeHandle
 }
 
 // Export ImperativePanelHandle type from react-resizable-panels

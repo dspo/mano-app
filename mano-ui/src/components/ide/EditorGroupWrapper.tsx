@@ -42,7 +42,7 @@ function SortableTab({ tab, groupId, onClose }: SortableTabProps) {
     data: {
       tab,
       sourceGroupId: groupId,
-      type: 'tab-sort', // 区分组内排序和跨组移动
+      type: 'tab-sort', // Distinguish between intra-group sorting and cross-group movement
     },
   })
 
@@ -98,7 +98,7 @@ export function EditorGroupWrapper({ group }: EditorGroupWrapperProps) {
 
   const handleFocus = () => {
     if (!isFocused) {
-      // 点击编辑器区域任意位置时更新聚焦状态
+      // Update focus state when clicking anywhere in the editor area
       if (group.activeTabId) {
         dispatch({ type: 'SET_ACTIVE_TAB', tabId: group.activeTabId, groupId: group.id })
       }
