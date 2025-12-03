@@ -297,10 +297,10 @@ export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree =
     const targetId = m[1]
     const targetLevel = over.data.current?.level ?? 0
     
-    // 根据 dropLevel 与 targetLevel 的关系决定模式
+    // Decide mode based on relationship between dropLevel and targetLevel
     let mode: 'before' | 'after' | 'into' = dropMode || 'after'
     if (finalDropLevel > targetLevel) {
-      // 层级更深，表示要放入目标内部
+      // Deeper level indicates placing inside target
       mode = 'into'
     }
     
