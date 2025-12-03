@@ -50,6 +50,8 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
         fileType: action.fileType,
         content: action.content,
         isDirty: false,
+        isSavedToDisk: true, // 新打开的文件默认为已保存
+        fileHandle: action.fileHandle,
       }
 
       return {
@@ -204,7 +206,29 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
 
       const newTabs = group.tabs.map(tab =>
         tab.id === action.tabId
-          ? { ...tab, content: action.content, isDirty: true }
+          ? { ...tab, content: action.content, isDirty: true, isSavedToDisk: false }
+          : tab
+      )
+
+      return {
+        ...state,
+        groups: {
+          ...state.groups,
+          [action.groupId]: {
+            ...group,
+            tabs: newTabs,
+          },
+        },
+      }
+    }
+
+    case 'MARK_TAB_SAVED_TO_DISK': {
+      const group = state.groups[action.groupId]
+      if (!group) return state
+
+      const newTabs = group.tabs.map(tab =>
+        tab.id === action.tabId
+          ? { ...tab, isDirty: false, isSavedToDisk: true }
           : tab
       )
 

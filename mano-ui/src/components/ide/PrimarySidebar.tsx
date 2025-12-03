@@ -106,9 +106,10 @@ interface PrimarySidebarProps {
   activity: string
   onFileClick: (file: FileNode) => void
   selectedFile: string | null
+  fileTree?: FileNode[]
 }
 
-export function PrimarySidebar({ activity, onFileClick, selectedFile }: PrimarySidebarProps) {
+export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree = mockFileTree }: PrimarySidebarProps) {
   const getTitle = () => {
     switch (activity) {
       case 'explorer': return 'EXPLORER'
@@ -130,7 +131,7 @@ export function PrimarySidebar({ activity, onFileClick, selectedFile }: PrimaryS
       <ScrollArea className="flex-1">
         {activity === 'explorer' && (
           <div className="py-2">
-            {mockFileTree.map((node) => (
+            {fileTree.map((node) => (
               <FileTreeItem
                 key={node.id}
                 node={node}

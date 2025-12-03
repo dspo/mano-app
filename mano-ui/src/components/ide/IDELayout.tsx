@@ -9,6 +9,7 @@ import { EdgeDropZones } from './EdgeDropZone'
 import { FloatingNotification } from './FloatingNotification'
 import { EditorProvider } from '@/contexts/EditorContext'
 import { useEditor } from '@/hooks/useEditor'
+import { toast } from 'sonner'
 import {
   ResizablePanelGroup,
   ResizablePanel,
@@ -135,6 +136,9 @@ function IDELayoutContent() {
   const [selectedFile, setSelectedFile] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<{ id: string; fileName: string } | null>(null)
   const [notification, setNotification] = useState<{ message: string; x: number; y: number } | null>(null)
+  const [fileTree, setFileTree] = useState<FileNode[]>([])
+  const [fileContentsMap, setFileContentsMap] = useState<Record<string, string>>(fileContents)
+  const [fileHandlesMap, setFileHandlesMap] = useState<Record<string, FileSystemFileHandle>>({})
   
   // Refs for controlling panels imperatively
   const sidebarRef = useRef<ImperativePanelHandle>(null)
@@ -243,6 +247,67 @@ function IDELayoutContent() {
     }
   }
 
+  // 打开文件夹
+  const handleOpenFolder = async () => {
+    try {
+      // 使用 File System Access API 打开目录选择对话框
+      const dirHandle = await (window as any).showDirectoryPicker()
+      
+      // 生成唯一 ID
+      let idCounter = 1
+      const generateId = () => String(idCounter++)
+      
+      // 递归读取目录结构
+      const readDirectory = async (handle: any, parentPath = ''): Promise<FileNode[]> => {
+        const nodes: FileNode[] = []
+        
+        for await (const entry of handle.values()) {
+          const fullPath = parentPath ? `${parentPath}/${entry.name}` : entry.name
+          
+          if (entry.kind === 'file') {
+            const fileId = generateId()
+            nodes.push({
+              id: fileId,
+              name: entry.name,
+              type: 'file',
+            })
+            
+            // 读取文件内容并存储文件句柄
+            try {
+              const file = await entry.getFile()
+              const text = await file.text()
+              setFileContentsMap(prev => ({ ...prev, [fileId]: text }))
+              setFileHandlesMap(prev => ({ ...prev, [fileId]: entry }))
+            } catch (err) {
+              console.error(`Failed to read file ${fullPath}:`, err)
+            }
+          } else if (entry.kind === 'directory') {
+            const children = await readDirectory(entry, fullPath)
+            nodes.push({
+              id: generateId(),
+              name: entry.name,
+              type: 'folder',
+              children,
+            })
+          }
+        }
+        
+        return nodes.sort((a, b) => {
+          // 文件夹优先，然后按名称排序
+          if (a.type === b.type) return a.name.localeCompare(b.name)
+          return a.type === 'folder' ? -1 : 1
+        })
+      }
+      
+      const tree = await readDirectory(dirHandle)
+      setFileTree(tree)
+    } catch (err) {
+      if ((err as Error).name !== 'AbortError') {
+        console.error('Failed to open folder:', err)
+      }
+    }
+  }
+
   const handleFileClick = (file: FileNode) => {
     if (file.type === 'file') {
       setSelectedFile(file.id)
@@ -254,7 +319,7 @@ function IDELayoutContent() {
       
       if (isSlateFile) {
         // 尝试解析为 Slate JSON
-        const rawContent = fileContents[file.id]
+        const rawContent = fileContentsMap[file.id]
         try {
           content = rawContent ? JSON.parse(rawContent) : [{ type: 'p', children: [{ text: '' }] }]
           fileType = 'slate'
@@ -265,7 +330,7 @@ function IDELayoutContent() {
         }
       } else {
         // 普通文本文件
-        content = fileContents[file.id] || `// Content of ${file.name}\n\nFile content goes here...`
+        content = fileContentsMap[file.id] || `// Content of ${file.name}\n\nFile content goes here...`
         fileType = 'text'
       }
       
@@ -276,6 +341,7 @@ function IDELayoutContent() {
         fileName: file.name,
         fileType: fileType,
         content: content,
+        fileHandle: fileHandlesMap[file.id],
       })
     }
   }
@@ -287,9 +353,52 @@ function IDELayoutContent() {
     dispatch({ type: 'SPLIT_GROUP', groupId: state.lastFocusedGroupId, direction: 'horizontal' })
   }
 
+  // Save current file to disk
+  const handleSaveFile = async () => {
+    const group = state.groups[state.lastFocusedGroupId]
+    if (!group || !group.activeTabId) {
+      console.warn('[Save] No active tab')
+      return
+    }
+
+    const activeTab = group.tabs.find(t => t.id === group.activeTabId)
+    if (!activeTab) return
+
+    if (!activeTab.fileHandle) {
+      console.warn('[Save] No file handle for tab:', activeTab.fileName)
+      toast.error('Cannot save: file handle not found')
+      return
+    }
+
+    try {
+      const { saveToFileSystem } = await import('@/services/fileSystem')
+      const success = await saveToFileSystem(activeTab.fileHandle, activeTab.content)
+      
+      if (success) {
+        // 标记为已保存到磁盘
+        dispatch({
+          type: 'MARK_TAB_SAVED_TO_DISK',
+          tabId: activeTab.id,
+          groupId: group.id,
+        })
+        toast.success(`Saved ${activeTab.fileName}`)
+      } else {
+        toast.error('Failed to save file')
+      }
+    } catch (error) {
+      console.error('[Save] Error:', error)
+      toast.error('Failed to save file')
+    }
+  }
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Cmd/Ctrl + S: Save File
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        e.preventDefault()
+        handleSaveFile()
+      }
       // Cmd/Ctrl + B: Toggle Sidebar
       if ((e.metaKey || e.ctrlKey) && e.key === 'b') {
         e.preventDefault()
@@ -323,7 +432,7 @@ function IDELayoutContent() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [handleSplitEditorRight])
+  }, [handleSplitEditorRight, handleSaveFile, state])
 
   // Toggle functions for buttons/menu
   const toggleSidebar = () => {
@@ -356,6 +465,8 @@ function IDELayoutContent() {
         onToggleSidebar={toggleSidebar}
         onTogglePanel={togglePanel}
         onSplitEditorRight={handleSplitEditorRight}
+        onOpenFolder={handleOpenFolder}
+        onSave={handleSaveFile}
       />
       
       <div className="flex flex-1 overflow-hidden">
@@ -385,6 +496,7 @@ function IDELayoutContent() {
               activity={activeActivity}
               onFileClick={handleFileClick}
               selectedFile={selectedFile}
+              fileTree={fileTree}
             />
           </ResizablePanel>
           

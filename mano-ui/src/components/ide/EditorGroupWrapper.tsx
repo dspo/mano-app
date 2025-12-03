@@ -24,7 +24,7 @@ interface EditorGroupWrapperProps {
 }
 
 interface SortableTabProps {
-  tab: { id: string; fileName: string; isDirty: boolean; fileId: string }
+  tab: { id: string; fileName: string; isDirty: boolean; isSavedToDisk: boolean; fileId: string }
   groupId: string
   onClose: (tabId: string) => void
 }
@@ -62,7 +62,12 @@ function SortableTab({ tab, groupId, onClose }: SortableTabProps) {
       {...listeners}
     >
       <span className="text-sm">{tab.fileName}</span>
-      {tab.isDirty && <span className="w-2 h-2 rounded-full bg-primary" />}
+      {tab.isDirty && (
+        <span 
+          className={`w-2 h-2 rounded-full ${tab.isSavedToDisk ? 'bg-orange-500' : 'bg-primary'}`}
+          title={tab.isSavedToDisk ? 'Saved to IndexedDB, not yet saved to disk' : 'Modified'}
+        />
+      )}
       <div
         role="button"
         className="inline-flex h-4 w-4 items-center justify-center rounded-sm hover:bg-accent ml-1 cursor-pointer"
@@ -175,6 +180,7 @@ export function EditorGroupWrapper({ group }: EditorGroupWrapperProps) {
                 <AutoSavePlateEditor
                   value={tab.content}
                   fileName={tab.fileName}
+                  tabId={tab.id}
                   onChange={(newValue: unknown) => {
                     dispatch({
                       type: 'UPDATE_TAB_CONTENT',
