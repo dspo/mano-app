@@ -179,7 +179,6 @@ export function EditorGroupWrapper({ group }: EditorGroupWrapperProps) {
               {tab.fileType === 'slate' ? (
                 <AutoSavePlateEditor
                   value={tab.content}
-                  fileName={tab.fileName}
                   tabId={tab.id}
                   onChange={(newValue: unknown) => {
                     dispatch({

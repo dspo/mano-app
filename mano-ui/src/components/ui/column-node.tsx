@@ -1,6 +1,7 @@
+import { memo } from 'react';
+
 'use client';
 
-import * as React from 'react';
 
 import type { TColumnElement } from 'platejs';
 import type { PlateElementProps } from 'platejs/react';
@@ -99,7 +100,7 @@ export const ColumnElement = withHOC(
   }
 );
 
-const ColumnDragHandle = React.memo(function ColumnDragHandle() {
+const ColumnDragHandle = memo(function ColumnDragHandle() {
   return (
     <TooltipProvider>
       <Tooltip>

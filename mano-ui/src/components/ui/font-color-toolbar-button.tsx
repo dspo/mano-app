@@ -1,7 +1,8 @@
+import { useState, useEffect, useMemo, useCallback, useRef, memo, Children, cloneElement } from 'react';
+
 'use client';
 /* eslint-disable react-hooks/refs -- Ref usage for color picker component refs */
 
-import React from 'react';
 
 import type {
   DropdownMenuItemProps,
@@ -9,7 +10,7 @@ import type {
 } from '@radix-ui/react-dropdown-menu';
 
 import { useComposedRef } from '@udecode/cn';
-import debounce from 'lodash/debounce.js';
+import debounce from 'lodash/debounce';
 import { EraserIcon, PlusIcon } from 'lucide-react';
 import { useEditorRef, useEditorSelector } from 'platejs/react';
 
@@ -50,17 +51,17 @@ export function FontColorToolbarButton({
     [nodeType]
   );
 
-  const [selectedColor, setSelectedColor] = React.useState<string>();
-  const [open, setOpen] = React.useState(false);
+  const [selectedColor, setSelectedColor] = useState<string>();
+  const [open, setOpen] = useState(false);
 
-  const onToggle = React.useCallback(
+  const onToggle = useCallback(
     (value = !open) => {
       setOpen(value);
     },
     [open, setOpen]
   );
 
-  const updateColor = React.useCallback(
+  const updateColor = useCallback(
     (value: string) => {
       if (editor.selection) {
         setSelectedColor(value);
@@ -74,7 +75,7 @@ export function FontColorToolbarButton({
     [editor, nodeType]
   );
 
-  const updateColorAndClose = React.useCallback(
+  const updateColorAndClose = useCallback(
     (value: string) => {
       updateColor(value);
       onToggle();
@@ -82,7 +83,7 @@ export function FontColorToolbarButton({
     [onToggle, updateColor]
   );
 
-  const clearColor = React.useCallback(() => {
+  const clearColor = useCallback(() => {
     if (editor.selection) {
       editor.tf.select(editor.selection);
       editor.tf.focus();
@@ -95,7 +96,7 @@ export function FontColorToolbarButton({
     }
   }, [editor, selectedColor, onToggle, nodeType]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (selectionDefined) {
       setSelectedColor(color);
     }
@@ -178,7 +179,7 @@ function PureColorPicker({
   );
 }
 
-const ColorPicker = React.memo(
+const ColorPicker = memo(
   PureColorPicker,
   (prev, next) =>
     prev.color === next.color &&
@@ -201,10 +202,10 @@ function ColorCustom({
   updateCustomColor: (color: string) => void;
   color?: string;
 } & React.ComponentPropsWithoutRef<'div'>) {
-  const [customColor, setCustomColor] = React.useState<string>();
-  const [value, setValue] = React.useState<string>(color || '#000000');
+  const [customColor, setCustomColor] = useState<string>();
+  const [value, setValue] = useState<string>(color || '#000000');
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (
       !color ||
       customColors.some((c) => c.value === color) ||
@@ -216,7 +217,7 @@ function ColorCustom({
     setCustomColor(color);
   }, [color, colors, customColors]);
 
-  const computedColors = React.useMemo(
+  const computedColors = useMemo(
     () =>
       customColor
         ? [
@@ -232,7 +233,7 @@ function ColorCustom({
   );
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const updateCustomColorDebounced = React.useCallback(
+  const updateCustomColorDebounced = useCallback(
     debounce(updateCustomColor, 100),
     [updateCustomColor]
   );
@@ -278,14 +279,14 @@ function ColorInput({
   value = '#000000',
   ...props
 }: React.ComponentProps<'input'>) {
-  const inputRef = React.useRef<HTMLInputElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   return (
     <div className="flex flex-col items-center">
-      {React.Children.map(children, (child) => {
+      {Children.map(children, (child) => {
         if (!child) return child;
 
-        return React.cloneElement(
+        return cloneElement(
           child as React.ReactElement<{
             onClick: () => void;
           }>,
