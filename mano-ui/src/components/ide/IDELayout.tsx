@@ -97,7 +97,27 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-})`
+})`,
+  '13': `[
+  {
+    "type": "h1",
+    "children": [{ "text": "Welcome to Rich Text Editor" }]
+  },
+  {
+    "type": "p",
+    "children": [
+      { "text": "This is a " },
+      { "text": "rich text", "bold": true },
+      { "text": " document powered by " },
+      { "text": "Plate.js", "bold": true, "italic": true },
+      { "text": "." }
+    ]
+  },
+  {
+    "type": "p",
+    "children": [{ "text": "You can edit this content and it will auto-save." }]
+  }
+]`
 }
 
 export function IDELayout() {
@@ -227,12 +247,35 @@ function IDELayoutContent() {
     if (file.type === 'file') {
       setSelectedFile(file.id)
       
-      // Open file in the first editor group
+      // 检测文件类型
+      const isSlateFile = file.name.endsWith('.slate.json')
+      let content: unknown
+      let fileType: 'text' | 'slate'
+      
+      if (isSlateFile) {
+        // 尝试解析为 Slate JSON
+        const rawContent = fileContents[file.id]
+        try {
+          content = rawContent ? JSON.parse(rawContent) : [{ type: 'p', children: [{ text: '' }] }]
+          fileType = 'slate'
+        } catch {
+          // 解析失败，作为普通文本
+          content = rawContent || `// Content of ${file.name}\n\nFile content goes here...`
+          fileType = 'text'
+        }
+      } else {
+        // 普通文本文件
+        content = fileContents[file.id] || `// Content of ${file.name}\n\nFile content goes here...`
+        fileType = 'text'
+      }
+      
+      // Open file in the editor group
       dispatch({
         type: 'OPEN_FILE',
         fileId: file.id,
         fileName: file.name,
-        content: fileContents[file.id] || `// Content of ${file.name}\n\nFile content goes here...`,
+        fileType: fileType,
+        content: content,
       })
     }
   }

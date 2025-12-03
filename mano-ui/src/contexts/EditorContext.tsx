@@ -47,6 +47,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
         id: newTabId,
         fileId: action.fileId,
         fileName: action.fileName,
+        fileType: action.fileType,
         content: action.content,
         isDirty: false,
       }

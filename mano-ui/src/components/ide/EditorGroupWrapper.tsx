@@ -2,7 +2,6 @@ import { X, PanelRight } from 'lucide-react'
 import type { EditorGroup } from '@/types/editor'
 import { useEditor } from '@/hooks/useEditor'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   ContextMenu,
@@ -18,6 +17,7 @@ import {
   horizontalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { AutoSavePlateEditor } from '@/components/plate/AutoSavePlateEditor'
 
 interface EditorGroupWrapperProps {
   group: EditorGroup
@@ -56,24 +56,24 @@ function SortableTab({ tab, groupId, onClose }: SortableTabProps) {
     <TabsTrigger
       ref={setNodeRef}
       value={tab.id}
-      className="gap-2"
+      className="gap-2 relative group"
       style={style}
       {...attributes}
       {...listeners}
     >
       <span className="text-sm">{tab.fileName}</span>
       {tab.isDirty && <span className="w-2 h-2 rounded-full bg-primary" />}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-4 w-4 hover:bg-accent ml-1"
+      <div
+        role="button"
+        className="inline-flex h-4 w-4 items-center justify-center rounded-sm hover:bg-accent ml-1 cursor-pointer"
         onClick={(e) => {
           e.stopPropagation()
           onClose(tab.id)
         }}
+        onPointerDown={(e) => e.stopPropagation()}
       >
         <X className="w-3 h-3" />
-      </Button>
+      </div>
     </TabsTrigger>
   )
 }
@@ -171,11 +171,30 @@ export function EditorGroupWrapper({ group }: EditorGroupWrapperProps) {
 
           {group.tabs.map((tab) => (
             <TabsContent key={tab.id} value={tab.id} className="flex-1 m-0">
-              <ScrollArea className="h-full">
-                <div className="p-4 font-mono text-sm">
-                  <pre className="whitespace-pre-wrap">{tab.content}</pre>
-                </div>
-              </ScrollArea>
+              {tab.fileType === 'slate' ? (
+                <AutoSavePlateEditor
+                  value={tab.content}
+                  fileName={tab.fileName}
+                  onChange={(newValue: unknown) => {
+                    dispatch({
+                      type: 'UPDATE_TAB_CONTENT',
+                      tabId: tab.id,
+                      groupId: group.id,
+                      content: newValue,
+                    })
+                  }}
+                />
+              ) : (
+                <ScrollArea className="h-full">
+                  <div className="p-4 font-mono text-sm">
+                    <pre className="whitespace-pre-wrap">
+                      {typeof tab.content === 'string' 
+                        ? tab.content 
+                        : JSON.stringify(tab.content, null, 2)}
+                    </pre>
+                  </div>
+                </ScrollArea>
+              )}
             </TabsContent>
           ))}
         </Tabs>
