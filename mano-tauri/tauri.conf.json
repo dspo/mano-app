@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "identifier": "io.dspo.mano",
   "build": {
-    "beforeDevCommand": "pnpm dev",
+    "beforeDevCommand": "pnpm dev --port 1420",
     "devUrl": "http://localhost:1420",
     "beforeBuildCommand": "pnpm build",
     "frontendDist": "../mano-app/dist"
