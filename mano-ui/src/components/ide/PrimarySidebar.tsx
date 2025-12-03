@@ -1,4 +1,4 @@
-import { ChevronRight, ChevronDown, FileText, Folder } from 'lucide-react'
+import { ChevronRight, ChevronDown, FileText, Library, TextQuote, TextAlignStart } from 'lucide-react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
@@ -19,6 +19,18 @@ function FileTreeItem({ node, level, onFileClick, selectedFile }: FileTreeItemPr
   
   // Determine if node is a directory
   const isDirectory = node.nodeType === 'Directory'
+  
+  // Select icon based on node type
+  const getFileIcon = () => {
+    switch (node.nodeType) {
+      case 'SlateText':
+        return <TextAlignStart className="w-4 h-4 shrink-0 text-primary" />
+      case 'Markdown':
+        return <TextQuote className="w-4 h-4 shrink-0" />
+      default:
+        return <FileText className="w-4 h-4 shrink-0" />
+    }
+  }
 
   if (!isDirectory) {
     // Render file node
@@ -33,7 +45,7 @@ function FileTreeItem({ node, level, onFileClick, selectedFile }: FileTreeItemPr
         onClick={() => onFileClick(node)}
         disabled={node.readOnly}
       >
-        <FileText className="w-4 h-4 shrink-0" />
+        {getFileIcon()}
         <span className="truncate">{node.name}</span>
         {node.unread !== undefined && node.unread > 0 && (
           <span className="ml-auto text-xs text-muted-foreground">
@@ -60,7 +72,7 @@ function FileTreeItem({ node, level, onFileClick, selectedFile }: FileTreeItemPr
         ) : (
           <ChevronRight className="w-4 h-4 shrink-0" />
         )}
-        <Folder className="w-4 h-4 shrink-0" />
+        <Library className="w-4 h-4 shrink-0" />
         <span className="truncate">{node.name}</span>
         {node.unread !== undefined && node.unread > 0 && (
           <span className="ml-auto text-xs text-muted-foreground">
