@@ -103,14 +103,14 @@ make clean
 ## 🛠️ 技术栈
 
 ### 前端
-- **[React](https://react.dev/)** 19.2.0 - UI 框架
-- **[TypeScript](https://www.typescriptlang.org/)** 5.9.3 - 类型安全
-- **[Vite](https://vitejs.dev/)** 7.2.4 - 构建工具
-- **[Tailwind CSS](https://tailwindcss.com/)** 4.1.17 - 样式系统
+- **[React](https://react.dev/)** ^19.2.0 - UI 框架
+- **[TypeScript](https://www.typescriptlang.org/)** ~5.9.3 - 类型安全
+- **[Vite](https://vitejs.dev/)** ^7.2.4 - 构建工具
+- **[Tailwind CSS](https://tailwindcss.com/)** ^4.1.17 - 样式系统
 - **[shadcn/ui](https://ui.shadcn.com/)** - UI 组件库
 
 ### 富文本编辑
-- **[Plate.js](https://platejs.org/)** 52.0.1 - 富文本编辑器框架
+- **[Plate.js](https://platejs.org/)** ^52.0.1 - 富文本编辑器框架
 - **@platejs/basic-nodes** - 基础节点（段落、标题等）
 - **@platejs/basic-styles** - 基础样式（粗体、斜体等）
 - **@platejs/code-block** - 代码块支持
