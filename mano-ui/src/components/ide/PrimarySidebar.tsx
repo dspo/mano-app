@@ -1,4 +1,4 @@
-import { ChevronRight, ChevronDown, FileText, Library, TextQuote, TextAlignStart, Plus, Trash2, ArrowUpFromLine } from 'lucide-react'
+import { ChevronRight, ChevronDown, FileText, Library, TextQuote, TextAlignStart, Plus, Trash2, ArrowUpFromLine, Trash } from 'lucide-react'
 import { DndContext, useDraggable, useDroppable, PointerSensor, useSensor, useSensors, DragOverlay } from '@dnd-kit/core'
 import type { DragEndEvent, DragStartEvent, DragOverEvent } from '@dnd-kit/core'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -61,6 +61,20 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
       default:
         return <FileText className="w-4 h-4 shrink-0" />
     }
+  }
+
+  // Select icon for directory nodes
+  const getDirectoryIcon = () => {
+    // Special icon for trash node
+    if (node.id === '__trash__') {
+      // Empty trash vs trash with items
+      return hasChildren ? (
+        <Trash2 className="w-4 h-4 shrink-0" />
+      ) : (
+        <Trash className="w-4 h-4 shrink-0" />
+      )
+    }
+    return <Library className="w-4 h-4 shrink-0" />
   }
 
   // DnD kit bindings - disable dragging for nodes in trash
@@ -272,7 +286,7 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
                 className="w-full flex items-center gap-1 px-2 py-1 text-sm relative z-10"
                 style={{ paddingLeft: `${level * 12 + 8}px` }}
               >
-                <Library className="w-4 h-4 shrink-0" />
+                {getDirectoryIcon()}
                 <input
                   type="text"
                   value={editValue}
@@ -313,7 +327,7 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
                 {...listeners}
                 {...attributes}
               >
-                <Library className="w-4 h-4 shrink-0" />
+                {getDirectoryIcon()}
                 <span className="truncate">{node.name}</span>
                 {isOpen ? (
                   <ChevronDown className="w-4 h-4 shrink-0 ml-auto" />
