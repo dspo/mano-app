@@ -158,6 +158,8 @@ function IDELayoutContent() {
   // Track collapsed state for UI updates
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(true)
+  const [movingOutNodeId, setMovingOutNodeId] = useState<string | null>(null)
+  const [removingNodeId, setRemovingNodeId] = useState<string | null>(null)
 
   // Initialize bottom panel as collapsed on mount
   useEffect(() => {
@@ -584,6 +586,12 @@ function IDELayoutContent() {
     }
 
     try {
+      // 设置动画状态
+      setRemovingNodeId(node.id)
+      
+      // 等待动画完成
+      await new Promise(resolve => setTimeout(resolve, 500))
+
       const { getFileSystem } = await import('@/services/fileSystem')
       const { getNodeFilename } = await import('@/services/fileSystem')
       const fs = getFileSystem()
@@ -682,9 +690,14 @@ function IDELayoutContent() {
 
       toast.success('已移至垃圾篓')
       console.log('[handleRemoveNode] Moved to trash:', processedNode)
+      
+      // 清除动画状态
+      setRemovingNodeId(null)
     } catch (e) {
       console.error('Remove node failed:', e)
       toast.error('移除节点失败')
+      // 清除动画状态
+      setRemovingNodeId(null)
     }
   }
 
@@ -696,6 +709,12 @@ function IDELayoutContent() {
     }
 
     try {
+      // 设置动画状态
+      setMovingOutNodeId(node.id)
+      
+      // 等待动画完成
+      await new Promise(resolve => setTimeout(resolve, 500))
+
       const { getFileSystem } = await import('@/services/fileSystem')
       const { getNodeFilename } = await import('@/services/fileSystem')
       const fs = getFileSystem()
@@ -789,9 +808,14 @@ function IDELayoutContent() {
 
       toast.success('已移出垃圾篓')
       console.log('[handleMoveOut] Moved out from trash:', restoredNode)
+      
+      // 清除动画状态
+      setMovingOutNodeId(null)
     } catch (e) {
       console.error('Move out failed:', e)
       toast.error('移出失败')
+      // 清除动画状态
+      setMovingOutNodeId(null)
     }
   }
 
@@ -1036,6 +1060,8 @@ function IDELayoutContent() {
               onCancelEdit={handleCancelEdit}
               onRemoveNode={handleRemoveNode}
               onMoveOut={handleMoveOut}
+              movingOutNodeId={movingOutNodeId}
+              removingNodeId={removingNodeId}
             />
           </ResizablePanel>
           

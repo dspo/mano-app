@@ -32,9 +32,11 @@ interface FileTreeItemProps {
   onRemoveNode?: (node: FileNode) => void
   onMoveOut?: (node: FileNode) => void
   isInTrash?: boolean
+  movingOutNodeId?: string | null
+  removingNodeId?: string | null
 }
 
-function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragOverId, dropMode, dropLevel, onCreateNode, editingNodeId, onRenameNode, onCancelEdit, onRemoveNode, onMoveOut, isInTrash = false }: FileTreeItemProps) {
+function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragOverId, dropMode, dropLevel, onCreateNode, editingNodeId, onRenameNode, onCancelEdit, onRemoveNode, onMoveOut, isInTrash = false, movingOutNodeId, removingNodeId }: FileTreeItemProps) {
   const [isOpen, setIsOpen] = useState(true)
   const [editValue, setEditValue] = useState(node.name)
   const isEditing = editingNodeId === node.id
@@ -83,7 +85,13 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
   if (!isDirectory) {
     // Render file node - can also have children now
     return (
-      <div className="relative">
+      <div 
+        className={cn(
+          "relative transition-all duration-500",
+          movingOutNodeId === node.id && "opacity-0 scale-95",
+          removingNodeId === node.id && "opacity-0 scale-95"
+        )}
+      >
         {showBefore && (
           <div 
             className="absolute top-0 h-0.5 bg-primary rounded z-10"
@@ -217,6 +225,8 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
                 onRemoveNode={onRemoveNode}
                 onMoveOut={onMoveOut}
                 isInTrash={isTrashNode}
+                movingOutNodeId={movingOutNodeId}
+                removingNodeId={removingNodeId}
               />
             ))}
           </div>
@@ -233,7 +243,13 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
 
   // Render directory node
   return (
-    <div className="relative">
+    <div 
+      className={cn(
+        "relative transition-all duration-500",
+        movingOutNodeId === node.id && "opacity-0 scale-95",
+        removingNodeId === node.id && "opacity-0 scale-95"
+      )}
+    >
       {showBefore && (
         <div 
           className="absolute top-0 h-0.5 bg-primary rounded z-10"
@@ -354,6 +370,8 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
               onRemoveNode={onRemoveNode}
               onMoveOut={onMoveOut}
               isInTrash={isTrashNode}
+              movingOutNodeId={movingOutNodeId}
+              removingNodeId={removingNodeId}
             />
           ))}
         </div>
@@ -380,9 +398,11 @@ interface PrimarySidebarProps {
   onCancelEdit?: () => void
   onRemoveNode?: (node: FileNode) => void
   onMoveOut?: (node: FileNode) => void
+  movingOutNodeId?: string | null
+  removingNodeId?: string | null
 }
 
-export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree = [], onReorder, onCreateNode, editingNodeId, onRenameNode, onCancelEdit, onRemoveNode, onMoveOut }: PrimarySidebarProps) {
+export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree = [], onReorder, onCreateNode, editingNodeId, onRenameNode, onCancelEdit, onRemoveNode, onMoveOut, movingOutNodeId, removingNodeId }: PrimarySidebarProps) {
   const [dragOverId, setDragOverId] = useState<string | null>(null)
   const [dropMode, setDropMode] = useState<'before' | 'after' | 'into' | null>(null)
   const [dropLevel, setDropLevel] = useState<number>(0)
@@ -551,6 +571,8 @@ export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree =
                   onCancelEdit={onCancelEdit}
                   onRemoveNode={onRemoveNode}
                   onMoveOut={onMoveOut}
+                  movingOutNodeId={movingOutNodeId}
+                  removingNodeId={removingNodeId}
                 />
               ))}
             </div>
