@@ -681,6 +681,113 @@ function IDELayoutContent() {
     }
   }
 
+  // 将节点从垃圾篓移出
+  const handleMoveOut = async (node: FileNode) => {
+    if (!configFileHandle || !dirHandle) {
+      toast.error('请先打开文件夹')
+      return
+    }
+
+    try {
+      const { getFileSystem } = await import('@/services/fileSystem')
+      const { getNodeFilename } = await import('@/services/fileSystem')
+      const fs = getFileSystem()
+
+      // 递归处理节点：解码 content 并恢复文件
+      const restoreNode = async (n: FileNode): Promise<FileNode> => {
+        let restoredNode = { ...n }
+
+        // 如果是文本节点且有 content 字段（base64编码）
+        if ((n.nodeType === 'SlateText' || n.nodeType === 'Markdown') && n.content) {
+          try {
+            // Base64 解码
+            const decodedContent = decodeURIComponent(escape(atob(n.content)))
+            
+            // 恢复文件
+            const filename = getNodeFilename(n)
+            const fileHandle = await fs.getOrCreateFile(dirHandle, filename, '')
+            await fs.saveToFile(fileHandle.fileHandle, decodedContent)
+            
+            // 创建没有 content 字段的新对象
+            const { content: _content, ...nodeWithoutContent } = restoredNode
+            restoredNode = nodeWithoutContent as FileNode
+            
+            console.log(`[handleMoveOut] Restored file: ${filename}`)
+          } catch (error) {
+            console.error(`[handleMoveOut] Failed to restore node ${n.id}:`, error)
+            throw error
+          }
+        }
+
+        // 递归处理子节点
+        if (n.children && n.children.length > 0) {
+          restoredNode = {
+            ...restoredNode,
+            children: await Promise.all(
+              n.children.map(child => restoreNode(child))
+            )
+          }
+        }
+
+        return restoredNode
+      }
+
+      // 恢复节点及其所有子节点
+      const restoredNode = await restoreNode(node)
+
+      // 从垃圾篓中移除节点
+      const removeFromTrash = (nodes: FileNode[]): FileNode[] => {
+        return nodes.map(n => {
+          if (n.id === '__trash__' && n.children) {
+            return {
+              ...n,
+              children: n.children.filter(child => child.id !== node.id)
+            }
+          }
+          if (n.children) {
+            return {
+              ...n,
+              children: removeFromTrash(n.children)
+            }
+          }
+          return n
+        })
+      }
+
+      let updated = removeFromTrash(fileTree)
+
+      // 找到 __trash__ 节点的索引
+      const trashIndex = updated.findIndex(n => n.id === '__trash__')
+      
+      if (trashIndex !== -1) {
+        // 在 __trash__ 之前插入恢复的节点
+        updated = [
+          ...updated.slice(0, trashIndex),
+          restoredNode as FileNode,
+          ...updated.slice(trashIndex)
+        ]
+      } else {
+        // 如果找不到垃圾篓（不应该发生），添加到末尾
+        updated = [...updated, restoredNode as FileNode]
+      }
+
+      setFileTree(updated)
+
+      // 保存到 mano.conf.json
+      const { saveManoConfig } = await import('@/services/fileSystem')
+      await saveManoConfig(configFileHandle, {
+        data: updated as any,
+        lastUpdated: new Date().toISOString()
+      })
+
+      toast.success('已移出垃圾篓')
+      console.log('[handleMoveOut] Moved out from trash:', restoredNode)
+    } catch (e) {
+      console.error('Move out failed:', e)
+      toast.error('移出失败')
+    }
+  }
+
   const handleFileClick = async (file: FileNode) => {
     // Only handle non-directory nodes
     if (file.nodeType === 'Directory') {
@@ -921,6 +1028,7 @@ function IDELayoutContent() {
               onRenameNode={handleRenameNode}
               onCancelEdit={handleCancelEdit}
               onRemoveNode={handleRemoveNode}
+              onMoveOut={handleMoveOut}
             />
           </ResizablePanel>
           

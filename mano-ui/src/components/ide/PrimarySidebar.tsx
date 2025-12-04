@@ -1,4 +1,4 @@
-import { ChevronRight, ChevronDown, FileText, Library, TextQuote, TextAlignStart, Plus, Trash2 } from 'lucide-react'
+import { ChevronRight, ChevronDown, FileText, Library, TextQuote, TextAlignStart, Plus, Trash2, ArrowUpFromLine } from 'lucide-react'
 import { DndContext, useDraggable, useDroppable, PointerSensor, useSensor, useSensors, DragOverlay } from '@dnd-kit/core'
 import type { DragEndEvent, DragStartEvent, DragOverEvent } from '@dnd-kit/core'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -30,10 +30,11 @@ interface FileTreeItemProps {
   onRenameNode?: (nodeId: string, newName: string) => void
   onCancelEdit?: () => void
   onRemoveNode?: (node: FileNode) => void
+  onMoveOut?: (node: FileNode) => void
   isInTrash?: boolean
 }
 
-function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragOverId, dropMode, dropLevel, onCreateNode, editingNodeId, onRenameNode, onCancelEdit, onRemoveNode, isInTrash = false }: FileTreeItemProps) {
+function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragOverId, dropMode, dropLevel, onCreateNode, editingNodeId, onRenameNode, onCancelEdit, onRemoveNode, onMoveOut, isInTrash = false }: FileTreeItemProps) {
   const [isOpen, setIsOpen] = useState(true)
   const [editValue, setEditValue] = useState(node.name)
   const isEditing = editingNodeId === node.id
@@ -60,8 +61,12 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
     }
   }
 
-  // DnD kit bindings
-  const { setNodeRef: setDragRef, listeners, attributes, isDragging } = useDraggable({ id: node.id, data: { node, level } })
+  // DnD kit bindings - disable dragging for nodes in trash
+  const { setNodeRef: setDragRef, listeners, attributes, isDragging } = useDraggable({ 
+    id: node.id, 
+    data: { node, level },
+    disabled: isTrashNode // 禁用垃圾桶内节点的拖动
+  })
   const { setNodeRef: setDropRef } = useDroppable({ id: `row-${node.id}`, data: { node, type: 'row', level } })
   
   // drop indicator
@@ -165,6 +170,14 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
             </div>
           </ContextMenuTrigger>
           <ContextMenuContent className="w-48">
+            {isInTrash && node.id !== '__trash__' && (
+              <ContextMenuItem
+                onClick={() => onMoveOut?.(node)}
+              >
+                <ArrowUpFromLine className="w-4 h-4 mr-2" />
+                Move out
+              </ContextMenuItem>
+            )}
             <ContextMenuItem
               onClick={() => onCreateNode?.(node)}
               disabled={node.readOnly || isTrashNode}
@@ -200,6 +213,7 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
                 onRenameNode={onRenameNode}
                 onCancelEdit={onCancelEdit}
                 onRemoveNode={onRemoveNode}
+                onMoveOut={onMoveOut}
                 isInTrash={isTrashNode}
               />
             ))}
@@ -293,6 +307,14 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
           </div>
         </ContextMenuTrigger>
         <ContextMenuContent className="w-48">
+          {isInTrash && node.id !== '__trash__' && (
+            <ContextMenuItem
+              onClick={() => onMoveOut?.(node)}
+            >
+              <ArrowUpFromLine className="w-4 h-4 mr-2" />
+              Move out
+            </ContextMenuItem>
+          )}
           <ContextMenuItem
             onClick={() => onCreateNode?.(node)}
             disabled={node.readOnly || isTrashNode}
@@ -328,6 +350,7 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
               onRenameNode={onRenameNode}
               onCancelEdit={onCancelEdit}
               onRemoveNode={onRemoveNode}
+              onMoveOut={onMoveOut}
               isInTrash={isTrashNode}
             />
           ))}
@@ -354,9 +377,10 @@ interface PrimarySidebarProps {
   onRenameNode?: (nodeId: string, newName: string) => void
   onCancelEdit?: () => void
   onRemoveNode?: (node: FileNode) => void
+  onMoveOut?: (node: FileNode) => void
 }
 
-export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree = [], onReorder, onCreateNode, editingNodeId, onRenameNode, onCancelEdit, onRemoveNode }: PrimarySidebarProps) {
+export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree = [], onReorder, onCreateNode, editingNodeId, onRenameNode, onCancelEdit, onRemoveNode, onMoveOut }: PrimarySidebarProps) {
   const [dragOverId, setDragOverId] = useState<string | null>(null)
   const [dropMode, setDropMode] = useState<'before' | 'after' | 'into' | null>(null)
   const [dropLevel, setDropLevel] = useState<number>(0)
@@ -409,27 +433,20 @@ export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree =
     const sourceInfo = findNodeWithTrashInfo(fileTree, sourceId)
     const targetInfo = findNodeWithTrashInfo(fileTree, targetId)
 
-    // 规则1：垃圾篓内部不能重排，不显示任何 drop 指示器
-    if (sourceInfo.isInTrash && targetInfo.isInTrash) {
+    // 新规则：禁止任何拖放到垃圾篓内（包括垃圾篓根节点和其子节点）
+    if (targetInfo.isInTrash) {
       setDragOverId(null)
       setDropMode(null)
       setDropLevel(0)
       return
     }
 
-    // 规则2：从外部拖入垃圾篓内部的子节点，不允许
-    if (!sourceInfo.isInTrash && targetInfo.isInTrash && targetId !== '__trash__') {
+    // 规则：垃圾篓内的节点不能拖动（已在 useDraggable 中禁用）
+    // 这里额外检查，如果源在垃圾篓内，不显示任何 drop 指示器
+    if (sourceInfo.isInTrash) {
       setDragOverId(null)
       setDropMode(null)
       setDropLevel(0)
-      return
-    }
-
-    // 规则3：拖入垃圾篓根节点，强制只能 'into' 模式（放到末尾）
-    if (!sourceInfo.isInTrash && targetId === '__trash__') {
-      setDragOverId(targetId)
-      setDropMode('into')
-      setDropLevel(targetLevel + 1)
       return
     }
     
@@ -530,6 +547,7 @@ export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree =
                   onRenameNode={onRenameNode}
                   onCancelEdit={onCancelEdit}
                   onRemoveNode={onRemoveNode}
+                  onMoveOut={onMoveOut}
                 />
               ))}
             </div>
