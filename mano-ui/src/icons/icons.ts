@@ -1,4 +1,3 @@
-
 import { createLucideIcon } from "lucide-react";
 export const ManoLibrary = createLucideIcon("manolibrary", [
   [
