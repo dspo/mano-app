@@ -10,5 +10,5 @@ export function cn(...inputs: ClassValue[]) {
  * @returns true if running in Tauri, false otherwise
  */
 export const isTauri = () => {
-  return typeof window !== 'undefined' && (window as any).__TAURI_INTERNALS__;
+  return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 };
