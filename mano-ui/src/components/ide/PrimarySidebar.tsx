@@ -34,12 +34,15 @@ interface FileTreeItemProps {
   isInTrash?: boolean
   movingOutNodeId?: string | null
   removingNodeId?: string | null
+  contextMenuNodeId?: string | null
+  onContextMenuChange?: (nodeId: string | null) => void
 }
 
-function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragOverId, dropMode, dropLevel, onCreateNode, editingNodeId, onRenameNode, onCancelEdit, onRemoveNode, onMoveOut, isInTrash = false, movingOutNodeId, removingNodeId }: FileTreeItemProps) {
+function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragOverId, dropMode, dropLevel, onCreateNode, editingNodeId, onRenameNode, onCancelEdit, onRemoveNode, onMoveOut, isInTrash = false, movingOutNodeId, removingNodeId, contextMenuNodeId, onContextMenuChange }: FileTreeItemProps) {
   const [isOpen, setIsOpen] = useState(true)
   const [editValue, setEditValue] = useState(node.name)
   const isEditing = editingNodeId === node.id
+  const isContextMenuActive = contextMenuNodeId === node.id
   
   // Check if current node is trash or inside trash
   const isTrashNode = node.id === '__trash__' || isInTrash
@@ -114,7 +117,7 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
           />
         )}
 
-        <ContextMenu>
+        <ContextMenu onOpenChange={(open) => onContextMenuChange?.(open ? node.id : null)}>
           <ContextMenuTrigger asChild>
             <div
               ref={(el) => {
@@ -122,7 +125,10 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
                 setDropRef(el)
               }}
               data-id={node.id}
-              className="relative flex items-center"
+              className={cn(
+                "relative flex items-center transition-all duration-300",
+                isContextMenuActive && "scale-[1.02] shadow-md shadow-primary/10 rounded-lg"
+              )}
             >
               {isEditing ? (
                 <div
@@ -241,6 +247,8 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
                 isInTrash={isTrashNode}
                 movingOutNodeId={movingOutNodeId}
                 removingNodeId={removingNodeId}
+                contextMenuNodeId={contextMenuNodeId}
+                onContextMenuChange={onContextMenuChange}
               />
             ))}
           </div>
@@ -271,7 +279,7 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
         />
       )}
 
-      <ContextMenu>
+      <ContextMenu onOpenChange={(open) => onContextMenuChange?.(open ? node.id : null)}>
         <ContextMenuTrigger asChild>
           <div
             ref={(el) => {
@@ -279,7 +287,10 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
               setDropRef(el)
             }}
             data-id={node.id}
-            className="relative"
+            className={cn(
+              "relative transition-all duration-300",
+              isContextMenuActive && "scale-[1.02] shadow-md shadow-primary/10 rounded-lg"
+            )}
           >
             {isEditing ? (
               <div
@@ -386,6 +397,8 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
               isInTrash={isTrashNode}
               movingOutNodeId={movingOutNodeId}
               removingNodeId={removingNodeId}
+              contextMenuNodeId={contextMenuNodeId}
+              onContextMenuChange={onContextMenuChange}
             />
           ))}
         </div>
@@ -421,6 +434,7 @@ export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree =
   const [dropMode, setDropMode] = useState<'before' | 'after' | 'into' | null>(null)
   const [dropLevel, setDropLevel] = useState<number>(0)
   const [activeNode, setActiveNode] = useState<FileNode | null>(null)
+  const [contextMenuNodeId, setContextMenuNodeId] = useState<string | null>(null)
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   )
@@ -587,6 +601,8 @@ export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree =
                   onMoveOut={onMoveOut}
                   movingOutNodeId={movingOutNodeId}
                   removingNodeId={removingNodeId}
+                  contextMenuNodeId={contextMenuNodeId}
+                  onContextMenuChange={setContextMenuNodeId}
                 />
               ))}
             </div>
