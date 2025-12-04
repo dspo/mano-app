@@ -55,13 +55,10 @@ export class TauriFileSystemStrategy implements IFileSystemStrategy {
     }
     
     try {
-      console.log('[TauriFS] Opening directory picker...')
       const selected = await open({
         directory: true,
         multiple: false,
       })
-
-      console.log('[TauriFS] Selected:', selected)
       
       if (!selected || typeof selected !== 'string') {
         throw new Error('No directory selected')
@@ -87,19 +84,15 @@ export class TauriFileSystemStrategy implements IFileSystemStrategy {
         const text = await readTextFile(configPath)
         const config = JSON.parse(text) as ManoConfig
 
-        console.log('[TauriFS] Loaded mano.conf.json')
         return {
           config,
           fileHandle: new TauriFileHandle(configPath),
         }
       } else {
         // File doesn't exist, create it
-        console.log('[TauriFS] mano.conf.json not found, creating default...')
-
         const config = createDefaultManoConfig()
         await writeTextFile(configPath, JSON.stringify(config, null, 2))
 
-        console.log('[TauriFS] Created mano.conf.json')
         return {
           config,
           fileHandle: new TauriFileHandle(configPath),
@@ -116,10 +109,8 @@ export class TauriFileSystemStrategy implements IFileSystemStrategy {
     filename: string,
     defaultContent: string | unknown = ''
   ): Promise<FileResult> {
-    console.log('[TauriFS getOrCreateFile] Received filename:', filename)
     const tauriHandle = dirHandle as TauriDirectoryHandle
     const filePath = `${tauriHandle.path}/${filename}`
-    console.log('[TauriFS getOrCreateFile] Constructed filePath:', filePath)
 
     try {
       const fileExists = await exists(filePath)
@@ -133,8 +124,6 @@ export class TauriFileSystemStrategy implements IFileSystemStrategy {
         }
       } else {
         // File doesn't exist, create it
-        console.log(`[TauriFS] Creating new file: ${filename}`)
-
         const textContent =
           typeof defaultContent === 'string'
             ? defaultContent
@@ -163,7 +152,6 @@ export class TauriFileSystemStrategy implements IFileSystemStrategy {
 
       await writeTextFile(tauriHandle.path, textContent)
 
-      console.log(`[TauriFS] Saved to disk successfully`)
       return true
     } catch (error) {
       console.error('[TauriFS] Failed to save:', error)
