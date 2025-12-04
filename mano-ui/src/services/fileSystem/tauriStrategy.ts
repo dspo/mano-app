@@ -23,10 +23,20 @@ class TauriDirectoryHandle implements IDirectoryHandle {
   readonly kind = 'directory' as const
   readonly name: string
   readonly path: string
+  private readonly separator: string
 
   constructor(path: string) {
     this.path = path
     this.name = path.split(/[/\\]/).pop() || path
+    // Detect path separator from the path itself
+    this.separator = path.includes('\\') ? '\\' : '/'
+  }
+
+  /**
+   * Join path segments using the appropriate separator
+   */
+  joinPath(...segments: string[]): string {
+    return [this.path, ...segments].join(this.separator)
   }
 }
 
@@ -76,7 +86,7 @@ export class TauriFileSystemStrategy implements IFileSystemStrategy {
 
   async readOrCreateManoConfig(dirHandle: IDirectoryHandle): Promise<ManoConfigResult> {
     const tauriHandle = dirHandle as TauriDirectoryHandle
-    const configPath = `${tauriHandle.path}/mano.conf.json`
+    const configPath = tauriHandle.joinPath('mano.conf.json')
 
     try {
       // Check if file exists
@@ -118,7 +128,7 @@ export class TauriFileSystemStrategy implements IFileSystemStrategy {
   ): Promise<FileResult> {
     console.log('[TauriFS getOrCreateFile] Received filename:', filename)
     const tauriHandle = dirHandle as TauriDirectoryHandle
-    const filePath = `${tauriHandle.path}/${filename}`
+    const filePath = tauriHandle.joinPath(filename)
     console.log('[TauriFS getOrCreateFile] Constructed filePath:', filePath)
 
     try {
