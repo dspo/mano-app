@@ -43,7 +43,10 @@ class TauriDirectoryHandle implements IDirectoryHandle {
       .filter(segment => segment.length > 0)
       .map(segment => segment.replace(/[/\\]+/g, this.separator))
     
-    return [this.path, ...normalizedSegments].join(this.separator)
+    // Remove trailing separator from base path if present
+    const basePath = this.path.replace(/[/\\]+$/, '')
+    
+    return [basePath, ...normalizedSegments].join(this.separator)
   }
 }
 
