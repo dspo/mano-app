@@ -2,7 +2,11 @@
  * File System Access API service for saving files
  * This file provides backward compatibility while using the new strategy pattern
  * 
- * @deprecated Use the new fileSystem service from './fileSystem/index' instead
+ * @deprecated Use the new strategy-based fileSystem service from './fileSystem/index' instead:
+ * - Import { getFileSystem } from '@/services/fileSystem/index'
+ * - Call getFileSystem().saveToFile() instead of saveToFileSystem()
+ * 
+ * This compatibility layer will be removed in a future version.
  */
 
 import { getFileSystem, isFileSystemSupported } from './fileSystem/index'
