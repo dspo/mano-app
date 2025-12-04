@@ -42,7 +42,7 @@ export function TitleBar({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
               <DropdownMenuItem>New File</DropdownMenuItem>
-              <DropdownMenuItem onClick={onOpenFolder}>Open Folder ...</DropdownMenuItem>
+              <DropdownMenuItem onClick={onOpenFolder}>Open Workspace ...</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={onSave}>
                 <div className="flex items-center justify-between w-full gap-8">

@@ -171,4 +171,17 @@ export class BrowserFileSystemStrategy implements IFileSystemStrategy {
     config.lastUpdated = new Date().toISOString()
     return this.saveToFile(fileHandle, config)
   }
+
+  async deleteFile(dirHandle: IDirectoryHandle, filename: string): Promise<boolean> {
+    const browserHandle = (dirHandle as BrowserDirectoryHandle).handle
+
+    try {
+      await browserHandle.removeEntry(filename)
+      console.log(`[BrowserFS] Deleted file: ${filename}`)
+      return true
+    } catch (error) {
+      console.error(`[BrowserFS] Failed to delete file: ${filename}`, error)
+      return false
+    }
+  }
 }

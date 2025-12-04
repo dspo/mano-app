@@ -80,4 +80,9 @@ export interface IFileSystemStrategy {
    * Save mano.conf.json
    */
   saveManoConfig(fileHandle: IFileHandle, config: ManoConfig): Promise<boolean>
+
+  /**
+   * Delete a file from the file system
+   */
+  deleteFile(dirHandle: IDirectoryHandle, filename: string): Promise<boolean>
 }

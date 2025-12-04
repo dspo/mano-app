@@ -1,4 +1,4 @@
-import { ChevronRight, ChevronDown, FileText, Library, TextQuote, TextAlignStart } from 'lucide-react'
+import { ChevronRight, ChevronDown, FileText, Library, TextQuote, TextAlignStart, Plus, Trash2, ArrowUpFromLine } from 'lucide-react'
 import { DndContext, useDraggable, useDroppable, PointerSensor, useSensor, useSensors, DragOverlay } from '@dnd-kit/core'
 import type { DragEndEvent, DragStartEvent, DragOverEvent } from '@dnd-kit/core'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -6,6 +6,12 @@ import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import type { ManoNode } from '@/types/mano-config'
 import { ManoTextAlignStartIcon } from '@/icons/icons'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu'
 
 // For backward compatibility, keep FileNode as alias
 export type FileNode = ManoNode
@@ -19,10 +25,22 @@ interface FileTreeItemProps {
   dragOverId?: string | null
   dropMode?: 'before' | 'after' | 'into' | null
   dropLevel?: number
+  onCreateNode?: (parentNode: FileNode) => void
+  editingNodeId?: string | null
+  onRenameNode?: (nodeId: string, newName: string) => void
+  onCancelEdit?: () => void
+  onRemoveNode?: (node: FileNode) => void
+  onMoveOut?: (node: FileNode) => void
+  isInTrash?: boolean
 }
 
-function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragOverId, dropMode, dropLevel }: FileTreeItemProps) {
+function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragOverId, dropMode, dropLevel, onCreateNode, editingNodeId, onRenameNode, onCancelEdit, onRemoveNode, onMoveOut, isInTrash = false }: FileTreeItemProps) {
   const [isOpen, setIsOpen] = useState(true)
+  const [editValue, setEditValue] = useState(node.name)
+  const isEditing = editingNodeId === node.id
+  
+  // Check if current node is trash or inside trash
+  const isTrashNode = node.id === '__trash__' || isInTrash
   
   // Determine if node is a directory
   const isDirectory = node.nodeType === 'Directory'
@@ -43,8 +61,12 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
     }
   }
 
-  // DnD kit bindings
-  const { setNodeRef: setDragRef, listeners, attributes, isDragging } = useDraggable({ id: node.id, data: { node, level } })
+  // DnD kit bindings - disable dragging for nodes in trash
+  const { setNodeRef: setDragRef, listeners, attributes, isDragging } = useDraggable({ 
+    id: node.id, 
+    data: { node, level },
+    disabled: isTrashNode // 禁用垃圾桶内节点的拖动
+  })
   const { setNodeRef: setDropRef } = useDroppable({ id: `row-${node.id}`, data: { node, type: 'row', level } })
   
   // drop indicator
@@ -70,49 +92,108 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
           />
         )}
 
-        <div
-          ref={(el) => {
-            setDragRef(el)
-            setDropRef(el)
-          }}
-          data-id={node.id}
-          className="relative"
-        >
-          <button
-            className={cn(
-              'w-full flex items-center gap-2 px-2 py-1 text-sm hover:bg-accent/50 cursor-pointer relative z-10',
-              selectedFile === node.id && 'bg-accent',
-              node.readOnly && 'opacity-60',
-              isDragging && 'opacity-30'
-            )}
-            style={{ paddingLeft: `${level * 12 + 8}px` }}
-            onClick={(e) => {
-              if (hasChildren && e.shiftKey) {
-                setIsOpen(!isOpen)
-              } else {
-                onFileClick(node)
-              }
-            }}
-            {...listeners}
-            {...attributes}
-            disabled={node.readOnly}
-          >
-            {hasChildren && (
-              isOpen ? (
-                <ChevronDown className="w-3 h-3 shrink-0 opacity-50" />
+        <ContextMenu>
+          <ContextMenuTrigger asChild>
+            <div
+              ref={(el) => {
+                setDragRef(el)
+                setDropRef(el)
+              }}
+              data-id={node.id}
+              className="relative"
+            >
+              {isEditing ? (
+                <div
+                  className="w-full flex items-center gap-2 px-2 py-1 text-sm relative z-10"
+                  style={{ paddingLeft: `${level * 12 + 8}px` }}
+                >
+                  {hasChildren && <div className="w-3 h-3 shrink-0" />}
+                  {getFileIcon()}
+                  <input
+                    type="text"
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    onBlur={() => {
+                      if (editValue.trim()) {
+                        onRenameNode?.(node.id, editValue.trim())
+                      } else {
+                        onCancelEdit?.()
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        if (editValue.trim()) {
+                          onRenameNode?.(node.id, editValue.trim())
+                        } else {
+                          onCancelEdit?.()
+                        }
+                      } else if (e.key === 'Escape') {
+                        onCancelEdit?.()
+                      }
+                    }}
+                    autoFocus
+                    className="flex-1 bg-background border border-primary rounded px-1 py-0.5 text-sm outline-none"
+                    onFocus={(e) => e.target.select()}
+                  />
+                </div>
               ) : (
-                <ChevronRight className="w-3 h-3 shrink-0 opacity-50" />
-              )
+                <button
+                  className={cn(
+                    'w-full flex items-center gap-2 px-2 py-1 text-sm hover:bg-accent/50 cursor-pointer relative z-10',
+                    selectedFile === node.id && 'bg-accent',
+                    node.readOnly && 'opacity-60',
+                    isDragging && 'opacity-30'
+                  )}
+                  style={{ paddingLeft: `${level * 12 + 8}px` }}
+                  onClick={(e) => {
+                    if (hasChildren && e.shiftKey) {
+                      setIsOpen(!isOpen)
+                    } else {
+                      onFileClick(node)
+                    }
+                  }}
+                  {...listeners}
+                  {...attributes}
+                  disabled={node.readOnly}
+                >
+                  {hasChildren && (
+                    isOpen ? (
+                      <ChevronDown className="w-3 h-3 shrink-0 opacity-50" />
+                    ) : (
+                      <ChevronRight className="w-3 h-3 shrink-0 opacity-50" />
+                    )
+                  )}
+                  {getFileIcon()}
+                  <span className="truncate">{node.name}</span>
+                </button>
+              )}
+            </div>
+          </ContextMenuTrigger>
+          <ContextMenuContent className="w-48">
+            {isInTrash && node.id !== '__trash__' && (
+              <ContextMenuItem
+                onClick={() => onMoveOut?.(node)}
+              >
+                <ArrowUpFromLine className="w-4 h-4 mr-2" />
+                Move out
+              </ContextMenuItem>
             )}
-            {getFileIcon()}
-            <span className="truncate">{node.name}</span>
-            {node.unread !== undefined && node.unread > 0 && (
-              <span className="ml-auto text-xs text-muted-foreground">
-                {node.unread}
-              </span>
-            )}
-          </button>
-        </div>
+            <ContextMenuItem
+              onClick={() => onCreateNode?.(node)}
+              disabled={node.readOnly || isTrashNode}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Create Mano Text
+            </ContextMenuItem>
+            <ContextMenuItem
+              onClick={() => onRemoveNode?.(node)}
+              disabled={node.readOnly || isTrashNode}
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Remove
+            </ContextMenuItem>
+          </ContextMenuContent>
+        </ContextMenu>
 
         {isOpen && hasChildren && (
           <div className="relative">
@@ -127,6 +208,13 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
                 dragOverId={dragOverId}
                 dropMode={dropMode}
                 dropLevel={dropLevel}
+                onCreateNode={onCreateNode}
+                editingNodeId={editingNodeId}
+                onRenameNode={onRenameNode}
+                onCancelEdit={onCancelEdit}
+                onRemoveNode={onRemoveNode}
+                onMoveOut={onMoveOut}
+                isInTrash={isTrashNode}
               />
             ))}
           </div>
@@ -151,39 +239,98 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
         />
       )}
 
-      <div
-        ref={(el) => {
-          setDragRef(el)
-          setDropRef(el)
-        }}
-        data-id={node.id}
-        className="relative"
-      >
-        <button
-          className={cn(
-            'w-full flex items-center gap-1 px-2 py-1 text-sm hover:bg-accent/50 cursor-pointer relative z-10',
-            node.readOnly && 'opacity-60',
-            isDragging && 'opacity-30'
+      <ContextMenu>
+        <ContextMenuTrigger asChild>
+          <div
+            ref={(el) => {
+              setDragRef(el)
+              setDropRef(el)
+            }}
+            data-id={node.id}
+            className="relative"
+          >
+            {isEditing ? (
+              <div
+                className="w-full flex items-center gap-1 px-2 py-1 text-sm relative z-10"
+                style={{ paddingLeft: `${level * 12 + 8}px` }}
+              >
+                <div className="w-4 h-4 shrink-0" />
+                <Library className="w-4 h-4 shrink-0" />
+                <input
+                  type="text"
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  onBlur={() => {
+                    if (editValue.trim()) {
+                      onRenameNode?.(node.id, editValue.trim())
+                    } else {
+                      onCancelEdit?.()
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      if (editValue.trim()) {
+                        onRenameNode?.(node.id, editValue.trim())
+                      } else {
+                        onCancelEdit?.()
+                      }
+                    } else if (e.key === 'Escape') {
+                      onCancelEdit?.()
+                    }
+                  }}
+                  autoFocus
+                  className="flex-1 bg-background border border-primary rounded px-1 py-0.5 text-sm outline-none"
+                  onFocus={(e) => e.target.select()}
+                />
+              </div>
+            ) : (
+              <button
+                className={cn(
+                  'w-full flex items-center gap-1 px-2 py-1 text-sm hover:bg-accent/50 cursor-pointer relative z-10',
+                  node.readOnly && 'opacity-60',
+                  isDragging && 'opacity-30'
+                )}
+                style={{ paddingLeft: `${level * 12 + 8}px` }}
+                onClick={() => setIsOpen(!isOpen)}
+                {...listeners}
+                {...attributes}
+              >
+                {isOpen ? (
+                  <ChevronDown className="w-4 h-4 shrink-0" />
+                ) : (
+                  <ChevronRight className="w-4 h-4 shrink-0" />
+                )}
+                <Library className="w-4 h-4 shrink-0" />
+                <span className="truncate">{node.name}</span>
+              </button>
+            )}
+          </div>
+        </ContextMenuTrigger>
+        <ContextMenuContent className="w-48">
+          {isInTrash && node.id !== '__trash__' && (
+            <ContextMenuItem
+              onClick={() => onMoveOut?.(node)}
+            >
+              <ArrowUpFromLine className="w-4 h-4 mr-2" />
+              Move out
+            </ContextMenuItem>
           )}
-          style={{ paddingLeft: `${level * 12 + 8}px` }}
-          onClick={() => setIsOpen(!isOpen)}
-          {...listeners}
-          {...attributes}
-        >
-          {isOpen ? (
-            <ChevronDown className="w-4 h-4 shrink-0" />
-          ) : (
-            <ChevronRight className="w-4 h-4 shrink-0" />
-          )}
-          <Library className="w-4 h-4 shrink-0" />
-          <span className="truncate">{node.name}</span>
-          {node.unread !== undefined && node.unread > 0 && (
-            <span className="ml-auto text-xs text-muted-foreground">
-              {node.unread}
-            </span>
-          )}
-        </button>
-      </div>
+          <ContextMenuItem
+            onClick={() => onCreateNode?.(node)}
+            disabled={node.readOnly || isTrashNode}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Create Mano Text
+          </ContextMenuItem>
+          <ContextMenuItem
+            onClick={() => onRemoveNode?.(node)}
+            disabled={node.readOnly || isTrashNode}
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            Remove
+          </ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>
 
       {isOpen && node.children && (
         <div className="relative">
@@ -198,6 +345,13 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
               dragOverId={dragOverId}
               dropMode={dropMode}
               dropLevel={dropLevel}
+              onCreateNode={onCreateNode}
+              editingNodeId={editingNodeId}
+              onRenameNode={onRenameNode}
+              onCancelEdit={onCancelEdit}
+              onRemoveNode={onRemoveNode}
+              onMoveOut={onMoveOut}
+              isInTrash={isTrashNode}
             />
           ))}
         </div>
@@ -218,9 +372,15 @@ interface PrimarySidebarProps {
   selectedFile: string | null
   fileTree?: FileNode[]
   onReorder?: (payload: { sourceId: string; targetId: string; mode: 'before' | 'after' | 'into' }) => void
+  onCreateNode?: (parentNode: FileNode) => void
+  editingNodeId?: string | null
+  onRenameNode?: (nodeId: string, newName: string) => void
+  onCancelEdit?: () => void
+  onRemoveNode?: (node: FileNode) => void
+  onMoveOut?: (node: FileNode) => void
 }
 
-export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree = [], onReorder }: PrimarySidebarProps) {
+export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree = [], onReorder, onCreateNode, editingNodeId, onRenameNode, onCancelEdit, onRemoveNode, onMoveOut }: PrimarySidebarProps) {
   const [dragOverId, setDragOverId] = useState<string | null>(null)
   const [dropMode, setDropMode] = useState<'before' | 'after' | 'into' | null>(null)
   const [dropLevel, setDropLevel] = useState<number>(0)
@@ -253,6 +413,42 @@ export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree =
     }
     const targetId = m[1]
     const targetLevel = over.data.current?.level ?? 0
+
+    // 检查源节点和目标节点是否在垃圾篓中
+    const findNodeWithTrashInfo = (nodes: FileNode[], id: string, isInTrash = false): { node: FileNode | null; isInTrash: boolean } => {
+      for (const node of nodes) {
+        const currentIsInTrash = isInTrash || node.id === '__trash__'
+        if (node.id === id) {
+          return { node, isInTrash: currentIsInTrash }
+        }
+        if (node.children) {
+          const result = findNodeWithTrashInfo(node.children, id, currentIsInTrash)
+          if (result.node) return result
+        }
+      }
+      return { node: null, isInTrash: false }
+    }
+
+    const sourceId = String(active.id)
+    const sourceInfo = findNodeWithTrashInfo(fileTree, sourceId)
+    const targetInfo = findNodeWithTrashInfo(fileTree, targetId)
+
+    // 新规则：禁止任何拖放到垃圾篓内（包括垃圾篓根节点和其子节点）
+    if (targetInfo.isInTrash) {
+      setDragOverId(null)
+      setDropMode(null)
+      setDropLevel(0)
+      return
+    }
+
+    // 规则：垃圾篓内的节点不能拖动（已在 useDraggable 中禁用）
+    // 这里额外检查，如果源在垃圾篓内，不显示任何 drop 指示器
+    if (sourceInfo.isInTrash) {
+      setDragOverId(null)
+      setDropMode(null)
+      setDropLevel(0)
+      return
+    }
     
     const el = document.querySelector(`[data-id="${targetId}"]`)
     if (!el) {
@@ -346,6 +542,12 @@ export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree =
                   dragOverId={dragOverId}
                   dropMode={dropMode}
                   dropLevel={dropLevel}
+                  onCreateNode={onCreateNode}
+                  editingNodeId={editingNodeId}
+                  onRenameNode={onRenameNode}
+                  onCancelEdit={onCancelEdit}
+                  onRemoveNode={onRemoveNode}
+                  onMoveOut={onMoveOut}
                 />
               ))}
             </div>

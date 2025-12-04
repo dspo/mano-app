@@ -7,11 +7,11 @@ export type NodeType = 'Directory' | 'SlateText' | 'Markdown'
 export interface ManoNode {
   id: string
   name: string
-  unread?: number
-  moreInfo?: string[]
+  metadata?: Record<string, unknown>
   readOnly?: boolean
   nodeType: NodeType
   children?: ManoNode[]
+  content?: string  // Base64 encoded content for deleted nodes in trash
 }
 
 export interface ManoConfig {
@@ -68,17 +68,22 @@ export function createDefaultManoConfig(): ManoConfig {
     data: [
       {
         id: '1',
-        name: '未命名项目',
-        nodeType: 'Directory',
+        name: '我的连载...',
+        metadata: {
+          '连载中': true,
+          '计划': '80回',
+          '已完成': '1回'
+        },
         readOnly: false,
-        children: [
-          {
-            id: '1-1',
-            name: '欢迎',
-            nodeType: 'SlateText',
-            readOnly: false
-          }
-        ]
+        nodeType: 'Directory',
+        children: []
+      },
+      {
+        id: '__trash__',
+        name: '垃圾篓',
+        readOnly: true,
+        nodeType: 'Directory',
+        children: []
       }
     ],
     lastUpdated: new Date().toISOString()
