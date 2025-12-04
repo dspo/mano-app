@@ -26,7 +26,7 @@ class TauriDirectoryHandle implements IDirectoryHandle {
 
   constructor(path: string) {
     this.path = path
-    this.name = path.split('/').pop() || path
+    this.name = path.split(/[/\\]/).pop() || path
   }
 }
 
@@ -40,7 +40,7 @@ class TauriFileHandle implements IFileHandle {
 
   constructor(path: string) {
     this.path = path
-    this.name = path.split('/').pop() || path
+    this.name = path.split(/[/\\]/).pop() || path
   }
 }
 
