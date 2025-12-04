@@ -6,7 +6,7 @@
 import type { ManoConfig } from '@/types/mano-config'
 import { createDefaultManoConfig } from '@/types/mano-config'
 import { open } from '@tauri-apps/plugin-dialog'
-import { readTextFile, writeTextFile, exists } from '@tauri-apps/plugin-fs'
+import { readTextFile, writeTextFile, exists, remove } from '@tauri-apps/plugin-fs'
 import type {
   IFileSystemStrategy,
   IDirectoryHandle,
@@ -195,5 +195,19 @@ export class TauriFileSystemStrategy implements IFileSystemStrategy {
     // Update lastUpdated timestamp
     config.lastUpdated = new Date().toISOString()
     return this.saveToFile(fileHandle, config)
+  }
+
+  async deleteFile(dirHandle: IDirectoryHandle, filename: string): Promise<boolean> {
+    const tauriHandle = dirHandle as TauriDirectoryHandle
+    const filePath = tauriHandle.joinPath(filename)
+
+    try {
+      await remove(filePath)
+      console.log(`[TauriFS] Deleted file: ${filename}`)
+      return true
+    } catch (error) {
+      console.error(`[TauriFS] Failed to delete file: ${filename}`, error)
+      return false
+    }
   }
 }

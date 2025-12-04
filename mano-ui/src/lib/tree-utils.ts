@@ -74,3 +74,66 @@ export function isAncestor(tree: ManoNode[], ancestorId: string, nodeId: string)
   if (!aPath || !nPath) return false
   return nPath.length >= aPath.length && aPath.every((v, i) => v === nPath[i])
 }
+
+/**
+ * 检查整个工作区中是否有同名的文本节点（SlateText 或 Markdown）
+ * 因为文本节点对应物理文件，文件名在同一目录下必须唯一
+ * @param tree 整个节点树
+ * @param name 要检查的名称
+ * @param excludeId 排除的节点 ID（用于重命名场景，排除自身）
+ * @returns true 表示有重名，false 表示没有重名
+ */
+export function hasTextNodeWithName(tree: ManoNode[], name: string, excludeId?: string): boolean {
+  function search(nodes: ManoNode[]): boolean {
+    for (const node of nodes) {
+      // 只检查文本节点（SlateText 和 Markdown），Directory 不对应文件
+      if ((node.nodeType === 'SlateText' || node.nodeType === 'Markdown') && 
+          node.name === name && 
+          node.id !== excludeId) {
+        return true
+      }
+      if (node.children) {
+        if (search(node.children)) return true
+      }
+    }
+    return false
+  }
+  return search(tree)
+}
+
+/**
+ * 验证整个树结构，检查工作区中是否有重名的文本节点
+ * 因为文本节点对应物理文件，文件名在整个工作区必须唯一
+ * @param tree 要检查的树结构
+ * @returns 包含重名信息的数组，如果为空则表示没有重名
+ */
+export function checkDuplicateNames(tree: ManoNode[]): Array<{ name: string; ids: string[] }> {
+  const duplicates: Array<{ name: string; ids: string[] }> = []
+  const textNodeNames = new Map<string, string[]>() // name -> [ids]
+  
+  function collectTextNodes(nodes: ManoNode[]) {
+    for (const node of nodes) {
+      // 只收集文本节点（SlateText 和 Markdown）
+      if (node.nodeType === 'SlateText' || node.nodeType === 'Markdown') {
+        const ids = textNodeNames.get(node.name) || []
+        ids.push(node.id)
+        textNodeNames.set(node.name, ids)
+      }
+      
+      if (node.children && node.children.length > 0) {
+        collectTextNodes(node.children)
+      }
+    }
+  }
+  
+  collectTextNodes(tree)
+  
+  // 找出重名（出现次数 > 1）
+  for (const [name, ids] of textNodeNames.entries()) {
+    if (ids.length > 1) {
+      duplicates.push({ name, ids })
+    }
+  }
+  
+  return duplicates
+}

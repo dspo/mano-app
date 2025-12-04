@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { TitleBar } from './TitleBar'
 import { ActivityBar } from './ActivityBar'
 import { PrimarySidebar } from './PrimarySidebar'
-import { insertInto, insertBeforeAfter, findNodePath, removeAtPath, isAncestor } from '@/lib/tree-utils'
+import { insertInto, insertBeforeAfter, findNodePath, removeAtPath, isAncestor, hasTextNodeWithName, checkDuplicateNames } from '@/lib/tree-utils'
 import type { ManoNode } from '@/types/mano-config'
 import { EditorContainer } from './EditorContainer'
 import { BottomPanel } from './BottomPanel'
@@ -145,6 +145,7 @@ function IDELayoutContent() {
   const [fileTree, setFileTree] = useState<FileNode[]>([])
   const [_fileContentsMap, setFileContentsMap] = useState<Record<string, string>>(fileContents)
   const [_fileHandlesMap, setFileHandlesMap] = useState<Record<string, FileSystemFileHandle | IFileHandle>>({})
+  const [editingNodeId, setEditingNodeId] = useState<string | null>(null)
   
   // Directory and config handles
   const [dirHandle, setDirHandle] = useState<FileSystemDirectoryHandle | IDirectoryHandle | null>(null)
@@ -278,6 +279,20 @@ function IDELayoutContent() {
       // 读取或创建 mano.conf.json
       const { config, fileHandle } = await fs.readOrCreateManoConfig(directory)
       
+      // 验证树结构中是否有重名的文本节点
+      const duplicates = checkDuplicateNames(config.data)
+      if (duplicates.length > 0) {
+        console.error('[IDELayout] 检测到重名文本节点:', duplicates)
+        const errorMsg = duplicates.map(d => 
+          `"${d.name}" (节点ID: ${d.ids.join(', ')})`
+        ).join('; ')
+        toast.error(
+          `mano.conf.json 中存在重名文本节点：${errorMsg}。文本节点对应物理文件，文件名必须唯一，请修复后再次打开。`,
+          { duration: 8000 }
+        )
+        return
+      }
+      
       setConfigFileHandle(fileHandle)
       setFileTree(config.data)
       
@@ -296,11 +311,83 @@ function IDELayoutContent() {
     try {
       // 防止把节点移动到自身或其子孙
       if (sourceId === targetId || isAncestor(fileTree as any, sourceId, targetId)) return
-      // 移除源节点
+
+      // 检查源节点和目标节点是否在垃圾桶中
+      const findNodeWithTrashInfo = (nodes: FileNode[], id: string, isInTrash = false): { node: FileNode | null; isInTrash: boolean } => {
+        for (const node of nodes) {
+          const currentIsInTrash = isInTrash || node.id === '__trash__'
+          if (node.id === id) {
+            return { node, isInTrash: currentIsInTrash }
+          }
+          if (node.children) {
+            const result = findNodeWithTrashInfo(node.children, id, currentIsInTrash)
+            if (result.node) return result
+          }
+        }
+        return { node: null, isInTrash: false }
+      }
+
+      const sourceInfo = findNodeWithTrashInfo(fileTree, sourceId)
+      const targetInfo = findNodeWithTrashInfo(fileTree, targetId)
+
+      // 规刱1）垃圾桶内部不能重排
+      if (sourceInfo.isInTrash && targetInfo.isInTrash) {
+        toast.error('无法在垃圾桶内部重排节点')
+        return
+      }
+
+      // 规刱2）从外部拖入垃圾桶：等同于 Remove
+      if (!sourceInfo.isInTrash && (targetId === '__trash__' || targetInfo.isInTrash)) {
+        // 如果目标不是垃圾桶根节点，阻止操作（不能放到子节点中）
+        if (targetId !== '__trash__') {
+          toast.error('只能将节点移动到垃圾桶根目录')
+          return
+        }
+        
+        // 执行 Remove 操作
+        const sourceNode = sourceInfo.node
+        if (sourceNode) {
+          await handleRemoveNode(sourceNode)
+        }
+        return
+      }
+
+      // 规刱3）从垃圾桶拖出：允许，但不执行内容编码和文件删除（只是移动）
+      // 正常的拖拽重排逻辑
       const sourcePath = findNodePath(fileTree as any, sourceId)
       if (!sourcePath) return
       const { removed, newTree } = removeAtPath(fileTree as any, sourcePath)
-      // 插入到目标
+      
+      // 如果从垃圾桶拖出，需要清除 content 字段
+      if (sourceInfo.isInTrash && !targetInfo.isInTrash) {
+        const cleanContent = (node: FileNode): FileNode => {
+          const cleaned = { ...node }
+          delete cleaned.content
+          if (cleaned.children) {
+            cleaned.children = cleaned.children.map(child => cleanContent(child))
+          }
+          return cleaned
+        }
+        const cleanedNode = cleanContent(removed as any)
+        
+        // 插入到目标
+        let updated: FileNode[]
+        if (mode === 'into') {
+          updated = insertInto(newTree as any, targetId, cleanedNode as any) as any
+        } else {
+          updated = insertBeforeAfter(newTree as any, targetId, cleanedNode as any, mode) as any
+        }
+        setFileTree(updated)
+        
+        // 保存到 mano.conf.json
+        if (configFileHandle) {
+          const { saveManoConfig } = await import('@/services/fileSystem')
+          await saveManoConfig(configFileHandle, { data: updated as any, lastUpdated: new Date().toISOString() })
+        }
+        return
+      }
+
+      // 普通拖拽重排
       let updated: FileNode[]
       if (mode === 'into') {
         updated = insertInto(newTree as any, targetId, removed as any) as any
@@ -316,6 +403,281 @@ function IDELayoutContent() {
     } catch (e) {
       console.error('Reorder failed:', e)
       toast.error('Failed to reorder')
+    }
+  }
+
+  // 创建新节点
+  const handleCreateNode = async (parentNode: FileNode) => {
+    if (!configFileHandle) {
+      toast.error('请先打开文件夹')
+      return
+    }
+
+    try {
+      // 在整个工作区中生成不重名的默认名称
+      let baseName = '新建文档'
+      let finalName = baseName
+      let counter = 1
+      
+      // 检查整个工作区，而不仅仅是同级节点
+      while (hasTextNodeWithName(fileTree as any, finalName)) {
+        finalName = `${baseName}${counter}`
+        counter++
+      }
+
+      // 生成新节点 ID
+      const timestamp = Date.now()
+      const newNode: FileNode = {
+        id: `node-${timestamp}`,
+        name: finalName,
+        nodeType: 'SlateText',
+        readOnly: false
+      }
+
+      // 添加到父节点的 children 末尾
+      const updated = insertInto(fileTree as any, parentNode.id, newNode as any) as FileNode[]
+      setFileTree(updated)
+
+      // 设置为编辑模式
+      setEditingNodeId(newNode.id)
+
+      console.log('[handleCreateNode] Created new node:', newNode)
+    } catch (e) {
+      console.error('Create node failed:', e)
+      toast.error('创建节点失败')
+    }
+  }
+
+  // 重命名节点
+  const handleRenameNode = async (nodeId: string, newName: string) => {
+    if (!configFileHandle) {
+      toast.error('请先打开文件夹')
+      return
+    }
+
+    // 验证名称不为空
+    if (!newName.trim()) {
+      toast.error('节点名称不能为空')
+      return
+    }
+
+    try {
+      // 查找节点
+      const findNode = (nodes: FileNode[], id: string): FileNode | null => {
+        for (const node of nodes) {
+          if (node.id === id) return node
+          if (node.children) {
+            const found = findNode(node.children, id)
+            if (found) return found
+          }
+        }
+        return null
+      }
+
+      const node = findNode(fileTree, nodeId)
+      
+      if (!node) {
+        toast.error('找不到节点')
+        return
+      }
+
+      // 检查整个工作区是否有重名的文本节点（排除自身）
+      if (hasTextNodeWithName(fileTree as any, newName, nodeId)) {
+        toast.error(`工作区中已存在名为 "${newName}" 的文本节点，文件名必须唯一`)
+        return
+      }
+
+      // 查找节点并更新名称
+      const updateNodeName = (nodes: FileNode[]): FileNode[] => {
+        return nodes.map(node => {
+          if (node.id === nodeId) {
+            return { ...node, name: newName }
+          }
+          if (node.children) {
+            return { ...node, children: updateNodeName(node.children) }
+          }
+          return node
+        })
+      }
+
+      const updated = updateNodeName(fileTree)
+      setFileTree(updated)
+
+      // 保存到 mano.conf.json
+      const { saveManoConfig } = await import('@/services/fileSystem')
+      await saveManoConfig(configFileHandle, { 
+        data: updated as any, 
+        lastUpdated: new Date().toISOString() 
+      })
+
+      setEditingNodeId(null)
+      toast.success('重命名成功')
+    } catch (e) {
+      console.error('Rename node failed:', e)
+      toast.error('重命名失败')
+    }
+  }
+
+  // 取消编辑
+  const handleCancelEdit = async () => {
+    if (!editingNodeId) return
+
+    // 查找正在编辑的节点
+    const findNode = (nodes: FileNode[], id: string): FileNode | null => {
+      for (const node of nodes) {
+        if (node.id === id) return node
+        if (node.children) {
+          const found = findNode(node.children, id)
+          if (found) return found
+        }
+      }
+      return null
+    }
+
+    const editingNode = findNode(fileTree, editingNodeId)
+    
+    // 如果是新创建的节点（名称仍为默认值），则删除它
+    // 匹配 "新建文档" 或 "新建文档1"、"新建文档2" 等模式
+    const isDefaultName = editingNode && /^新建文档\d*$/.test(editingNode.name)
+    
+    if (isDefaultName) {
+      const removeNodeById = (nodes: FileNode[]): FileNode[] => {
+        return nodes.filter(node => {
+          if (node.id === editingNodeId) {
+            return false
+          }
+          if (node.children) {
+            node.children = removeNodeById(node.children)
+          }
+          return true
+        }).map(node => ({
+          ...node,
+          children: node.children ? removeNodeById(node.children) : undefined
+        }))
+      }
+
+      const updated = removeNodeById(fileTree)
+      setFileTree(updated)
+    }
+
+    setEditingNodeId(null)
+  }
+
+  // 移除节点到垃圾篓
+  const handleRemoveNode = async (node: FileNode) => {
+    if (!configFileHandle || !dirHandle) {
+      toast.error('请先打开文件夹')
+      return
+    }
+
+    // 不能删除垃圾篓本身
+    if (node.id === '__trash__') {
+      toast.error('无法删除垃圾篓')
+      return
+    }
+
+    try {
+      const { getFileSystem } = await import('@/services/fileSystem')
+      const { getNodeFilename } = await import('@/services/fileSystem')
+      const fs = getFileSystem()
+
+      // 递归处理所有文本节点：读取内容、base64编码、删除文件
+      const processNode = async (n: FileNode): Promise<FileNode> => {
+        let processedNode = { ...n }
+
+        // 如果是文本节点（SlateText 或 Markdown）
+        if (n.nodeType === 'SlateText' || n.nodeType === 'Markdown') {
+          try {
+            // 读取文件内容
+            const filename = getNodeFilename(n)
+            const { content } = await fs.getOrCreateFile(dirHandle, filename, '')
+            
+            // Base64 编码
+            const base64Content = btoa(unescape(encodeURIComponent(content)))
+            processedNode.content = base64Content
+
+            // 删除文件
+            await fs.deleteFile(dirHandle, filename)
+            console.log(`[handleRemoveNode] Deleted file: ${filename}`)
+          } catch (error) {
+            console.error(`[handleRemoveNode] Failed to process node ${n.id}:`, error)
+          }
+        }
+
+        // 递归处理子节点
+        if (n.children && n.children.length > 0) {
+          processedNode.children = await Promise.all(
+            n.children.map(child => processNode(child))
+          )
+        }
+
+        return processedNode
+      }
+
+      // 处理节点及其所有子节点
+      const processedNode = await processNode(node)
+
+      // 查找或创建 __trash__ 节点
+      let trashNode = fileTree.find(n => n.id === '__trash__')
+      
+      if (!trashNode) {
+        // 创建垃圾篓节点
+        trashNode = {
+          id: '__trash__',
+          name: '垃圾篓',
+          nodeType: 'Directory',
+          readOnly: true,
+          children: []
+        }
+      }
+
+      // 从原位置移除节点
+      const removeNodeById = (nodes: FileNode[], id: string): FileNode[] => {
+        return nodes.filter(n => {
+          if (n.id === id) return false
+          if (n.children) {
+            n.children = removeNodeById(n.children, id)
+          }
+          return true
+        }).map(n => ({
+          ...n,
+          children: n.children ? removeNodeById(n.children, id) : undefined
+        }))
+      }
+
+      let updated = removeNodeById(fileTree, node.id)
+
+      // 将处理后的节点添加到垃圾篓
+      updated = updated.map(n => {
+        if (n.id === '__trash__') {
+          return {
+            ...n,
+            children: [...(n.children || []), processedNode]
+          }
+        }
+        return n
+      })
+
+      // 如果垃圾篓不存在，添加到根节点
+      if (!fileTree.find(n => n.id === '__trash__')) {
+        trashNode.children = [processedNode]
+        updated = [...updated, trashNode as FileNode]
+      }
+
+      setFileTree(updated)
+
+      // 保存到 mano.conf.json
+      const { saveManoConfig } = await import('@/services/fileSystem')
+      await saveManoConfig(configFileHandle, {
+        data: updated as any,
+        lastUpdated: new Date().toISOString()
+      })
+
+      toast.success('已移至垃圾篓')
+      console.log('[handleRemoveNode] Moved to trash:', processedNode)
+    } catch (e) {
+      console.error('Remove node failed:', e)
+      toast.error('移除节点失败')
     }
   }
 
@@ -554,6 +916,11 @@ function IDELayoutContent() {
               selectedFile={selectedFile}
               fileTree={fileTree}
               onReorder={handleTreeReorder}
+              onCreateNode={handleCreateNode}
+              editingNodeId={editingNodeId}
+              onRenameNode={handleRenameNode}
+              onCancelEdit={handleCancelEdit}
+              onRemoveNode={handleRemoveNode}
             />
           </ResizablePanel>
           
