@@ -607,15 +607,16 @@ function IDELayoutContent() {
             const filename = getNodeFilename(n)
             const { content } = await fs.getOrCreateFile(dirHandle, filename, '')
             
-            // Base64 编码
+            // Base64 编码并存储到 content 字段
             const base64Content = btoa(unescape(encodeURIComponent(content)))
             processedNode.content = base64Content
 
-            // 删除文件
+            // 删除物理文件
             await fs.deleteFile(dirHandle, filename)
             console.log(`[handleRemoveNode] Deleted file: ${filename}`)
           } catch (error) {
             console.error(`[handleRemoveNode] Failed to process node ${n.id}:`, error)
+            throw error
           }
         }
 
@@ -646,6 +647,30 @@ function IDELayoutContent() {
         }
       }
 
+      // 检查垃圾篓中是否有同名节点,如果有则重命名
+      const checkAndRenameIfNeeded = (nodeToAdd: FileNode, existingNodes: FileNode[]): FileNode => {
+        // 只对文本节点检查重名
+        if (nodeToAdd.nodeType !== 'SlateText' && nodeToAdd.nodeType !== 'Markdown') {
+          return nodeToAdd
+        }
+
+        let newName = nodeToAdd.name
+        let counter = 1
+        
+        // 检查是否与垃圾篓中的任何文本节点重名
+        while (hasTextNodeWithName(existingNodes, newName, nodeToAdd.id)) {
+          newName = `${nodeToAdd.name} (${counter})`
+          counter++
+        }
+
+        if (newName !== nodeToAdd.name) {
+          console.log(`[handleRemoveNode] Renamed ${nodeToAdd.name} to ${newName} to avoid conflict`)
+          return { ...nodeToAdd, name: newName }
+        }
+
+        return nodeToAdd
+      }
+
       // 从原位置移除节点
       const removeNodeById = (nodes: FileNode[], id: string): FileNode[] => {
         return nodes.filter(n => {
@@ -662,12 +687,15 @@ function IDELayoutContent() {
 
       let updated = removeNodeById(fileTree, node.id)
 
+      // 检查并处理重名
+      const renamedNode = checkAndRenameIfNeeded(processedNode, trashNode.children || [])
+
       // 将处理后的节点添加到垃圾篓
       updated = updated.map(n => {
         if (n.id === '__trash__') {
           return {
             ...n,
-            children: [...(n.children || []), processedNode]
+            children: [...(n.children || []), renamedNode]
           }
         }
         return n
@@ -675,7 +703,7 @@ function IDELayoutContent() {
 
       // 如果垃圾篓不存在，添加到根节点
       if (!fileTree.find(n => n.id === '__trash__')) {
-        trashNode.children = [processedNode]
+        trashNode.children = [renamedNode]
         updated = [...updated, trashNode as FileNode]
       }
 
@@ -684,12 +712,12 @@ function IDELayoutContent() {
       // 保存到 mano.conf.json
       const { saveManoConfig } = await import('@/services/fileSystem')
       await saveManoConfig(configFileHandle, {
-        data: updated as any,
+        data: updated,
         lastUpdated: new Date().toISOString()
       })
 
       toast.success('已移至垃圾篓')
-      console.log('[handleRemoveNode] Moved to trash:', processedNode)
+      console.log('[handleRemoveNode] Moved to trash:', renamedNode)
       
       // 清除动画状态
       setRemovingNodeId(null)
@@ -719,6 +747,40 @@ function IDELayoutContent() {
       const { getNodeFilename } = await import('@/services/fileSystem')
       const fs = getFileSystem()
 
+      // 获取垃圾篓之外的所有节点，用于检查重名
+      const getNodesOutsideTrash = (nodes: FileNode[]): FileNode[] => {
+        return nodes.filter(n => n.id !== '__trash__')
+      }
+
+      const nodesOutsideTrash = getNodesOutsideTrash(fileTree)
+
+      // 检查并重命名以避免冲突
+      const checkAndRenameNode = (nodeToRestore: FileNode, existingNodes: FileNode[]): FileNode => {
+        // 只对文本节点检查重名
+        if (nodeToRestore.nodeType !== 'SlateText' && nodeToRestore.nodeType !== 'Markdown') {
+          return nodeToRestore
+        }
+
+        let newName = nodeToRestore.name
+        let counter = 1
+        
+        // 检查是否与垃圾篓外的任何文本节点重名
+        while (hasTextNodeWithName(existingNodes, newName, nodeToRestore.id)) {
+          newName = `${nodeToRestore.name} (${counter})`
+          counter++
+        }
+
+        if (newName !== nodeToRestore.name) {
+          console.log(`[handleMoveOut] Renamed ${nodeToRestore.name} to ${newName} to avoid conflict`)
+          return { ...nodeToRestore, name: newName }
+        }
+
+        return nodeToRestore
+      }
+
+      // 先检查并重命名节点
+      const renamedNode = checkAndRenameNode(node, nodesOutsideTrash)
+
       // 递归处理节点：解码 content 并恢复文件
       const restoreNode = async (n: FileNode): Promise<FileNode> => {
         let restoredNode = { ...n }
@@ -729,13 +791,14 @@ function IDELayoutContent() {
             // Base64 解码
             const decodedContent = decodeURIComponent(escape(atob(n.content)))
             
-            // 恢复文件
-            const filename = getNodeFilename(n)
+            // 使用新名称创建文件
+            const filename = getNodeFilename(restoredNode)
             const fileHandle = await fs.getOrCreateFile(dirHandle, filename, '')
             await fs.saveToFile(fileHandle.fileHandle, decodedContent)
             
-            // 创建没有 content 字段的新对象
-            const { content: _content, ...nodeWithoutContent } = restoredNode
+            // 清空 content 字段
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { content, ...nodeWithoutContent } = restoredNode
             restoredNode = nodeWithoutContent as FileNode
             
             console.log(`[handleMoveOut] Restored file: ${filename}`)
@@ -759,7 +822,7 @@ function IDELayoutContent() {
       }
 
       // 恢复节点及其所有子节点
-      const restoredNode = await restoreNode(node)
+      const restoredNode = await restoreNode(renamedNode)
 
       // 从垃圾篓中移除节点
       const removeFromTrash = (nodes: FileNode[]): FileNode[] => {
@@ -802,7 +865,7 @@ function IDELayoutContent() {
       // 保存到 mano.conf.json
       const { saveManoConfig } = await import('@/services/fileSystem')
       await saveManoConfig(configFileHandle, {
-        data: updated as any,
+        data: updated,
         lastUpdated: new Date().toISOString()
       })
 
