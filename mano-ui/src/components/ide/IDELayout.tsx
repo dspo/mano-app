@@ -142,8 +142,8 @@ function IDELayoutContent() {
   const [activeTab, setActiveTab] = useState<{ id: string; fileName: string } | null>(null)
   const [notification, setNotification] = useState<{ message: string; x: number; y: number } | null>(null)
   const [fileTree, setFileTree] = useState<FileNode[]>([])
-  const [fileContentsMap, setFileContentsMap] = useState<Record<string, string>>(fileContents)
-  const [fileHandlesMap, setFileHandlesMap] = useState<Record<string, FileSystemFileHandle>>({})
+  const [_fileContentsMap, setFileContentsMap] = useState<Record<string, string>>(fileContents)
+  const [_fileHandlesMap, setFileHandlesMap] = useState<Record<string, FileSystemFileHandle>>({})
   
   // Directory and config handles
   const [dirHandle, setDirHandle] = useState<FileSystemDirectoryHandle | null>(null)
