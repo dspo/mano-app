@@ -143,9 +143,9 @@ function IDELayoutContent() {
   const [activeTab, setActiveTab] = useState<{ id: string; fileName: string } | null>(null)
   const [notification, setNotification] = useState<{ message: string; x: number; y: number } | null>(null)
   const [fileTree, setFileTree] = useState<FileNode[]>([])
-  // @ts-expect-error - State variable used only via setter
+  // @ts-ignore - State variable used only via setter
   const [fileContentsMap, setFileContentsMap] = useState<Record<string, string>>(fileContents)
-  // @ts-expect-error - State variable used only via setter
+  // @ts-ignore - State variable used only via setter
   const [fileHandlesMap, setFileHandlesMap] = useState<Record<string, FileSystemFileHandle | IFileHandle>>({})
   
   // Directory and config handles
