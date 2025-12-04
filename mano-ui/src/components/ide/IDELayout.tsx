@@ -157,7 +157,14 @@ function IDELayoutContent() {
   
   // Track collapsed state for UI updates
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
-  const [isPanelCollapsed, setIsPanelCollapsed] = useState(false)
+  const [isPanelCollapsed, setIsPanelCollapsed] = useState(true)
+
+  // Initialize bottom panel as collapsed on mount
+  useEffect(() => {
+    if (panelRef.current && isPanelCollapsed) {
+      panelRef.current.collapse()
+    }
+  }, [])
 
   // Configure drag sensors
   const sensors = useSensors(

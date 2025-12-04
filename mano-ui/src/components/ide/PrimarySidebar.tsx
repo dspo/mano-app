@@ -100,14 +100,13 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
                 setDropRef(el)
               }}
               data-id={node.id}
-              className="relative"
+              className="relative flex items-center"
             >
               {isEditing ? (
                 <div
                   className="w-full flex items-center gap-2 px-2 py-1 text-sm relative z-10"
                   style={{ paddingLeft: `${level * 12 + 8}px` }}
                 >
-                  {hasChildren && <div className="w-3 h-3 shrink-0" />}
                   {getFileIcon()}
                   <input
                     type="text"
@@ -135,37 +134,40 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
                     className="flex-1 bg-background border border-primary rounded px-1 py-0.5 text-sm outline-none"
                     onFocus={(e) => e.target.select()}
                   />
+                  {hasChildren && <div className="w-3 h-3 shrink-0" />}
                 </div>
               ) : (
-                <button
-                  className={cn(
-                    'w-full flex items-center gap-2 px-2 py-1 text-sm hover:bg-accent/50 cursor-pointer relative z-10',
-                    selectedFile === node.id && 'bg-accent',
-                    node.readOnly && 'opacity-60',
-                    isDragging && 'opacity-30'
-                  )}
-                  style={{ paddingLeft: `${level * 12 + 8}px` }}
-                  onClick={(e) => {
-                    if (hasChildren && e.shiftKey) {
-                      setIsOpen(!isOpen)
-                    } else {
-                      onFileClick(node)
-                    }
-                  }}
-                  {...listeners}
-                  {...attributes}
-                  disabled={node.readOnly}
-                >
+                <>
+                  <button
+                    className={cn(
+                      'flex-1 flex items-center gap-2 px-2 py-1 text-sm hover:bg-accent/50 cursor-pointer relative z-10',
+                      selectedFile === node.id && 'bg-accent',
+                      node.readOnly && 'opacity-60',
+                      isDragging && 'opacity-30'
+                    )}
+                    style={{ paddingLeft: `${level * 12 + 8}px` }}
+                    onClick={() => onFileClick(node)}
+                    {...listeners}
+                    {...attributes}
+                    disabled={node.readOnly}
+                  >
+                    {getFileIcon()}
+                    <span className="truncate">{node.name}</span>
+                  </button>
                   {hasChildren && (
-                    isOpen ? (
-                      <ChevronDown className="w-3 h-3 shrink-0 opacity-50" />
-                    ) : (
-                      <ChevronRight className="w-3 h-3 shrink-0 opacity-50" />
-                    )
+                    <button
+                      className="px-2 py-1 hover:bg-accent/50 cursor-pointer relative z-10"
+                      onClick={() => setIsOpen(!isOpen)}
+                      disabled={node.readOnly}
+                    >
+                      {isOpen ? (
+                        <ChevronDown className="w-3 h-3 shrink-0 opacity-50" />
+                      ) : (
+                        <ChevronRight className="w-3 h-3 shrink-0 opacity-50" />
+                      )}
+                    </button>
                   )}
-                  {getFileIcon()}
-                  <span className="truncate">{node.name}</span>
-                </button>
+                </>
               )}
             </div>
           </ContextMenuTrigger>
@@ -254,7 +256,6 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
                 className="w-full flex items-center gap-1 px-2 py-1 text-sm relative z-10"
                 style={{ paddingLeft: `${level * 12 + 8}px` }}
               >
-                <div className="w-4 h-4 shrink-0" />
                 <Library className="w-4 h-4 shrink-0" />
                 <input
                   type="text"
@@ -282,6 +283,7 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
                   className="flex-1 bg-background border border-primary rounded px-1 py-0.5 text-sm outline-none"
                   onFocus={(e) => e.target.select()}
                 />
+                <div className="w-4 h-4 shrink-0" />
               </div>
             ) : (
               <button
@@ -295,13 +297,13 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
                 {...listeners}
                 {...attributes}
               >
-                {isOpen ? (
-                  <ChevronDown className="w-4 h-4 shrink-0" />
-                ) : (
-                  <ChevronRight className="w-4 h-4 shrink-0" />
-                )}
                 <Library className="w-4 h-4 shrink-0" />
                 <span className="truncate">{node.name}</span>
+                {isOpen ? (
+                  <ChevronDown className="w-4 h-4 shrink-0 ml-auto" />
+                ) : (
+                  <ChevronRight className="w-4 h-4 shrink-0 ml-auto" />
+                )}
               </button>
             )}
           </div>
@@ -527,8 +529,9 @@ export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree =
           {getTitle()}
         </h3>
       </div>
-      <DndContext sensors={sensors} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
-        <ScrollArea className="flex-1">
+      <div className="flex-1 overflow-hidden">
+        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
+          <ScrollArea className="h-full w-full">
           {activity === 'explorer' && (
             <div className="py-2">
               {fileTree.map((node) => (
@@ -587,6 +590,7 @@ export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree =
           )}
         </DragOverlay>
       </DndContext>
+      </div>
     </div>
   )
 }
