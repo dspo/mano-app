@@ -68,7 +68,8 @@
                   "readOnly": false,
                   "nodeType": "SlateText"
                 }
-              ]
+              ],
+              "expanded": true
             },
             {
               "id": "1-3-2",
@@ -97,7 +98,8 @@
               "nodeType": "Directory",
               "children": []
             }
-          ]
+          ],
+          "expanded": true
         },
         {
           "id": "1-4",
@@ -108,7 +110,8 @@
           "readOnly": false,
           "nodeType": "SlateText"
         }
-      ]
+      ],
+      "expanded": true
     },
     {
       "id": "2",
@@ -118,7 +121,8 @@
       ],
       "readOnly": false,
       "nodeType": "Directory",
-      "children": []
+      "children": [],
+      "expanded": true
     },
     {
       "id": "3",
@@ -197,10 +201,12 @@
               "readOnly": false,
               "nodeType": "Directory"
             }
-          ]
+          ],
+          "expanded": true
         }
-      ]
+      ],
+      "expanded": true
     }
   ],
-  "lastUpdated": "2025-11-26T08:42:18.506Z"
+  "lastUpdated": "2025-12-04T14:34:30.399Z"
 }

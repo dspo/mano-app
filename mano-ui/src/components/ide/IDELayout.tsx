@@ -882,6 +882,41 @@ function IDELayoutContent() {
     }
   }
 
+  // 处理节点折叠/展开状态变化
+  const handleToggleExpand = async (nodeId: string, isExpanded: boolean) => {
+    if (!configFileHandle) {
+      return
+    }
+
+    // 递归更新节点的 expanded 状态
+    const updateNodeExpanded = (nodes: FileNode[]): FileNode[] => {
+      return nodes.map(node => {
+        if (node.id === nodeId) {
+          return { ...node, expanded: isExpanded }
+        }
+        if (node.children) {
+          return { ...node, children: updateNodeExpanded(node.children) }
+        }
+        return node
+      })
+    }
+
+    const updated = updateNodeExpanded(fileTree)
+    setFileTree(updated)
+
+    // 保存到 mano.conf.json
+    try {
+      const { saveManoConfig } = await import('@/services/fileSystem')
+      await saveManoConfig(configFileHandle, {
+        data: updated,
+        lastUpdated: new Date().toISOString()
+      })
+      console.log(`[handleToggleExpand] Node ${nodeId} expanded: ${isExpanded}`)
+    } catch (e) {
+      console.error('Failed to save expand state:', e)
+    }
+  }
+
   const handleFileClick = async (file: FileNode) => {
     // Only handle non-directory nodes
     if (file.nodeType === 'Directory') {
@@ -1125,6 +1160,7 @@ function IDELayoutContent() {
               onMoveOut={handleMoveOut}
               movingOutNodeId={movingOutNodeId}
               removingNodeId={removingNodeId}
+              onToggleExpand={handleToggleExpand}
             />
           </ResizablePanel>
           

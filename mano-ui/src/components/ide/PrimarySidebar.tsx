@@ -36,13 +36,22 @@ interface FileTreeItemProps {
   removingNodeId?: string | null
   contextMenuNodeId?: string | null
   onContextMenuChange?: (nodeId: string | null) => void
+  onToggleExpand?: (nodeId: string, isExpanded: boolean) => void
 }
 
-function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragOverId, dropMode, dropLevel, onCreateNode, editingNodeId, onRenameNode, onCancelEdit, onRemoveNode, onMoveOut, isInTrash = false, movingOutNodeId, removingNodeId, contextMenuNodeId, onContextMenuChange }: FileTreeItemProps) {
-  const [isOpen, setIsOpen] = useState(true)
+function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragOverId, dropMode, dropLevel, onCreateNode, editingNodeId, onRenameNode, onCancelEdit, onRemoveNode, onMoveOut, isInTrash = false, movingOutNodeId, removingNodeId, contextMenuNodeId, onContextMenuChange, onToggleExpand }: FileTreeItemProps) {
+  // Read initial state from node.expanded (default false if not set)
+  const [isOpen, setIsOpen] = useState(node.expanded ?? false)
   const [editValue, setEditValue] = useState(node.name)
   const isEditing = editingNodeId === node.id
   const isContextMenuActive = contextMenuNodeId === node.id
+  
+  // Handle toggle and notify parent
+  const handleToggle = () => {
+    const newState = !isOpen
+    setIsOpen(newState)
+    onToggleExpand?.(node.id, newState)
+  }
   
   // Check if current node is trash or inside trash
   const isTrashNode = node.id === '__trash__' || isInTrash
@@ -185,7 +194,7 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
                   {hasChildren && (
                     <button
                       className="px-2 py-1 hover:bg-accent/50 cursor-pointer relative z-10"
-                      onClick={() => setIsOpen(!isOpen)}
+                      onClick={handleToggle}
                       disabled={node.readOnly}
                     >
                       {isOpen ? (
@@ -249,6 +258,7 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
                 removingNodeId={removingNodeId}
                 contextMenuNodeId={contextMenuNodeId}
                 onContextMenuChange={onContextMenuChange}
+                onToggleExpand={onToggleExpand}
               />
             ))}
           </div>
@@ -334,7 +344,7 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
                   isDragging && 'opacity-30'
                 )}
                 style={{ paddingLeft: `${level * 12 + 8}px` }}
-                onClick={() => setIsOpen(!isOpen)}
+                onClick={handleToggle}
                 {...listeners}
                 {...attributes}
               >
@@ -399,6 +409,7 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
               removingNodeId={removingNodeId}
               contextMenuNodeId={contextMenuNodeId}
               onContextMenuChange={onContextMenuChange}
+              onToggleExpand={onToggleExpand}
             />
           ))}
         </div>
@@ -427,9 +438,10 @@ interface PrimarySidebarProps {
   onMoveOut?: (node: FileNode) => void
   movingOutNodeId?: string | null
   removingNodeId?: string | null
+  onToggleExpand?: (nodeId: string, isExpanded: boolean) => void
 }
 
-export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree = [], onReorder, onCreateNode, editingNodeId, onRenameNode, onCancelEdit, onRemoveNode, onMoveOut, movingOutNodeId, removingNodeId }: PrimarySidebarProps) {
+export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree = [], onReorder, onCreateNode, editingNodeId, onRenameNode, onCancelEdit, onRemoveNode, onMoveOut, movingOutNodeId, removingNodeId, onToggleExpand }: PrimarySidebarProps) {
   const [dragOverId, setDragOverId] = useState<string | null>(null)
   const [dropMode, setDropMode] = useState<'before' | 'after' | 'into' | null>(null)
   const [dropLevel, setDropLevel] = useState<number>(0)
@@ -603,6 +615,7 @@ export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree =
                   removingNodeId={removingNodeId}
                   contextMenuNodeId={contextMenuNodeId}
                   onContextMenuChange={setContextMenuNodeId}
+                  onToggleExpand={onToggleExpand}
                 />
               ))}
             </div>
