@@ -9,16 +9,14 @@ interface PlateEditorProps {
 
 export function PlateEditor({ value, onChange, readOnly = false }: PlateEditorProps) {
   const handleChange = useCallback((newValue: unknown) => {
-    onChange(newValue)
-  }, [onChange])
+    if (!readOnly) {
+      onChange(newValue)
+    }
+  }, [onChange, readOnly])
 
   const editor = usePlateEditor({
     value: value as never,
-    override: {
-      enabled: {
-        readOnly: readOnly,
-      },
-    },
+    readOnly: readOnly,
   })
 
   return (

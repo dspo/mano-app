@@ -52,6 +52,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
         isDirty: false,
         isSavedToDisk: true, // 新打开的文件默认为已保存
         fileHandle: action.fileHandle,
+        readOnly: action.readOnly || false,
       }
 
       return {
@@ -129,6 +130,31 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
       }
 
       return newState
+    }
+
+    case 'CLOSE_FILE_IN_ALL_GROUPS': {
+      // 关闭所有组中打开的指定文件
+      let newState = { ...state }
+      let hasChanges = false
+
+      Object.keys(newState.groups).forEach(groupId => {
+        const group = newState.groups[groupId]
+        const tabsWithFile = group.tabs.filter(tab => tab.fileId === action.fileId)
+        
+        if (tabsWithFile.length > 0) {
+          hasChanges = true
+          // 关闭该组中所有该文件的标签页
+          tabsWithFile.forEach(tab => {
+            newState = editorReducer(newState, { 
+              type: 'CLOSE_TAB', 
+              tabId: tab.id, 
+              groupId: groupId 
+            })
+          })
+        }
+      })
+
+      return hasChanges ? newState : state
     }
 
     case 'SET_ACTIVE_TAB': {

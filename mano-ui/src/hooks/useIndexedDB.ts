@@ -3,16 +3,19 @@ import { set, get, del } from 'idb-keyval'
 
 /**
  * Hook for auto-saving content to IndexedDB
- * @param key - Unique key for storing the content
+ * @param key - Unique key for storing the content (null to skip auto-save)
  * @param value - Content to save
  * @param delay - Debounce delay in milliseconds (default: 1000)
  */
 export function useIndexedDBAutoSave<T>(
-  key: string,
+  key: string | null,
   value: T,
   delay = 1000
 ) {
   useEffect(() => {
+    // Skip if key is null (e.g., readOnly mode)
+    if (!key) return
+
     const timer = setTimeout(async () => {
       try {
         await set(key, value)

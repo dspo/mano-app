@@ -10,6 +10,7 @@ export interface EditorTab {
   isDirty: boolean
   isSavedToDisk: boolean // 是否已保存到磁盘
   fileHandle?: FileSystemFileHandle | IFileHandle // 文件句柄，用于保存
+  readOnly?: boolean // 是否为只读模式（垃圾篓中的文件）
 }
 
 // 编辑器组
@@ -35,9 +36,10 @@ export interface EditorState {
 
 // 编辑器 Action 类型
 export type EditorAction =
-  | { type: 'OPEN_FILE'; fileId: string; fileName: string; fileType: 'text' | 'slate'; content: unknown; groupId?: string; fileHandle?: FileSystemFileHandle | IFileHandle }
+  | { type: 'OPEN_FILE'; fileId: string; fileName: string; fileType: 'text' | 'slate'; content: unknown; groupId?: string; fileHandle?: FileSystemFileHandle | IFileHandle; readOnly?: boolean }
   | { type: 'CLOSE_TAB'; tabId: string; groupId: string }
   | { type: 'CLOSE_ALL_TABS'; groupId: string }
+  | { type: 'CLOSE_FILE_IN_ALL_GROUPS'; fileId: string }
   | { type: 'SET_ACTIVE_TAB'; tabId: string; groupId: string }
   | { type: 'SPLIT_GROUP'; groupId: string; direction: 'horizontal' | 'vertical' }
   | { type: 'CLOSE_GROUP'; groupId: string }

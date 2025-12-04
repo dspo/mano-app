@@ -181,6 +181,7 @@ export function EditorGroupWrapper({ group }: EditorGroupWrapperProps) {
                   value={tab.content}
                   tabId={tab.id}
                   fileHandle={tab.fileHandle}
+                  readOnly={tab.readOnly}
                   onSaveSuccess={() => {
                     // 标记为已保存到磁盘
                     dispatch({
@@ -204,7 +205,7 @@ export function EditorGroupWrapper({ group }: EditorGroupWrapperProps) {
                 />
               ) : (
                 <ScrollArea className="h-full">
-                  <div className="p-4 font-mono text-sm">
+                  <div className={`p-4 font-mono text-sm ${tab.readOnly ? 'bg-muted/30 pointer-events-none' : ''}`}>
                     <pre className="whitespace-pre-wrap">
                       {typeof tab.content === 'string' 
                         ? tab.content 
