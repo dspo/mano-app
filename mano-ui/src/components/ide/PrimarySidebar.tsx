@@ -1,10 +1,11 @@
 import { ChevronRight, ChevronDown, FileText, Library, TextQuote, TextAlignStart } from 'lucide-react'
 import { DndContext, useDraggable, useDroppable, PointerSensor, useSensor, useSensors, DragOverlay } from '@dnd-kit/core'
-import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core'
+import type { DragEndEvent, DragStartEvent, DragOverEvent } from '@dnd-kit/core'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import type { ManoNode } from '@/types/mano-config'
+import { ManoTextAlignStartIcon } from '@/icons/icons'
 
 // For backward compatibility, keep FileNode as alias
 export type FileNode = ManoNode
@@ -30,7 +31,11 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
   const getFileIcon = () => {
     switch (node.nodeType) {
       case 'SlateText':
-        return <TextAlignStart className="w-4 h-4 shrink-0 text-primary" />
+        return hasChildren ? (
+          <ManoTextAlignStartIcon className="w-4 h-4 shrink-0 text-primary" />
+        ) : (
+          <TextAlignStart className="w-4 h-4 shrink-0 text-primary" />
+        )
       case 'Markdown':
         return <TextQuote className="w-4 h-4 shrink-0" />
       default:
@@ -61,6 +66,7 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
           <div 
             className="absolute top-0 h-0.5 bg-primary rounded z-10"
             style={{ left: `${getDropLineIndent()}px`, right: '4px' }}
+            color='blue'
           />
         )}
 
@@ -229,7 +235,7 @@ export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree =
     if (node) setActiveNode(node)
   }
 
-  const handleDragOver = (event: any) => {
+  const handleDragOver = (event: DragOverEvent) => {
     const { active, over } = event
     if (!active || !over) {
       setDragOverId(null)
@@ -257,8 +263,8 @@ export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree =
     }
     
     const rect = el.getBoundingClientRect()
-    const pointerX = event?.activatorEvent?.clientX ?? rect.left
-    const pointerY = event?.activatorEvent?.clientY ?? (rect.top + rect.height / 2)
+    const pointerX = (event?.activatorEvent as PointerEvent)?.clientX ?? rect.left
+    const pointerY = (event?.activatorEvent as PointerEvent)?.clientY ?? (rect.top + rect.height / 2)
     
     // Vertical direction: top half -> before, bottom half -> after
     const relativeY = (pointerY - rect.top) / rect.height
@@ -368,10 +374,10 @@ export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree =
         <DragOverlay>
           {activeNode && (
             <div className="px-1.5 py-1 bg-background border border-border rounded-md shadow-lg flex items-center gap-1.5 opacity-90 max-w-[180px]">
-              {activeNode.nodeType === 'Directory' && <Library className="w-3.5 h-3.5 shrink-0" />}
-              {activeNode.nodeType === 'SlateText' && <TextAlignStart className="w-3.5 h-3.5 shrink-0 text-primary" />}
-              {activeNode.nodeType === 'Markdown' && <TextQuote className="w-3.5 h-3.5 shrink-0" />}
-              {activeNode.nodeType !== 'Directory' && activeNode.nodeType !== 'SlateText' && activeNode.nodeType !== 'Markdown' && <FileText className="w-3.5 h-3.5 shrink-0" />}
+              {activeNode.nodeType === 'Directory' && <Library className="w-3.5 h-3.5 shrink-0" color='blue' />}
+              {activeNode.nodeType === 'SlateText' && <TextAlignStart className="w-3.5 h-3.5 shrink-0 text-primary" color='blue'  />}
+              {activeNode.nodeType === 'Markdown' && <TextQuote className="w-3.5 h-3.5 shrink-0" color='blue'  />}
+              {activeNode.nodeType !== 'Directory' && activeNode.nodeType !== 'SlateText' && activeNode.nodeType !== 'Markdown' && <FileText className="w-3.5 h-3.5 shrink-0" color='blue' />}
               <span className="text-xs truncate">
                 {activeNode.name.length > 12 ? `${activeNode.name.slice(0, 12)}...` : activeNode.name}
               </span>

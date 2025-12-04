@@ -1,49 +1,34 @@
 /**
  * File System Access API service for saving files
+ * This file provides backward compatibility while using the new strategy pattern
+ * 
+ * @deprecated Use the new fileSystem service from './fileSystem/index' instead
  */
 
+import { getFileSystem, isFileSystemSupported } from './fileSystem/index'
+import type { IFileHandle, IDirectoryHandle } from './fileSystem/index'
 import type { ManoConfig } from '@/types/mano-config'
-import { createDefaultManoConfig } from '@/types/mano-config'
+
+// Re-export types
+export type { IFileHandle, IDirectoryHandle } from './fileSystem/index'
+
+// Re-export functions
+export { getFileSystem, isFileSystemSupported }
 
 // Re-export for convenience
 export { getNodeFilename } from '@/types/mano-config'
 
-export interface FileHandleWithPath {
-  handle: FileSystemFileHandle
-  path: string
-}
-
 /**
- * Save content to a file using File System Access API
- * @param fileHandle - File handle obtained from showDirectoryPicker
+ * Save content to a file
+ * @param fileHandle - File handle
  * @param content - Content to save
  * @returns true if successful, false otherwise
  */
 export async function saveToFileSystem(
-  fileHandle: FileSystemFileHandle,
+  fileHandle: IFileHandle,
   content: string | unknown
 ): Promise<boolean> {
-  try {
-    // Create a writable stream
-    const writable = await fileHandle.createWritable()
-    
-    // Convert content to string if needed
-    const textContent = typeof content === 'string' 
-      ? content 
-      : JSON.stringify(content, null, 2)
-    
-    // Write content
-    await writable.write(textContent)
-    
-    // Close the file
-    await writable.close()
-    
-    console.log(`[FileSystem] Saved to disk successfully`)
-    return true
-  } catch (error) {
-    console.error('[FileSystem] Failed to save:', error)
-    return false
-  }
+  return getFileSystem().saveToFile(fileHandle, content)
 }
 
 /**
@@ -52,22 +37,16 @@ export async function saveToFileSystem(
  * @returns file content as string
  */
 export async function readFromFileSystem(
-  fileHandle: FileSystemFileHandle
+  fileHandle: IFileHandle
 ): Promise<string> {
-  try {
-    const file = await fileHandle.getFile()
-    return await file.text()
-  } catch (error) {
-    console.error('[FileSystem] Failed to read:', error)
-    throw error
-  }
+  return getFileSystem().readFromFile(fileHandle)
 }
 
 /**
  * Check if File System Access API is supported
  */
 export function isFileSystemAccessSupported(): boolean {
-  return 'showDirectoryPicker' in window
+  return isFileSystemSupported()
 }
 
 /**
@@ -76,29 +55,12 @@ export function isFileSystemAccessSupported(): boolean {
  * @returns ManoConfig object and file handle
  */
 export async function readOrCreateManoConfig(
-  dirHandle: FileSystemDirectoryHandle
-): Promise<{ config: ManoConfig; fileHandle: FileSystemFileHandle }> {
-  try {
-    // Try to get existing mano.conf.json
-    const fileHandle = await dirHandle.getFileHandle('mano.conf.json')
-    const file = await fileHandle.getFile()
-    const text = await file.text()
-    const config = JSON.parse(text) as ManoConfig
-    
-    console.log('[FileSystem] Loaded mano.conf.json')
-    return { config, fileHandle }
-  } catch (error) {
-    // File doesn't exist, create it
-    console.log('[FileSystem] mano.conf.json not found, creating default...')
-    
-    const fileHandle = await dirHandle.getFileHandle('mano.conf.json', { create: true })
-    const config = createDefaultManoConfig()
-    
-    // Save default config
-    await saveToFileSystem(fileHandle, config)
-    
-    console.log('[FileSystem] Created mano.conf.json')
-    return { config, fileHandle }
+  dirHandle: IDirectoryHandle
+): Promise<{ config: ManoConfig; fileHandle: IFileHandle }> {
+  const result = await getFileSystem().readOrCreateManoConfig(dirHandle)
+  return {
+    config: result.config,
+    fileHandle: result.fileHandle,
   }
 }
 
@@ -110,26 +72,14 @@ export async function readOrCreateManoConfig(
  * @returns File handle and content
  */
 export async function getOrCreateFile(
-  dirHandle: FileSystemDirectoryHandle,
+  dirHandle: IDirectoryHandle,
   filename: string,
   defaultContent: string | unknown = ''
-): Promise<{ fileHandle: FileSystemFileHandle; content: string }> {
-  try {
-    // Try to get existing file
-    const fileHandle = await dirHandle.getFileHandle(filename)
-    const content = await readFromFileSystem(fileHandle)
-    return { fileHandle, content }
-  } catch (error) {
-    // File doesn't exist, create it
-    console.log(`[FileSystem] Creating new file: ${filename}`)
-    
-    const fileHandle = await dirHandle.getFileHandle(filename, { create: true })
-    const textContent = typeof defaultContent === 'string' 
-      ? defaultContent 
-      : JSON.stringify(defaultContent, null, 2)
-    
-    await saveToFileSystem(fileHandle, textContent)
-    return { fileHandle, content: textContent }
+): Promise<{ fileHandle: IFileHandle; content: string }> {
+  const result = await getFileSystem().getOrCreateFile(dirHandle, filename, defaultContent)
+  return {
+    fileHandle: result.fileHandle,
+    content: result.content,
   }
 }
 
@@ -139,10 +89,9 @@ export async function getOrCreateFile(
  * @param config - ManoConfig object
  */
 export async function saveManoConfig(
-  fileHandle: FileSystemFileHandle,
+  fileHandle: IFileHandle,
   config: ManoConfig
 ): Promise<boolean> {
-  // Update lastUpdated timestamp
   config.lastUpdated = new Date().toISOString()
-  return saveToFileSystem(fileHandle, config)
+  return getFileSystem().saveManoConfig(fileHandle, config)
 }

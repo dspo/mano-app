@@ -1,3 +1,5 @@
+import type { IFileHandle } from '@/services/fileSystem'
+
 // 编辑器标签页
 export interface EditorTab {
   id: string
@@ -7,7 +9,7 @@ export interface EditorTab {
   content: unknown // string for text, Slate JSON for slate
   isDirty: boolean
   isSavedToDisk: boolean // 是否已保存到磁盘
-  fileHandle?: FileSystemFileHandle // 文件句柄，用于保存
+  fileHandle?: FileSystemFileHandle | IFileHandle // 文件句柄，用于保存
 }
 
 // 编辑器组
@@ -33,13 +35,14 @@ export interface EditorState {
 
 // 编辑器 Action 类型
 export type EditorAction =
-  | { type: 'OPEN_FILE'; fileId: string; fileName: string; fileType: 'text' | 'slate'; content: unknown; groupId?: string; fileHandle?: FileSystemFileHandle }
+  | { type: 'OPEN_FILE'; fileId: string; fileName: string; fileType: 'text' | 'slate'; content: unknown; groupId?: string; fileHandle?: FileSystemFileHandle | IFileHandle }
   | { type: 'CLOSE_TAB'; tabId: string; groupId: string }
   | { type: 'CLOSE_ALL_TABS'; groupId: string }
   | { type: 'SET_ACTIVE_TAB'; tabId: string; groupId: string }
   | { type: 'SPLIT_GROUP'; groupId: string; direction: 'horizontal' | 'vertical' }
   | { type: 'CLOSE_GROUP'; groupId: string }
   | { type: 'UPDATE_TAB_CONTENT'; tabId: string; groupId: string; content: unknown }
+  | { type: 'MARK_TAB_SAVED'; tabId: string; groupId: string }
   | { type: 'MARK_TAB_SAVED_TO_DISK'; tabId: string; groupId: string }
   | { type: 'MOVE_TAB_BETWEEN_GROUPS'; tabId: string; sourceGroupId: string; targetGroupId: string }
   | { type: 'MOVE_TAB_TO_EDGE'; tabId: string; sourceGroupId: string; edge: 'left' | 'right' }

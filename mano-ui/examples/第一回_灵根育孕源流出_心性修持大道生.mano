@@ -5,7 +5,8 @@
       {
         "text": "第一回 灵根育孕源流出 心性修持大道生"
       }
-    ]
+    ],
+    "id": "j_CEZlV--m"
   },
   {
     "type": "p",
@@ -13,7 +14,8 @@
       {
         "text": "诗曰："
       }
-    ]
+    ],
+    "id": "PEtfb8QDcu"
   },
   {
     "type": "p",
@@ -21,7 +23,8 @@
       {
         "text": "混沌未分天地乱，茫茫渺渺无人见。"
       }
-    ]
+    ],
+    "id": "m3tpEITvOI"
   },
   {
     "type": "p",
@@ -29,10 +32,30 @@
       {
         "text": "自从盘古破鸿蒙，开辟从兹清浊辨。"
       }
-    ]
+    ],
+    "id": "jnEBv4nI5x"
   },
   {
     "type": "p",
+    "children": [
+      {
+        "text": ""
+      }
+    ],
+    "id": "OznEAH5ej2"
+  },
+  {
+    "type": "p",
+    "children": [
+      {
+        "text": "欲知造化会元功，须看《西游释厄传》。"
+      }
+    ],
+    "id": "2Ox0fT7qkV"
+  },
+  {
+    "type": "p",
+    "id": "uLW5c2Ht12",
     "children": [
       {
         "text": ""
@@ -41,9 +64,10 @@
   },
   {
     "type": "p",
+    "id": "dw2bGKEISf",
     "children": [
       {
-        "text": "欲知造化会元功，须看《西游释厄传》。"
+        "text": "本书完。"
       }
     ]
   }

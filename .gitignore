@@ -145,3 +145,4 @@ coverage/lcov-report/src/components/Welcome.tsx.html
 /_examples/lexical/packages/lexical-playground/src/EmbeddedPlayground.tsx
 /_examples/lexical/pnpm-lock.yaml
 /_examples/
+/mano-tauri/target/

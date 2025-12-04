@@ -180,6 +180,19 @@ export function EditorGroupWrapper({ group }: EditorGroupWrapperProps) {
                 <AutoSavePlateEditor
                   value={tab.content}
                   tabId={tab.id}
+                  fileHandle={tab.fileHandle}
+                  onSaveSuccess={() => {
+                    // 标记为已保存到磁盘
+                    dispatch({
+                      type: 'MARK_TAB_SAVED',
+                      tabId: tab.id,
+                      groupId: group.id,
+                    })
+                  }}
+                  onSaveError={(error) => {
+                    console.error('Failed to auto-save:', error)
+                    // 可选：显示错误提示
+                  }}
                   onChange={(newValue: unknown) => {
                     dispatch({
                       type: 'UPDATE_TAB_CONTENT',

@@ -12,6 +12,7 @@ import { FloatingNotification } from './FloatingNotification'
 import { EditorProvider } from '@/contexts/EditorContext'
 import { useEditor } from '@/hooks/useEditor'
 import { toast } from 'sonner'
+import type { IFileHandle, IDirectoryHandle } from '@/services/fileSystem'
 
 // Alias for backward compatibility
 type FileNode = ManoNode
@@ -143,11 +144,11 @@ function IDELayoutContent() {
   const [notification, setNotification] = useState<{ message: string; x: number; y: number } | null>(null)
   const [fileTree, setFileTree] = useState<FileNode[]>([])
   const [_fileContentsMap, setFileContentsMap] = useState<Record<string, string>>(fileContents)
-  const [_fileHandlesMap, setFileHandlesMap] = useState<Record<string, FileSystemFileHandle>>({})
+  const [_fileHandlesMap, setFileHandlesMap] = useState<Record<string, FileSystemFileHandle | IFileHandle>>({})
   
   // Directory and config handles
-  const [dirHandle, setDirHandle] = useState<FileSystemDirectoryHandle | null>(null)
-  const [configFileHandle, setConfigFileHandle] = useState<FileSystemFileHandle | null>(null)
+  const [dirHandle, setDirHandle] = useState<FileSystemDirectoryHandle | IDirectoryHandle | null>(null)
+  const [configFileHandle, setConfigFileHandle] = useState<FileSystemFileHandle | IFileHandle | null>(null)
   
   // Refs for controlling panels imperatively
   const sidebarRef = useRef<ImperativePanelHandle>(null)
@@ -259,13 +260,23 @@ function IDELayoutContent() {
   // 打开文件夹
   const handleOpenFolder = async () => {
     try {
-      // 使用 File System Access API 打开目录选择对话框
-      const directory = await (window as any).showDirectoryPicker()
+      // 动态导入 fileSystem module (直接指向 index)
+      const fileSystemModule = await import('@/services/fileSystem/index')
+      console.log('[IDELayout] fileSystemModule:', fileSystemModule)
+      console.log('[IDELayout] getFileSystem:', fileSystemModule.getFileSystem)
+      
+      // 获取 fileSystem 实例（懒加载）
+      const fs = fileSystemModule.getFileSystem()
+      console.log('[IDELayout] fileSystem instance:', fs)
+      
+      // 选择目录
+      console.log('[IDELayout] Calling pickDirectory...')
+      const directory = await fs.pickDirectory()
+      console.log('[IDELayout] Directory selected:', directory)
       setDirHandle(directory)
       
       // 读取或创建 mano.conf.json
-      const { readOrCreateManoConfig } = await import('@/services/fileSystem')
-      const { config, fileHandle } = await readOrCreateManoConfig(directory)
+      const { config, fileHandle } = await fs.readOrCreateManoConfig(directory)
       
       setConfigFileHandle(fileHandle)
       setFileTree(config.data)
@@ -323,11 +334,16 @@ function IDELayoutContent() {
     setSelectedFile(file.id)
     
     try {
+      console.log('[handleFileClick] Opening file:', file.name, 'Type:', file.nodeType)
+      console.log('[handleFileClick] Full file object:', JSON.stringify(file, null, 2))
+      console.log('[handleFileClick] dirHandle:', dirHandle)
+      
       const { getOrCreateFile, getNodeFilename } = await import('@/services/fileSystem')
       const { DEFAULT_SLATE_CONTENT } = await import('@/types/mano-config')
       
       // Get filename based on node type
       const filename = getNodeFilename(file)
+      console.log('[handleFileClick] filename from getNodeFilename:', filename)
       
       // Determine file type and default content
       let fileType: 'text' | 'slate' = 'text'
@@ -341,12 +357,16 @@ function IDELayoutContent() {
         defaultContent = `# ${file.name}\n\n`
       }
       
+      console.log('[handleFileClick] Calling getOrCreateFile...')
       // Get or create file
       const { fileHandle, content } = await getOrCreateFile(
         dirHandle,
         filename,
         defaultContent
       )
+      
+      console.log('[handleFileClick] Got file handle:', fileHandle)
+      console.log('[handleFileClick] Content length:', content.length)
       
       // Parse content based on file type
       let parsedContent: unknown

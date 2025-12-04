@@ -222,6 +222,28 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
       }
     }
 
+    case 'MARK_TAB_SAVED': {
+      const group = state.groups[action.groupId]
+      if (!group) return state
+
+      const newTabs = group.tabs.map(tab =>
+        tab.id === action.tabId
+          ? { ...tab, isDirty: false, isSavedToDisk: true }
+          : tab
+      )
+
+      return {
+        ...state,
+        groups: {
+          ...state.groups,
+          [action.groupId]: {
+            ...group,
+            tabs: newTabs,
+          },
+        },
+      }
+    }
+
     case 'MARK_TAB_SAVED_TO_DISK': {
       const group = state.groups[action.groupId]
       if (!group) return state
