@@ -28,15 +28,22 @@ class TauriDirectoryHandle implements IDirectoryHandle {
   constructor(path: string) {
     this.path = path
     this.name = path.split(/[/\\]/).pop() || path
-    // Detect path separator from the path itself
-    this.separator = path.includes('\\') ? '\\' : '/'
+    // Detect path separator - count occurrences and use the more common one
+    const backslashCount = (path.match(/\\/g) || []).length
+    const forwardSlashCount = (path.match(/\//g) || []).length
+    this.separator = backslashCount > forwardSlashCount ? '\\' : '/'
   }
 
   /**
    * Join path segments using the appropriate separator
    */
   joinPath(...segments: string[]): string {
-    return [this.path, ...segments].join(this.separator)
+    // Filter out empty segments and normalize any mixed separators in segments
+    const normalizedSegments = segments
+      .filter(segment => segment.length > 0)
+      .map(segment => segment.replace(/[/\\]+/g, this.separator))
+    
+    return [this.path, ...normalizedSegments].join(this.separator)
   }
 }
 
