@@ -3,7 +3,7 @@
  */
 
 import type { ManoConfig } from '@/types/mano-config'
-import { createDefaultManoConfig, getNodeFilename as getNodeFilenameUtil } from '@/types/mano-config'
+import { createDefaultManoConfig } from '@/types/mano-config'
 
 // Re-export for convenience
 export { getNodeFilename } from '@/types/mano-config'
