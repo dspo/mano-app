@@ -29,6 +29,7 @@ class TauriDirectoryHandle implements IDirectoryHandle {
     this.path = path
     this.name = path.split(/[/\\]/).pop() || path
     // Detect path separator - count occurrences and use the more common one
+    // Defaults to forward slash when counts are equal (Unix-style)
     const backslashCount = (path.match(/\\/g) || []).length
     const forwardSlashCount = (path.match(/\//g) || []).length
     this.separator = backslashCount > forwardSlashCount ? '\\' : '/'
