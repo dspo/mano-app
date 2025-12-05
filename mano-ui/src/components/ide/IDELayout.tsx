@@ -641,10 +641,10 @@ function IDELayoutContent() {
         return processedNode
       }
 
-      // Process the node and all its child nodes
+      // Process node and all its children
       const processedNode = await processNode(node)
 
-      // 查找或创建 __trash__ 节点
+      // Find or create __trash__ node
       let trashNode = fileTree.find(n => n.id === '__trash__')
       
       if (!trashNode) {
@@ -740,7 +740,7 @@ function IDELayoutContent() {
     }
   }
 
-  // 将节点从垃圾篓移出
+  // Move node out from trash
   const handleMoveOut = async (node: FileNode) => {
     if (!configFileHandle || !dirHandle) {
       toast.error('请先打开文件夹')
@@ -800,25 +800,25 @@ function IDELayoutContent() {
         return nodeToRestore
       }
 
-      // 先检查并重命名节点
+      // First check and rename node
       const renamedNode = checkAndRenameNode(node, nodesOutsideTrash)
 
-      // 递归处理节点：解码 content 并恢复文件
+      // Recursively process nodes: decode content and restore files
       const restoreNode = async (n: FileNode): Promise<FileNode> => {
         let restoredNode = { ...n }
 
-        // 如果是文本节点且有 content 字段（base64编码）
+        // If it's a text node with content field (base64 encoded)
         if ((n.nodeType === 'SlateText' || n.nodeType === 'Markdown') && n.content) {
           try {
-            // Base64 解码
+            // Base64 decode
             const decodedContent = decodeURIComponent(escape(atob(n.content)))
             
-            // 使用新名称创建文件
+            // Create file with new name
             const filename = getNodeFilename(restoredNode)
             const fileHandle = await fs.getOrCreateFile(dirHandle, filename, '')
             await fs.saveToFile(fileHandle.fileHandle, decodedContent)
             
-            // 清空 content 字段
+            // Clear content field
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { content, ...nodeWithoutContent } = restoredNode
             restoredNode = nodeWithoutContent as FileNode
@@ -830,7 +830,7 @@ function IDELayoutContent() {
           }
         }
 
-        // 递归处理子节点
+        // Recursively process child nodes
         if (n.children && n.children.length > 0) {
           restoredNode = {
             ...restoredNode,
@@ -843,10 +843,10 @@ function IDELayoutContent() {
         return restoredNode
       }
 
-      // 恢复节点及其所有子节点
+      // Restore node and all its children
       const restoredNode = await restoreNode(renamedNode)
 
-      // 从垃圾篓中移除节点
+      // Remove node from trash
       const removeFromTrash = (nodes: FileNode[]): FileNode[] => {
         return nodes.map(n => {
           if (n.id === '__trash__' && n.children) {
@@ -904,13 +904,13 @@ function IDELayoutContent() {
     }
   }
 
-  // 处理节点折叠/展开状态变化
+  // Handle node expand/collapse state change
   const handleToggleExpand = async (nodeId: string, isExpanded: boolean) => {
     if (!configFileHandle) {
       return
     }
 
-    // 递归更新节点的 expanded 状态
+    // Recursively update node's expanded state
     const updateNodeExpanded = (nodes: FileNode[]): FileNode[] => {
       return nodes.map(node => {
         if (node.id === nodeId) {
