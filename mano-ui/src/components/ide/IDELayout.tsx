@@ -894,12 +894,12 @@ function IDELayoutContent() {
       toast.success('已移出垃圾篓')
       console.log('[handleMoveOut] Moved out from trash:', restoredNode)
       
-      // 清除动画状态
+      // Clear animation state
       setMovingOutNodeId(null)
     } catch (e) {
       console.error('Move out failed:', e)
       toast.error('移出失败')
-      // 清除动画状态
+      // Clear animation state
       setMovingOutNodeId(null)
     }
   }
