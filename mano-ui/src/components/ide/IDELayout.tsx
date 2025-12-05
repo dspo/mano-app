@@ -730,12 +730,12 @@ function IDELayoutContent() {
       toast.success('已移至垃圾篓')
       console.log('[handleRemoveNode] Moved to trash:', renamedNode)
       
-      // 清除动画状态
+      // Clear animation state
       setRemovingNodeId(null)
     } catch (e) {
       console.error('Remove node failed:', e)
       toast.error('移除节点失败')
-      // 清除动画状态
+      // Clear animation state
       setRemovingNodeId(null)
     }
   }
