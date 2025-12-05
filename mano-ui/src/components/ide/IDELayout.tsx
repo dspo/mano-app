@@ -926,7 +926,7 @@ function IDELayoutContent() {
     const updated = updateNodeExpanded(fileTree)
     setFileTree(updated)
 
-    // 保存到 mano.conf.json
+    // Save to mano.conf.json
     try {
       const { saveManoConfig } = await import('@/services/fileSystem')
       await saveManoConfig(configFileHandle, {
