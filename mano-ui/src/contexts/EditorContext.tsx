@@ -373,7 +373,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
         action.edge
       )
 
-      // Remove from source group tab
+      // Remove tab from source group
       const newSourceTabs = sourceGroup.tabs.filter(tab => tab.id !== action.tabId)
       let newSourceActiveTabId = sourceGroup.activeTabId
 
