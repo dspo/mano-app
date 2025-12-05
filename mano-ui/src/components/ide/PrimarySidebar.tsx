@@ -12,6 +12,7 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu'
+import { ManoLogoIcon } from '@/icons/ManoLogoIcon'
 
 // For backward compatibility, keep FileNode as alias
 export type FileNode = ManoNode
@@ -467,9 +468,10 @@ interface PrimarySidebarProps {
   movingOutNodeId?: string | null
   removingNodeId?: string | null
   onToggleExpand?: (nodeId: string, isExpanded: boolean) => void
+  onOpenFolder?: () => void
 }
 
-export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree = [], onReorder, onCreateNode, editingNodeId, onRenameNode, onCancelEdit, onRemoveNode, onMoveOut, onDeleteNode, movingOutNodeId, removingNodeId, onToggleExpand }: PrimarySidebarProps) {
+export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree = [], onReorder, onCreateNode, editingNodeId, onRenameNode, onCancelEdit, onRemoveNode, onMoveOut, onDeleteNode, movingOutNodeId, removingNodeId, onToggleExpand, onOpenFolder }: PrimarySidebarProps) {
   const [dragOverId, setDragOverId] = useState<string | null>(null)
   const [dropMode, setDropMode] = useState<'before' | 'after' | 'into' | null>(null)
   const [dropLevel, setDropLevel] = useState<number>(0)
@@ -601,7 +603,12 @@ export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree =
 
   const getTitle = () => {
     switch (activity) {
-      case 'explorer': return 'EXPLORER'
+      case 'explorer': return (
+        <>
+          <ManoLogoIcon className="w-4 h-4" />
+          <span className="font-semibold text-sm">Mano</span>
+        </>
+      )
       case 'search': return 'SEARCH'
       case 'source-control': return 'SOURCE CONTROL'
       case 'run-debug': return 'RUN AND DEBUG'
@@ -613,9 +620,17 @@ export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree =
   return (
     <div className="h-full bg-background border-r flex flex-col">
       <div className="h-10 border-b px-3 flex items-center justify-between">
-        <h3 className="font-semibold text-xs uppercase tracking-wide text-muted-foreground">
+        <button
+          className={cn(
+            "flex items-center gap-2 font-semibold text-xs uppercase tracking-wide text-muted-foreground",
+            activity === 'explorer' && "cursor-pointer hover:text-foreground/80 transition-colors",
+            activity === 'explorer' && (!fileTree || fileTree.length === 0) && "animate-pulse"
+          )}
+          onClick={() => activity === 'explorer' && onOpenFolder?.()}
+          disabled={activity !== 'explorer'}
+        >
           {getTitle()}
-        </h3>
+        </button>
       </div>
       <div className="flex-1 overflow-hidden">
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>

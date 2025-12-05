@@ -25,7 +25,8 @@
               "readOnly": false,
               "nodeType": "SlateText"
             }
-          ]
+          ],
+          "expanded": true
         },
         {
           "id": "1-2",
@@ -208,5 +209,5 @@
       "expanded": true
     }
   ],
-  "lastUpdated": "2025-12-04T14:34:30.399Z"
+  "lastUpdated": "2025-12-05T09:21:12.839Z"
 }

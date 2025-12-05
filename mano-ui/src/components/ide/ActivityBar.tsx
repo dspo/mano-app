@@ -10,18 +10,17 @@ interface ActivityBarProps {
   showSidebar: boolean
   onToggleSidebar: () => void
   showPanel: boolean
-  onTogglePanel: () => void
 }
 
 const activities = [
-  { id: 'explorer', icon: Files, label: 'Explorer' },
-  { id: 'search', icon: Search, label: 'Search' },
-  { id: 'source-control', icon: GitBranch, label: 'Source Control' },
-  { id: 'run-debug', icon: Play, label: 'Run and Debug' },
-  { id: 'extensions', icon: Package, label: 'Extensions' },
+  { id: 'explorer', icon: Files, label: 'Explorer', disabled: false },
+  { id: 'search', icon: Search, label: 'Search', disabled: true },
+  { id: 'source-control', icon: GitBranch, label: 'Source Control', disabled: true },
+  { id: 'run-debug', icon: Play, label: 'Run and Debug', disabled: true },
+  { id: 'extensions', icon: Package, label: 'Extensions', disabled: true },
 ]
 
-export function ActivityBar({ activeActivity, onActivityChange, showSidebar, onToggleSidebar, showPanel, onTogglePanel }: ActivityBarProps) {
+export function ActivityBar({ activeActivity, onActivityChange, showSidebar, onToggleSidebar, showPanel }: ActivityBarProps) {
   return (
     <div className="w-12 bg-accent/30 flex flex-col items-center py-2 border-r">
       <TooltipProvider delayDuration={300}>
@@ -36,13 +35,14 @@ export function ActivityBar({ activeActivity, onActivityChange, showSidebar, onT
                     'w-10 h-10',
                     activeActivity === activity.id && 'bg-accent'
                   )}
-                  onClick={() => onActivityChange(activity.id)}
+                  onClick={() => !activity.disabled && onActivityChange(activity.id)}
+                  disabled={activity.disabled}
                 >
                   <activity.icon className="w-5 h-5" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="right">
-                {activity.label}
+                {activity.disabled ? 'Coming soon...' : activity.label}
               </TooltipContent>
             </Tooltip>
           ))}
@@ -79,7 +79,7 @@ export function ActivityBar({ activeActivity, onActivityChange, showSidebar, onT
               variant="ghost" 
               size="icon" 
               className="w-10 h-10 mb-1"
-              onClick={onTogglePanel}
+              disabled
             >
               {showPanel ? (
                 <PanelBottomClose className="w-5 h-5" />
@@ -89,21 +89,18 @@ export function ActivityBar({ activeActivity, onActivityChange, showSidebar, onT
             </Button>
           </TooltipTrigger>
           <TooltipContent side="right">
-            <div className="flex flex-col gap-1">
-              <span>{showPanel ? 'Hide Panel' : 'Show Panel'}</span>
-              <kbd className="px-1.5 py-0.5 text-xs bg-muted rounded text-center">⌘J</kbd>
-            </div>
+            Coming soon...
           </TooltipContent>
         </Tooltip>
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="w-10 h-10">
+            <Button variant="ghost" size="icon" className="w-10 h-10" disabled>
               <Settings className="w-5 h-5" />
             </Button>
           </TooltipTrigger>
           <TooltipContent side="right">
-            Settings
+            Coming soon...
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>

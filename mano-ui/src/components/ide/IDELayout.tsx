@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react'
-import { TitleBar } from './TitleBar'
 import { ActivityBar } from './ActivityBar'
 import { PrimarySidebar } from './PrimarySidebar'
 import { insertInto, insertBeforeAfter, findNodePath, removeAtPath, isAncestor, hasTextNodeWithName, checkDuplicateNames, isInTrash } from '@/lib/tree-utils'
@@ -1336,29 +1335,20 @@ function IDELayoutContent() {
     }
   }
 
-  const togglePanel = () => {
-    const panel = panelRef.current
-    if (panel) {
-      if (panel.isCollapsed()) {
-        panel.expand()
-      } else {
-        panel.collapse()
-      }
-    }
-  }
+  // Disabled for now - will be enabled when Bottom Panel functionality is implemented
+  // const togglePanel = () => {
+  //   const panel = panelRef.current
+  //   if (panel) {
+  //     if (panel.isCollapsed()) {
+  //       panel.expand()
+  //     } else {
+  //       panel.collapse()
+  //     }
+  //   }
+  // }
 
   return (
     <div className="flex flex-col h-screen bg-background text-foreground overflow-hidden">
-      <TitleBar
-        showSidebar={!isSidebarCollapsed}
-        showPanel={!isPanelCollapsed}
-        onToggleSidebar={toggleSidebar}
-        onTogglePanel={togglePanel}
-        onSplitEditorRight={handleSplitEditorRight}
-        onOpenFolder={handleOpenFolder}
-        onSave={handleSaveFile}
-      />
-      
       <div className="flex flex-1 overflow-hidden">
         <ActivityBar 
           activeActivity={activeActivity} 
@@ -1366,7 +1356,6 @@ function IDELayoutContent() {
           showSidebar={!isSidebarCollapsed}
           onToggleSidebar={toggleSidebar}
           showPanel={!isPanelCollapsed}
-          onTogglePanel={togglePanel}
         />
         
         <ResizablePanelGroup 
@@ -1398,6 +1387,7 @@ function IDELayoutContent() {
               movingOutNodeId={movingOutNodeId}
               removingNodeId={removingNodeId}
               onToggleExpand={handleToggleExpand}
+              onOpenFolder={handleOpenFolder}
             />
           </ResizablePanel>
           
