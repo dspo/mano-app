@@ -260,28 +260,28 @@ function IDELayoutContent() {
     }
   }
 
-  // 打开文件夹
+  // Open folder
   const handleOpenFolder = async () => {
     try {
-      // 动态导入 fileSystem module (直接指向 index)
+      // Dynamically import fileSystem module (points directly to index)
       const fileSystemModule = await import('@/services/fileSystem/index')
       console.log('[IDELayout] fileSystemModule:', fileSystemModule)
       console.log('[IDELayout] getFileSystem:', fileSystemModule.getFileSystem)
       
-      // 获取 fileSystem 实例（懒加载）
+      // Get fileSystem instance (lazy loading)
       const fs = fileSystemModule.getFileSystem()
       console.log('[IDELayout] fileSystem instance:', fs)
       
-      // 选择目录
+      // Select directory
       console.log('[IDELayout] Calling pickDirectory...')
       const directory = await fs.pickDirectory()
       console.log('[IDELayout] Directory selected:', directory)
       setDirHandle(directory)
       
-      // 读取或创建 mano.conf.json
+      // Read or create mano.conf.json
       const { config, fileHandle } = await fs.readOrCreateManoConfig(directory)
       
-      // 验证树结构中是否有重名的文本节点
+      // Validate if there are duplicate text node names in tree structure
       const duplicates = checkDuplicateNames(config.data)
       if (duplicates.length > 0) {
         console.error('[IDELayout] 检测到重名文本节点:', duplicates)
@@ -308,13 +308,13 @@ function IDELayoutContent() {
     }
   }
 
-  // 处理树拖拽重排
+  // Handle tree drag and reorder
   const handleTreeReorder = async ({ sourceId, targetId, mode }: { sourceId: string; targetId: string; mode: 'before' | 'after' | 'into' }) => {
     try {
-      // 防止把节点移动到自身或其子孙
+      // Prevent moving node to itself or its descendants
       if (sourceId === targetId || isAncestor(fileTree as any, sourceId, targetId)) return
 
-      // 检查源节点和目标节点是否在垃圾桶中
+      // Check if source and target nodes are in trash
       const findNodeWithTrashInfo = (nodes: FileNode[], id: string, isInTrash = false): { node: FileNode | null; isInTrash: boolean } => {
         for (const node of nodes) {
           const currentIsInTrash = isInTrash || node.id === '__trash__'
@@ -332,21 +332,21 @@ function IDELayoutContent() {
       const sourceInfo = findNodeWithTrashInfo(fileTree, sourceId)
       const targetInfo = findNodeWithTrashInfo(fileTree, targetId)
 
-      // 规刱1）垃圾桶内部不能重排
+      // Rule 1) Cannot reorder within trash
       if (sourceInfo.isInTrash && targetInfo.isInTrash) {
         toast.error('无法在垃圾桶内部重排节点')
         return
       }
 
-      // 规刱2）从外部拖入垃圾桶：等同于 Remove
+      // Rule 2) Dragging from outside into trash: equivalent to Remove
       if (!sourceInfo.isInTrash && (targetId === '__trash__' || targetInfo.isInTrash)) {
-        // 如果目标不是垃圾桶根节点，阻止操作（不能放到子节点中）
+        // If target is not trash root node, block operation (cannot put into child nodes)
         if (targetId !== '__trash__') {
           toast.error('只能将节点移动到垃圾桶根目录')
           return
         }
         
-        // 执行 Remove 操作
+        // Execute Remove operation
         const sourceNode = sourceInfo.node
         if (sourceNode) {
           await handleRemoveNode(sourceNode)
@@ -354,13 +354,13 @@ function IDELayoutContent() {
         return
       }
 
-      // 规刱3）从垃圾桶拖出：允许，但不执行内容编码和文件删除（只是移动）
-      // 正常的拖拽重排逻辑
+      // Rule 3) Dragging out from trash: allowed, but don't encode content or delete files (just move)
+      // Normal drag reorder logic
       const sourcePath = findNodePath(fileTree as any, sourceId)
       if (!sourcePath) return
       const { removed, newTree } = removeAtPath(fileTree as any, sourcePath)
       
-      // 如果从垃圾桶拖出，需要清除 content 字段
+      // If dragging out from trash, need to clear content field
       if (sourceInfo.isInTrash && !targetInfo.isInTrash) {
         const cleanContent = (node: FileNode): FileNode => {
           const cleaned = { ...node }
@@ -372,7 +372,7 @@ function IDELayoutContent() {
         }
         const cleanedNode = cleanContent(removed as any)
         
-        // 插入到目标
+        // Insert to target
         let updated: FileNode[]
         if (mode === 'into') {
           updated = insertInto(newTree as any, targetId, cleanedNode as any) as any
@@ -381,7 +381,7 @@ function IDELayoutContent() {
         }
         setFileTree(updated)
         
-        // 保存到 mano.conf.json
+        // Save to mano.conf.json
         if (configFileHandle) {
           const { saveManoConfig } = await import('@/services/fileSystem')
           await saveManoConfig(configFileHandle, { data: updated as any, lastUpdated: new Date().toISOString() })
@@ -389,7 +389,7 @@ function IDELayoutContent() {
         return
       }
 
-      // 普通拖拽重排
+      // Normal drag reorder
       let updated: FileNode[]
       if (mode === 'into') {
         updated = insertInto(newTree as any, targetId, removed as any) as any
@@ -408,7 +408,7 @@ function IDELayoutContent() {
     }
   }
 
-  // 创建新节点
+  // Create new node
   const handleCreateNode = async (parentNode: FileNode) => {
     if (!configFileHandle) {
       toast.error('请先打开文件夹')
@@ -416,18 +416,18 @@ function IDELayoutContent() {
     }
 
     try {
-      // 在整个工作区中生成不重名的默认名称
-      let baseName = '新建文档'
+      // Generate non-duplicate default name in entire workspace
+      const baseName = '新建文档'
       let finalName = baseName
       let counter = 1
       
-      // 检查整个工作区，而不仅仅是同级节点
+      // Check entire workspace, not just sibling nodes
       while (hasTextNodeWithName(fileTree as any, finalName)) {
         finalName = `${baseName}${counter}`
         counter++
       }
 
-      // 生成新节点 ID
+      // Generate new node ID
       const timestamp = Date.now()
       const newNode: FileNode = {
         id: `node-${timestamp}`,
@@ -436,11 +436,11 @@ function IDELayoutContent() {
         readOnly: false
       }
 
-      // 添加到父节点的 children 末尾
+      // Add to end of parent node's children
       const updated = insertInto(fileTree as any, parentNode.id, newNode as any) as FileNode[]
       setFileTree(updated)
 
-      // 设置为编辑模式
+      // Set to edit mode
       setEditingNodeId(newNode.id)
 
       console.log('[handleCreateNode] Created new node:', newNode)
@@ -450,21 +450,21 @@ function IDELayoutContent() {
     }
   }
 
-  // 重命名节点
+  // Rename node
   const handleRenameNode = async (nodeId: string, newName: string) => {
     if (!configFileHandle) {
       toast.error('请先打开文件夹')
       return
     }
 
-    // 验证名称不为空
+    // Validate name is not empty
     if (!newName.trim()) {
       toast.error('节点名称不能为空')
       return
     }
 
     try {
-      // 查找节点
+      // Find node
       const findNode = (nodes: FileNode[], id: string): FileNode | null => {
         for (const node of nodes) {
           if (node.id === id) return node
@@ -483,13 +483,13 @@ function IDELayoutContent() {
         return
       }
 
-      // 检查整个工作区是否有重名的文本节点（排除自身）
+      // Check entire workspace for duplicate text node names (excluding self)
       if (hasTextNodeWithName(fileTree as any, newName, nodeId)) {
         toast.error(`工作区中已存在名为 "${newName}" 的文本节点，文件名必须唯一`)
         return
       }
 
-      // 查找节点并更新名称
+      // Find node and update name
       const updateNodeName = (nodes: FileNode[]): FileNode[] => {
         return nodes.map(node => {
           if (node.id === nodeId) {
@@ -505,7 +505,7 @@ function IDELayoutContent() {
       const updated = updateNodeName(fileTree)
       setFileTree(updated)
 
-      // 保存到 mano.conf.json
+      // Save to mano.conf.json
       const { saveManoConfig } = await import('@/services/fileSystem')
       await saveManoConfig(configFileHandle, { 
         data: updated as any, 
@@ -520,11 +520,11 @@ function IDELayoutContent() {
     }
   }
 
-  // 取消编辑
+  // Cancel edit
   const handleCancelEdit = async () => {
     if (!editingNodeId) return
 
-    // 查找正在编辑的节点
+    // Find node being edited
     const findNode = (nodes: FileNode[], id: string): FileNode | null => {
       for (const node of nodes) {
         if (node.id === id) return node
@@ -538,9 +538,9 @@ function IDELayoutContent() {
 
     const editingNode = findNode(fileTree, editingNodeId)
     
-    // 如果是新创建的节点（名称仍为默认值），则删除它
-    // 匹配 "新建文档" 或 "新建文档1"、"新建文档2" 等模式
-    const isDefaultName = editingNode && /^新建文档\d*$/.test(editingNode.name)
+    // If it's a newly created node (name is still default), delete it
+    // Match default document name patterns (like "New Doc", "New Doc1", "New Doc2", or Chinese equivalent)
+    const isDefaultName = editingNode && /^(新建文档|New Doc)\d*$/.test(editingNode.name)
     
     if (isDefaultName) {
       const removeNodeById = (nodes: FileNode[]): FileNode[] => {
@@ -565,21 +565,21 @@ function IDELayoutContent() {
     setEditingNodeId(null)
   }
 
-  // 移除节点到垃圾篓
+  // Remove node to trash
   const handleRemoveNode = async (node: FileNode) => {
     if (!configFileHandle || !dirHandle) {
       toast.error('请先打开文件夹')
       return
     }
 
-    // 不能删除垃圾篓本身
+    // Cannot delete trash itself
     if (node.id === '__trash__') {
       toast.error('无法删除垃圾篓')
       return
     }
 
     try {
-      // 关闭所有打开该节点的标签页（递归关闭子节点）
+      // Close all tabs that opened this node (recursively close child nodes)
       const closeNodeAndChildren = (n: FileNode) => {
         if (n.nodeType !== 'Directory') {
           dispatch({ type: 'CLOSE_FILE_IN_ALL_GROUPS', fileId: n.id })
@@ -628,7 +628,7 @@ function IDELayoutContent() {
         if (n.children && n.children.length > 0) {
           const processedChildren: FileNode[] = []
           for (const child of n.children) {
-            // 检查子节点是否需要重命名（避免与垃圾篓中的节点重名）
+            // Check if child node needs renaming (avoid conflicts with nodes in trash)
             let renamedChild = child
             if ((child.nodeType === 'SlateText' || child.nodeType === 'Markdown')) {
               let newName = child.name
@@ -665,7 +665,7 @@ function IDELayoutContent() {
       let trashNode = fileTree.find(n => n.id === '__trash__')
       
       if (!trashNode) {
-        // 创建垃圾篓节点
+        // Create trash node
         trashNode = {
           id: '__trash__',
           name: '垃圾篓',
@@ -699,7 +699,7 @@ function IDELayoutContent() {
         return nodeToAdd
       }
 
-      // 从原位置移除节点
+      // Remove node from original position
       const removeNodeById = (nodes: FileNode[], id: string): FileNode[] => {
         return nodes.filter(n => {
           if (n.id === id) return false
@@ -715,10 +715,10 @@ function IDELayoutContent() {
 
       let updated = removeNodeById(fileTree, node.id)
 
-      // 检查并处理重名
+      // Check and handle name conflicts
       const renamedNode = checkAndRenameIfNeeded(processedNode, trashNode.children || [])
 
-      // 将处理后的节点添加到垃圾篓
+      // Add processed node to trash
       updated = updated.map(n => {
         if (n.id === '__trash__') {
           return {
@@ -729,7 +729,7 @@ function IDELayoutContent() {
         return n
       })
 
-      // 如果垃圾篓不存在，添加到根节点
+      // If trash doesn't exist, add to root
       if (!fileTree.find(n => n.id === '__trash__')) {
         trashNode.children = [renamedNode]
         updated = [...updated, trashNode as FileNode]
@@ -737,7 +737,7 @@ function IDELayoutContent() {
 
       setFileTree(updated)
 
-      // 保存到 mano.conf.json
+      // Save to mano.conf.json
       const { saveManoConfig } = await import('@/services/fileSystem')
       await saveManoConfig(configFileHandle, {
         data: updated,
@@ -765,7 +765,7 @@ function IDELayoutContent() {
     }
 
     try {
-      // 关闭所有打开该节点的标签页（递归关闭子节点）
+      // Close all tabs that opened this node (recursively close child nodes)
       const closeNodeAndChildren = (n: FileNode) => {
         if (n.nodeType !== 'Directory') {
           dispatch({ type: 'CLOSE_FILE_IN_ALL_GROUPS', fileId: n.id })
@@ -776,26 +776,26 @@ function IDELayoutContent() {
       }
       closeNodeAndChildren(node)
 
-      // 设置动画状态
+      // Set animation state
       setMovingOutNodeId(node.id)
       
-      // 等待动画完成
+      // Wait for animation to complete
       await new Promise(resolve => setTimeout(resolve, 500))
 
       const { getFileSystem } = await import('@/services/fileSystem')
       const { getNodeFilename } = await import('@/services/fileSystem')
       const fs = getFileSystem()
 
-      // 获取垃圾篓之外的所有节点，用于检查重名
+      // Get all nodes outside trash for checking duplicates
       const getNodesOutsideTrash = (nodes: FileNode[]): FileNode[] => {
         return nodes.filter(n => n.id !== '__trash__')
       }
 
       const nodesOutsideTrash = getNodesOutsideTrash(fileTree)
 
-      // 检查并重命名以避免冲突
+      // Check and rename to avoid conflicts
       const checkAndRenameNode = (nodeToRestore: FileNode, existingNodes: FileNode[]): FileNode => {
-        // 只对文本节点检查重名
+        // Only check renaming for text nodes
         if (nodeToRestore.nodeType !== 'SlateText' && nodeToRestore.nodeType !== 'Markdown') {
           return nodeToRestore
         }
@@ -803,7 +803,7 @@ function IDELayoutContent() {
         let newName = nodeToRestore.name
         let counter = 1
         
-        // 检查是否与垃圾篓外的任何文本节点重名
+        // Check for duplicate names with any text node outside trash
         while (hasTextNodeWithName(existingNodes, newName, nodeToRestore.id)) {
           newName = `${nodeToRestore.name} (${counter})`
           counter++
@@ -851,7 +851,7 @@ function IDELayoutContent() {
         if (n.children && n.children.length > 0) {
           const restoredChildren: FileNode[] = []
           for (const child of n.children) {
-            // 检查子节点是否需要重命名（避免与同级或外部节点重名）
+            // Check if child node needs renaming (avoid conflicts with sibling or external nodes)
             let renamedChild = child
             if ((child.nodeType === 'SlateText' || child.nodeType === 'Markdown')) {
               let newName = child.name
@@ -905,24 +905,24 @@ function IDELayoutContent() {
 
       let updated = removeFromTrash(fileTree)
 
-      // 找到 __trash__ 节点的索引
+      // Find __trash__ node index
       const trashIndex = updated.findIndex(n => n.id === '__trash__')
       
       if (trashIndex !== -1) {
-        // 在 __trash__ 之前插入恢复的节点
+        // Insert restored node before __trash__
         updated = [
           ...updated.slice(0, trashIndex),
           restoredNode as FileNode,
           ...updated.slice(trashIndex)
         ]
       } else {
-        // 如果找不到垃圾篓（不应该发生），添加到末尾
+        // If trash not found (should not happen), add to end
         updated = [...updated, restoredNode as FileNode]
       }
 
       setFileTree(updated)
 
-      // 保存到 mano.conf.json
+      // Save to mano.conf.json
       const { saveManoConfig } = await import('@/services/fileSystem')
       await saveManoConfig(configFileHandle, {
         data: updated,
@@ -939,6 +939,64 @@ function IDELayoutContent() {
       toast.error('移出失败')
       // Clear animation state
       setMovingOutNodeId(null)
+    }
+  }
+
+  // Permanently delete node from trash
+  const handleDeleteNode = async (node: FileNode) => {
+    if (!configFileHandle) {
+      toast.error('未加载配置文件')
+      return
+    }
+
+    try {
+      // Close all tabs for this node and its children (if any)
+      const closeNodeAndChildren = (n: FileNode) => {
+        if (n.nodeType !== 'Directory') {
+          dispatch({ type: 'CLOSE_FILE_IN_ALL_GROUPS', fileId: n.id })
+        }
+        if (n.children) {
+          n.children.forEach(child => closeNodeAndChildren(child))
+        }
+      }
+      closeNodeAndChildren(node)
+
+      // Set animation state
+      setRemovingNodeId(node.id)
+      
+      // Wait for animation
+      await new Promise(resolve => setTimeout(resolve, 500))
+
+      // Remove node from tree (search and remove from parent's children)
+      const removeNodeById = (nodes: FileNode[]): FileNode[] => {
+        return nodes
+          .filter(n => n.id !== node.id)
+          .map(n => ({
+            ...n,
+            children: n.children ? removeNodeById(n.children) : undefined
+          }))
+      }
+
+      const updated = removeNodeById(fileTree)
+      setFileTree(updated)
+
+      // Save to mano.conf.json
+      const { saveManoConfig } = await import('@/services/fileSystem')
+      await saveManoConfig(configFileHandle, {
+        data: updated,
+        lastUpdated: new Date().toISOString()
+      })
+
+      toast.success('已永久删除')
+      console.log('[handleDeleteNode] Permanently deleted:', node)
+      
+      // Clear animation state
+      setRemovingNodeId(null)
+    } catch (e) {
+      console.error('Delete failed:', e)
+      toast.error('删除失败')
+      // Clear animation state
+      setRemovingNodeId(null)
     }
   }
 
@@ -1140,7 +1198,7 @@ function IDELayoutContent() {
       const success = await saveToFileSystem(activeTab.fileHandle, activeTab.content)
       
       if (success) {
-        // 标记为已保存到磁盘
+        // Mark as saved to disk
         dispatch({
           type: 'MARK_TAB_SAVED_TO_DISK',
           tabId: activeTab.id,
@@ -1269,6 +1327,7 @@ function IDELayoutContent() {
               onCancelEdit={handleCancelEdit}
               onRemoveNode={handleRemoveNode}
               onMoveOut={handleMoveOut}
+              onDeleteNode={handleDeleteNode}
               movingOutNodeId={movingOutNodeId}
               removingNodeId={removingNodeId}
               onToggleExpand={handleToggleExpand}

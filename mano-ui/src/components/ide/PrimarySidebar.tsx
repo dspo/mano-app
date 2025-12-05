@@ -31,6 +31,7 @@ interface FileTreeItemProps {
   onCancelEdit?: () => void
   onRemoveNode?: (node: FileNode) => void
   onMoveOut?: (node: FileNode) => void
+  onDeleteNode?: (node: FileNode) => void
   isInTrash?: boolean
   movingOutNodeId?: string | null
   removingNodeId?: string | null
@@ -39,7 +40,7 @@ interface FileTreeItemProps {
   onToggleExpand?: (nodeId: string, isExpanded: boolean) => void
 }
 
-function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragOverId, dropMode, dropLevel, onCreateNode, editingNodeId, onRenameNode, onCancelEdit, onRemoveNode, onMoveOut, isInTrash = false, movingOutNodeId, removingNodeId, contextMenuNodeId, onContextMenuChange, onToggleExpand }: FileTreeItemProps) {
+function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragOverId, dropMode, dropLevel, onCreateNode, editingNodeId, onRenameNode, onCancelEdit, onRemoveNode, onMoveOut, onDeleteNode, isInTrash = false, movingOutNodeId, removingNodeId, contextMenuNodeId, onContextMenuChange, onToggleExpand }: FileTreeItemProps) {
   // Read initial state from node.expanded (default false if not set)
   const [isOpen, setIsOpen] = useState(node.expanded ?? false)
   const [editValue, setEditValue] = useState(node.name)
@@ -93,7 +94,7 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
   const { setNodeRef: setDragRef, listeners, attributes, isDragging } = useDraggable({ 
     id: node.id, 
     data: { node, level },
-    disabled: isTrashNode // 禁用垃圾桶内节点的拖动
+    disabled: isTrashNode // Disable dragging of nodes in trash
   })
   const { setNodeRef: setDropRef } = useDroppable({ id: `row-${node.id}`, data: { node, type: 'row', level } })
   
@@ -210,27 +211,39 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
           </ContextMenuTrigger>
           <ContextMenuContent className="w-48">
             {isInTrash && node.id !== '__trash__' && (
-              <ContextMenuItem
-                onClick={() => onMoveOut?.(node)}
-              >
-                <ArrowUpFromLine className="w-4 h-4 mr-2" />
-                Move out
-              </ContextMenuItem>
+              <>
+                <ContextMenuItem
+                  onClick={() => onMoveOut?.(node)}
+                >
+                  <ArrowUpFromLine className="w-4 h-4 mr-2" />
+                  Move out
+                </ContextMenuItem>
+                <ContextMenuItem
+                  onClick={() => onDeleteNode?.(node)}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete
+                </ContextMenuItem>
+              </>
             )}
-            <ContextMenuItem
-              onClick={() => onCreateNode?.(node)}
-              disabled={node.readOnly || isTrashNode}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Create Mano Text
-            </ContextMenuItem>
-            <ContextMenuItem
-              onClick={() => onRemoveNode?.(node)}
-              disabled={node.readOnly || isTrashNode}
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              Remove
-            </ContextMenuItem>
+            {!isInTrash && (
+              <>
+                <ContextMenuItem
+                  onClick={() => onCreateNode?.(node)}
+                  disabled={node.readOnly || isTrashNode}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Mano Text
+                </ContextMenuItem>
+                <ContextMenuItem
+                  onClick={() => onRemoveNode?.(node)}
+                  disabled={node.readOnly || isTrashNode}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Remove
+                </ContextMenuItem>
+              </>
+            )}
           </ContextMenuContent>
         </ContextMenu>
 
@@ -253,6 +266,7 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
                 onCancelEdit={onCancelEdit}
                 onRemoveNode={onRemoveNode}
                 onMoveOut={onMoveOut}
+                onDeleteNode={onDeleteNode}
                 isInTrash={isTrashNode}
                 movingOutNodeId={movingOutNodeId}
                 removingNodeId={removingNodeId}
@@ -361,27 +375,39 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
         </ContextMenuTrigger>
         <ContextMenuContent className="w-48">
           {isInTrash && node.id !== '__trash__' && (
-            <ContextMenuItem
-              onClick={() => onMoveOut?.(node)}
-            >
-              <ArrowUpFromLine className="w-4 h-4 mr-2" />
-              Move out
-            </ContextMenuItem>
+            <>
+              <ContextMenuItem
+                onClick={() => onMoveOut?.(node)}
+              >
+                <ArrowUpFromLine className="w-4 h-4 mr-2" />
+                Move out
+              </ContextMenuItem>
+              <ContextMenuItem
+                onClick={() => onDeleteNode?.(node)}
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete
+              </ContextMenuItem>
+            </>
           )}
-          <ContextMenuItem
-            onClick={() => onCreateNode?.(node)}
-            disabled={node.readOnly || isTrashNode}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Create Mano Text
-          </ContextMenuItem>
-          <ContextMenuItem
-            onClick={() => onRemoveNode?.(node)}
-            disabled={node.readOnly || isTrashNode}
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            Remove
-          </ContextMenuItem>
+          {!isInTrash && (
+            <>
+              <ContextMenuItem
+                onClick={() => onCreateNode?.(node)}
+                disabled={node.readOnly || isTrashNode}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Create Mano Text
+              </ContextMenuItem>
+              <ContextMenuItem
+                onClick={() => onRemoveNode?.(node)}
+                disabled={node.readOnly || isTrashNode}
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Remove
+              </ContextMenuItem>
+            </>
+          )}
         </ContextMenuContent>
       </ContextMenu>
 
@@ -404,6 +430,7 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
               onCancelEdit={onCancelEdit}
               onRemoveNode={onRemoveNode}
               onMoveOut={onMoveOut}
+              onDeleteNode={onDeleteNode}
               isInTrash={isTrashNode}
               movingOutNodeId={movingOutNodeId}
               removingNodeId={removingNodeId}
@@ -436,12 +463,13 @@ interface PrimarySidebarProps {
   onCancelEdit?: () => void
   onRemoveNode?: (node: FileNode) => void
   onMoveOut?: (node: FileNode) => void
+  onDeleteNode?: (node: FileNode) => void
   movingOutNodeId?: string | null
   removingNodeId?: string | null
   onToggleExpand?: (nodeId: string, isExpanded: boolean) => void
 }
 
-export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree = [], onReorder, onCreateNode, editingNodeId, onRenameNode, onCancelEdit, onRemoveNode, onMoveOut, movingOutNodeId, removingNodeId, onToggleExpand }: PrimarySidebarProps) {
+export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree = [], onReorder, onCreateNode, editingNodeId, onRenameNode, onCancelEdit, onRemoveNode, onMoveOut, onDeleteNode, movingOutNodeId, removingNodeId, onToggleExpand }: PrimarySidebarProps) {
   const [dragOverId, setDragOverId] = useState<string | null>(null)
   const [dropMode, setDropMode] = useState<'before' | 'after' | 'into' | null>(null)
   const [dropLevel, setDropLevel] = useState<number>(0)
@@ -476,7 +504,7 @@ export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree =
     const targetId = m[1]
     const targetLevel = over.data.current?.level ?? 0
 
-    // 检查源节点和目标节点是否在垃圾篓中
+    // Check if source and target nodes are in trash
     const findNodeWithTrashInfo = (nodes: FileNode[], id: string, isInTrash = false): { node: FileNode | null; isInTrash: boolean } => {
       for (const node of nodes) {
         const currentIsInTrash = isInTrash || node.id === '__trash__'
@@ -495,7 +523,7 @@ export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree =
     const sourceInfo = findNodeWithTrashInfo(fileTree, sourceId)
     const targetInfo = findNodeWithTrashInfo(fileTree, targetId)
 
-    // 新规则：禁止任何拖放到垃圾篓内（包括垃圾篓根节点和其子节点）
+    // New rule: prohibit any drag and drop into trash (including trash root and its children)
     if (targetInfo.isInTrash) {
       setDragOverId(null)
       setDropMode(null)
@@ -503,8 +531,8 @@ export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree =
       return
     }
 
-    // 规则：垃圾篓内的节点不能拖动（已在 useDraggable 中禁用）
-    // 这里额外检查，如果源在垃圾篓内，不显示任何 drop 指示器
+    // Rule: nodes in trash cannot be dragged (already disabled in useDraggable)
+    // Extra check here: if source is in trash, don't show any drop indicator
     if (sourceInfo.isInTrash) {
       setDragOverId(null)
       setDropMode(null)
@@ -528,7 +556,7 @@ export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree =
     const relativeY = (pointerY - rect.top) / rect.height
     const mode = relativeY < 0.5 ? 'before' : 'after'
     
-    // 水平缩进控制：指针向右拖动 → 增加层级（into），保持水平 → 同级（after/before）
+    // Horizontal indent control: dragging pointer right → increase level (into), keeping horizontal → same level (after/before)
     // Base indent = targetLevel * 12px + 8px
     const baseIndent = targetLevel * 12 + 8
     const pointerIndent = pointerX - rect.left
@@ -611,6 +639,7 @@ export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree =
                   onCancelEdit={onCancelEdit}
                   onRemoveNode={onRemoveNode}
                   onMoveOut={onMoveOut}
+                  onDeleteNode={onDeleteNode}
                   movingOutNodeId={movingOutNodeId}
                   removingNodeId={removingNodeId}
                   contextMenuNodeId={contextMenuNodeId}

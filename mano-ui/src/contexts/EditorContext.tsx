@@ -2,7 +2,7 @@ import React, { createContext, useReducer } from 'react'
 import type { ReactNode } from 'react'
 import type { EditorState, EditorAction, EditorLayout, EditorGroup, EditorTab } from '@/types/editor'
 
-// 初始状态
+// Initial state
 const initialState: EditorState = {
   layout: { type: 'group', groupId: 'group-1' },
   groups: {
@@ -25,7 +25,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
       const group = state.groups[targetGroupId]
       if (!group) return state
 
-      // 检查文件是否已打开
+      // Check if file is already open
       const existingTab = group.tabs.find(tab => tab.fileId === action.fileId)
       if (existingTab) {
         return {
@@ -41,7 +41,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
         }
       }
 
-      // 创建新标签页
+      // Create new tab
       const newTabId = `tab-${state.nextTabId}`
       const newTab = {
         id: newTabId,
@@ -50,7 +50,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
         fileType: action.fileType,
         content: action.content,
         isDirty: false,
-        isSavedToDisk: true, // 新打开的文件默认为已保存
+        isSavedToDisk: true, // Newly opened files default to saved
         fileHandle: action.fileHandle,
         readOnly: action.readOnly || false,
       }
@@ -77,7 +77,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
       const newTabs = group.tabs.filter(tab => tab.id !== action.tabId)
       let newActiveTabId = group.activeTabId
 
-      // 如果关闭的是当前激活的标签页，选择新的激活标签页
+      // If closing the currently active tab, select a new active tab
       if (action.tabId === group.activeTabId) {
         if (newTabs.length > 0) {
           const closedIndex = group.tabs.findIndex(tab => tab.id === action.tabId)
@@ -100,7 +100,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
         },
       }
 
-      // 如果组变空且不是唯一的组，自动关闭该组
+      // If group becomes empty and is not the only group, automatically close it
       if (newTabs.length === 0 && Object.keys(newState.groups).length > 1) {
         return editorReducer(newState, { type: 'CLOSE_GROUP', groupId: action.groupId })
       }
@@ -124,7 +124,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
         },
       }
 
-      // 如果不是唯一的组，关闭该组
+      // If not the only group, close it
       if (Object.keys(newState.groups).length > 1) {
         return editorReducer(newState, { type: 'CLOSE_GROUP', groupId: action.groupId })
       }
@@ -133,7 +133,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
     }
 
     case 'CLOSE_FILE_IN_ALL_GROUPS': {
-      // 关闭所有组中打开的指定文件
+      // Close specified file in all groups
       let newState = { ...state }
       let hasChanges = false
 
@@ -143,7 +143,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
         
         if (tabsWithFile.length > 0) {
           hasChanges = true
-          // 关闭该组中所有该文件的标签页
+          // Close all tabs of this file in the group
           tabsWithFile.forEach(tab => {
             newState = editorReducer(newState, { 
               type: 'CLOSE_TAB', 
@@ -178,7 +178,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
       const group = state.groups[action.groupId]
       if (!group) return state
 
-      // 创建新的编辑器组，如果当前组有激活的标签页，复制到新组
+      // Create new Editor group, if current group has active tab, copy to new group
       const newGroupId = `group-${state.nextGroupId}`
       const activeTab = group.activeTabId ? group.tabs.find(tab => tab.id === group.activeTabId) : null
       
@@ -188,13 +188,13 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
         activeTabId: activeTab ? activeTab.id : null,
       }
 
-      // 更新布局树
+      // Update layout tree
       const newLayout = splitLayoutNode(state.layout, action.groupId, newGroupId, action.direction)
 
       return {
         ...state,
         layout: newLayout,
-        lastFocusedGroupId: newGroupId,  // 聚焦到新创建的组
+        lastFocusedGroupId: newGroupId,  // Focus on newly created group
         groups: {
           ...state.groups,
           [newGroupId]: newGroup,
@@ -204,7 +204,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
     }
 
     case 'CLOSE_GROUP': {
-      // 不允许关闭最后一个编辑器组
+      // Cannot close the last Editor group
       const groupCount = Object.keys(state.groups).length
       if (groupCount <= 1) return state
 
@@ -213,7 +213,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
 
       const newLayout = removeLayoutNode(state.layout, action.groupId)
 
-      // 如果关闭的是当前聚焦的组，选择一个新的
+      // If closing the currently focused group, select a new one
       const newLastFocusedGroupId = state.lastFocusedGroupId === action.groupId
         ? Object.keys(newGroups)[0]
         : state.lastFocusedGroupId
@@ -297,15 +297,15 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
       const targetGroup = state.groups[action.targetGroupId]
       if (!sourceGroup || !targetGroup) return state
 
-      // 找到要移动的 tab
+      // Find tab to move
       const tabToMove = sourceGroup.tabs.find(tab => tab.id === action.tabId)
       if (!tabToMove) return state
 
-      // 从源组移除
+      // Remove from source group
       const newSourceTabs = sourceGroup.tabs.filter(tab => tab.id !== action.tabId)
       let newSourceActiveTabId = sourceGroup.activeTabId
 
-      // 如果移动的是激活的 tab，更新源组的激活状态
+      // If moving the active tab, update source group active state
       if (action.tabId === sourceGroup.activeTabId) {
         if (newSourceTabs.length > 0) {
           const removedIndex = sourceGroup.tabs.findIndex(tab => tab.id === action.tabId)
@@ -316,7 +316,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
         }
       }
 
-      // 添加到目标组
+      // Add to target group
       const newTargetTabs = [...targetGroup.tabs, tabToMove]
 
       const newState = {
@@ -332,12 +332,12 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
           [action.targetGroupId]: {
             ...targetGroup,
             tabs: newTargetTabs,
-            activeTabId: tabToMove.id,  // 激活移动的 tab
+            activeTabId: tabToMove.id,  // Activate moved tab
           },
         },
       }
 
-      // 如果源组变空且不是唯一的组，自动关闭
+      // If source group becomes empty and is not the only group, automatically close it
       if (newSourceTabs.length === 0 && Object.keys(newState.groups).length > 1) {
         return editorReducer(newState, { type: 'CLOSE_GROUP', groupId: action.sourceGroupId })
       }
@@ -349,11 +349,11 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
       const sourceGroup = state.groups[action.sourceGroupId]
       if (!sourceGroup) return state
 
-      // 找到要移动的 tab
+      // Find tab to move
       const tabToMove = sourceGroup.tabs.find(tab => tab.id === action.tabId)
       if (!tabToMove) return state
 
-      // 创建新的编辑器组
+      // Create new Editor group
       const newGroupId = `group-${state.nextGroupId}`
       const newGroup: EditorGroup = {
         id: newGroupId,
@@ -361,10 +361,10 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
         activeTabId: tabToMove.id,
       }
 
-      // 确定分屏方向
+      // Determine split direction
       const direction = (action.edge === 'left' || action.edge === 'right') ? 'horizontal' : 'vertical'
 
-      // 更新布局树 - 在指定边缘插入新组
+      // Update layout tree - insert new group at specified edge
       const newLayout = insertLayoutNodeAtEdge(
         state.layout,
         action.sourceGroupId,
@@ -373,7 +373,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
         action.edge
       )
 
-      // 从源组移除 tab
+      // Remove tab from source group
       const newSourceTabs = sourceGroup.tabs.filter(tab => tab.id !== action.tabId)
       let newSourceActiveTabId = sourceGroup.activeTabId
 
@@ -403,7 +403,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
         nextGroupId: state.nextGroupId + 1,
       }
 
-      // 如果源组变空且不是唯一的组，自动关闭
+      // If source group becomes empty and is not the only group, automatically close it
       if (newSourceTabs.length === 0 && Object.keys(newState.groups).length > 1) {
         return editorReducer(newState, { type: 'CLOSE_GROUP', groupId: action.sourceGroupId })
       }
@@ -437,7 +437,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
   }
 }
 
-// 辅助函数：在布局树中分割节点
+// Helper function: split node in layout tree
 function splitLayoutNode(
   layout: EditorLayout,
   targetGroupId: string,
@@ -468,7 +468,7 @@ function splitLayoutNode(
   return layout
 }
 
-// 辅助函数：在布局树的边缘插入新节点
+// Helper function: insert new node at edge of layout tree
 function insertLayoutNodeAtEdge(
   layout: EditorLayout,
   targetGroupId: string,
@@ -476,9 +476,9 @@ function insertLayoutNodeAtEdge(
   direction: 'horizontal' | 'vertical',
   edge: 'left' | 'right' | 'top' | 'bottom'
 ): EditorLayout {
-  // 找到目标组所在的分屏节点
+  // Find split node containing target group
   if (layout.type === 'group' && layout.groupId === targetGroupId) {
-    // 目标组是根节点，直接创建分屏
+    // Target group is root node, directly create split
     const children = edge === 'left' || edge === 'top'
       ? [{ type: 'group' as const, groupId: newGroupId }, { type: 'group' as const, groupId: targetGroupId }]
       : [{ type: 'group' as const, groupId: targetGroupId }, { type: 'group' as const, groupId: newGroupId }]
@@ -492,7 +492,7 @@ function insertLayoutNodeAtEdge(
   }
 
   if (layout.type === 'split') {
-    // 递归查找目标组
+    // Recursively find target group
     const newChildren = layout.children.map(child =>
       insertLayoutNodeAtEdge(child, targetGroupId, newGroupId, direction, edge)
     )
@@ -506,7 +506,7 @@ function insertLayoutNodeAtEdge(
   return layout
 }
 
-// 辅助函数：从布局树中移除节点
+// Helper function: remove node from layout tree
 function removeLayoutNode(layout: EditorLayout, targetGroupId: string): EditorLayout {
   if (layout.type === 'split') {
     const newChildren = layout.children.filter(child => {
@@ -516,7 +516,7 @@ function removeLayoutNode(layout: EditorLayout, targetGroupId: string): EditorLa
       return true
     })
 
-    // 如果只剩一个子节点，直接返回该子节点
+    // If only one child node remains, return that child node directly
     if (newChildren.length === 1) {
       return newChildren[0]
     }

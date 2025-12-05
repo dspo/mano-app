@@ -76,17 +76,17 @@ export function isAncestor(tree: ManoNode[], ancestorId: string, nodeId: string)
 }
 
 /**
- * 检查整个工作区中是否有同名的文本节点（SlateText 或 Markdown）
- * 因为文本节点对应物理文件，文件名在同一目录下必须唯一
- * @param tree 整个节点树
- * @param name 要检查的名称
- * @param excludeId 排除的节点 ID（用于重命名场景，排除自身）
- * @returns true 表示有重名，false 表示没有重名
+ * Check if there are text nodes (SlateText or Markdown) with the same name in the entire workspace
+ * Because text nodes correspond to physical files, filenames must be unique within the same directory
+ * @param tree The entire node tree
+ * @param name The name to check
+ * @param excludeId The node ID to exclude (for rename scenarios, exclude itself)
+ * @returns true if duplicate name exists, false if no duplicate
  */
 export function hasTextNodeWithName(tree: ManoNode[], name: string, excludeId?: string): boolean {
   function search(nodes: ManoNode[]): boolean {
     for (const node of nodes) {
-      // 只检查文本节点（SlateText 和 Markdown），Directory 不对应文件
+      // Only check text nodes (SlateText and Markdown), Directory doesn't correspond to file
       if ((node.nodeType === 'SlateText' || node.nodeType === 'Markdown') && 
           node.name === name && 
           node.id !== excludeId) {
@@ -102,10 +102,10 @@ export function hasTextNodeWithName(tree: ManoNode[], name: string, excludeId?: 
 }
 
 /**
- * 验证整个树结构，检查工作区中是否有重名的文本节点
- * 因为文本节点对应物理文件，文件名在整个工作区必须唯一
- * @param tree 要检查的树结构
- * @returns 包含重名信息的数组，如果为空则表示没有重名
+ * Validate the entire tree structure, check if there are duplicate text node names in the workspace
+ * Because text nodes correspond to physical files, filenames must be unique throughout the workspace
+ * @param tree The tree structure to check
+ * @returns Array containing duplicate name information, empty array means no duplicates
  */
 export function checkDuplicateNames(tree: ManoNode[]): Array<{ name: string; ids: string[] }> {
   const duplicates: Array<{ name: string; ids: string[] }> = []
@@ -113,7 +113,7 @@ export function checkDuplicateNames(tree: ManoNode[]): Array<{ name: string; ids
   
   function collectTextNodes(nodes: ManoNode[]) {
     for (const node of nodes) {
-      // 只收集文本节点（SlateText 和 Markdown）
+      // Only collect text nodes (SlateText and Markdown)
       if (node.nodeType === 'SlateText' || node.nodeType === 'Markdown') {
         const ids = textNodeNames.get(node.name) || []
         ids.push(node.id)
@@ -128,7 +128,7 @@ export function checkDuplicateNames(tree: ManoNode[]): Array<{ name: string; ids
   
   collectTextNodes(tree)
   
-  // 找出重名（出现次数 > 1）
+  // Find duplicates (occurrence count > 1)
   for (const [name, ids] of textNodeNames.entries()) {
     if (ids.length > 1) {
       duplicates.push({ name, ids })
@@ -139,10 +139,10 @@ export function checkDuplicateNames(tree: ManoNode[]): Array<{ name: string; ids
 }
 
 /**
- * 检查节点是否在垃圾篓中
- * @param tree 整个节点树
- * @param nodeId 要检查的节点 ID
- * @returns true 表示在垃圾篓中，false 表示不在
+ * Check if a node is in the trash
+ * @param tree The entire node tree
+ * @param nodeId The node ID to check
+ * @returns true if in trash, false if not
  */
 export function isInTrash(tree: ManoNode[], nodeId: string): boolean {
   const trashPath = findNodePath(tree, '__trash__')
@@ -151,6 +151,6 @@ export function isInTrash(tree: ManoNode[], nodeId: string): boolean {
   const nodePath = findNodePath(tree, nodeId)
   if (!nodePath) return false
   
-  // 检查 nodePath 是否以 trashPath 开始
+  // Check if nodePath starts with trashPath
   return trashPath.every((v, i) => v === nodePath[i])
 }

@@ -1,40 +1,40 @@
 import type { IFileHandle } from '@/services/fileSystem'
 
-// 编辑器标签页
+// Editor tab
 export interface EditorTab {
   id: string
   fileId: string
   fileName: string
-  fileType: 'text' | 'slate' // text: 普通文本, slate: 富文本
+  fileType: 'text' | 'slate' // text: plain text, slate: rich text
   content: unknown // string for text, Slate JSON for slate
   isDirty: boolean
-  isSavedToDisk: boolean // 是否已保存到磁盘
-  fileHandle?: FileSystemFileHandle | IFileHandle // 文件句柄，用于保存
-  readOnly?: boolean // 是否为只读模式（垃圾篓中的文件）
+  isSavedToDisk: boolean // Whether saved to disk
+  fileHandle?: FileSystemFileHandle | IFileHandle // File handle for saving
+  readOnly?: boolean // Whether in read-only mode (files in trash)
 }
 
-// 编辑器组
+// Editor group
 export interface EditorGroup {
   id: string
   tabs: EditorTab[]
   activeTabId: string | null
 }
 
-// 编辑器布局节点（树结构）
+// Editor layout node (tree structure)
 export type EditorLayout = 
   | { type: 'group'; groupId: string; size?: number }
   | { type: 'split'; direction: 'horizontal' | 'vertical'; children: EditorLayout[]; sizes?: number[] }
 
-// 编辑器全局状态
+// Editor global state
 export interface EditorState {
   layout: EditorLayout
   groups: Record<string, EditorGroup>
-  lastFocusedGroupId: string  // 最后聚焦的编辑器组 ID
+  lastFocusedGroupId: string  // ID of the last focused editor group
   nextGroupId: number
   nextTabId: number
 }
 
-// 编辑器 Action 类型
+// Editor Action types
 export type EditorAction =
   | { type: 'OPEN_FILE'; fileId: string; fileName: string; fileType: 'text' | 'slate'; content: unknown; groupId?: string; fileHandle?: FileSystemFileHandle | IFileHandle; readOnly?: boolean }
   | { type: 'CLOSE_TAB'; tabId: string; groupId: string }
