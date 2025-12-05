@@ -19,7 +19,7 @@ import { isTauri } from '@/lib/utils'
 /**
  * Tauri-specific directory handle wrapper
  */
-class TauriDirectoryHandle implements IDirectoryHandle {
+export class TauriDirectoryHandle implements IDirectoryHandle {
   readonly kind = 'directory' as const
   readonly name: string
   readonly path: string

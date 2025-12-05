@@ -36,16 +36,28 @@ pub fn run() {
                 .quit()
                 .build()?;
 
-            // ... any other submenus
-
+            // File submenu
             let file_submenu = SubmenuBuilder::new(app, "File")
-                .item(&MenuItemBuilder::new("Open").id("open").build(app)?)
+                .item(&MenuItemBuilder::new("Open Workspace ...").id("open").build(app)?)
+                .build()?;
+
+            // Create Edit menu with standard edit operations
+            let edit_submenu = SubmenuBuilder::new(app, "Edit")
+                .undo()
+                .redo()
+                .separator()
+                .cut()
+                .copy()
+                .paste()
+                .separator()
+                .select_all()
                 .build()?;
 
             let menu = MenuBuilder::new(app)
                 .items(&[
                     &app_submenu,
                     &file_submenu,
+                    &edit_submenu,
                     // ... include references to any other submenus
                 ])
                 .build()?;

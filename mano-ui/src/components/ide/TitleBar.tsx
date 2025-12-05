@@ -7,7 +7,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { ManoLogoIcon } from '@/icons/ManoLogoIcon'
 
 interface TitleBarProps {
   showSidebar: boolean
@@ -30,11 +29,8 @@ export function TitleBar({
 }: TitleBarProps) {
   return (
     <div className="h-12 border-b bg-background flex items-center justify-between px-4">
-      <div className="flex items-center gap-2">
-        <ManoLogoIcon className="w-4 h-4" />
-        <span className="font-semibold text-sm">Mano</span>
-        
-        <div className="flex items-center gap-1 ml-4">
+      <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 ml-0">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="h-8 px-3 text-xs">

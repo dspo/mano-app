@@ -5,7 +5,7 @@
 
 import { isTauri } from '@/lib/utils'
 import { BrowserFileSystemStrategy } from './browserStrategy'
-import { TauriFileSystemStrategy } from './tauriStrategy'
+import { TauriFileSystemStrategy, TauriDirectoryHandle } from './tauriStrategy'
 import type { IFileSystemStrategy } from './types'
 
 // Export types for external use
@@ -16,6 +16,9 @@ export type {
   ManoConfigResult,
   FileResult,
 } from './types'
+
+// Export TauriDirectoryHandle class for external use
+export { TauriDirectoryHandle }
 
 /**
  * File System Service

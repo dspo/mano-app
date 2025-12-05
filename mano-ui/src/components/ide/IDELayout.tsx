@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react'
-import { TitleBar } from './TitleBar'
 import { ActivityBar } from './ActivityBar'
 import { PrimarySidebar } from './PrimarySidebar'
 import { insertInto, insertBeforeAfter, findNodePath, removeAtPath, isAncestor, hasTextNodeWithName, checkDuplicateNames, isInTrash } from '@/lib/tree-utils'
@@ -13,6 +12,8 @@ import { EditorProvider } from '@/contexts/EditorContext'
 import { useEditor } from '@/hooks/useEditor'
 import { toast } from 'sonner'
 import type { IFileHandle, IDirectoryHandle } from '@/services/fileSystem'
+import { TauriDirectoryHandle } from '@/services/fileSystem/tauriStrategy'
+import { isTauri } from '@/lib/utils'
 
 // Alias for backward compatibility
 type FileNode = ManoNode
@@ -263,19 +264,12 @@ function IDELayoutContent() {
   // Open folder
   const handleOpenFolder = async () => {
     try {
-      // Dynamically import fileSystem module (points directly to index)
+      // Dynamically import fileSystem module
       const fileSystemModule = await import('@/services/fileSystem/index')
-      console.log('[IDELayout] fileSystemModule:', fileSystemModule)
-      console.log('[IDELayout] getFileSystem:', fileSystemModule.getFileSystem)
-      
-      // Get fileSystem instance (lazy loading)
       const fs = fileSystemModule.getFileSystem()
-      console.log('[IDELayout] fileSystem instance:', fs)
       
       // Select directory
-      console.log('[IDELayout] Calling pickDirectory...')
       const directory = await fs.pickDirectory()
-      console.log('[IDELayout] Directory selected:', directory)
       setDirHandle(directory)
       
       // Read or create mano.conf.json
@@ -307,6 +301,78 @@ function IDELayoutContent() {
       }
     }
   }
+
+  // Handle workspace from Tauri window menu
+  const handleWorkspaceFromMenu = async (workspacePath: string) => {
+    try {
+      console.log('[IDELayout] Handling workspace from Tauri menu:', workspacePath)
+      
+      // Dynamically import fileSystem module
+      const fileSystemModule = await import('@/services/fileSystem/index')
+      const fs = fileSystemModule.getFileSystem()
+      
+      // Create directory handle from the path received from Tauri
+      const directory = new TauriDirectoryHandle(workspacePath)
+      console.log('[IDELayout] Directory handle created:', directory)
+      setDirHandle(directory)
+      
+      // Read or create mano.conf.json
+      const { config, fileHandle } = await fs.readOrCreateManoConfig(directory)
+      
+      // Validate if there are duplicate text node names in tree structure
+      const duplicates = checkDuplicateNames(config.data)
+      if (duplicates.length > 0) {
+        console.error('[IDELayout] 检测到重名文本节点:', duplicates)
+        const errorMsg = duplicates.map(d => 
+          `"${d.name}" (节点ID: ${d.ids.join(', ')})`
+        ).join('; ')
+        toast.error(
+          `mano.conf.json 中存在重名文本节点：${errorMsg}。文本节点对应物理文件，文件名必须唯一，请修复后再次打开。`,
+          { duration: 8000 }
+        )
+        return
+      }
+      
+      setConfigFileHandle(fileHandle)
+      setFileTree(config.data)
+      
+      toast.success(`已打开文件夹: ${directory.name}`)
+      console.log('[IDELayout] Loaded mano.conf.json:', config)
+    } catch (err) {
+      console.error('[IDELayout] Failed to handle workspace from menu:', err)
+      toast.error('打开文件夹失败')
+    }
+  }
+
+  // Listen to Tauri window menu events
+  useEffect(() => {
+    if (!isTauri()) return
+
+    let unlisten: (() => void) | undefined
+
+    const setupListener = async () => {
+      try {
+        const { listen } = await import('@tauri-apps/api/event')
+        
+        unlisten = await listen<{ workspace: string }>('workspace_updated', async (event) => {
+          console.log('[IDELayout] Received workspace_updated event:', event.payload)
+          await handleWorkspaceFromMenu(event.payload.workspace)
+        })
+        
+        console.log('[IDELayout] Tauri menu event listener setup complete')
+      } catch (error) {
+        console.error('[IDELayout] Failed to setup Tauri menu event listener:', error)
+      }
+    }
+
+    setupListener()
+
+    return () => {
+      if (unlisten) {
+        unlisten()
+      }
+    }
+  }, [])
 
   // Handle tree drag and reorder
   const handleTreeReorder = async ({ sourceId, targetId, mode }: { sourceId: string; targetId: string; mode: 'before' | 'after' | 'into' }) => {
@@ -1269,29 +1335,20 @@ function IDELayoutContent() {
     }
   }
 
-  const togglePanel = () => {
-    const panel = panelRef.current
-    if (panel) {
-      if (panel.isCollapsed()) {
-        panel.expand()
-      } else {
-        panel.collapse()
-      }
-    }
-  }
+  // Disabled for now - will be enabled when Bottom Panel functionality is implemented
+  // const togglePanel = () => {
+  //   const panel = panelRef.current
+  //   if (panel) {
+  //     if (panel.isCollapsed()) {
+  //       panel.expand()
+  //     } else {
+  //       panel.collapse()
+  //     }
+  //   }
+  // }
 
   return (
     <div className="flex flex-col h-screen bg-background text-foreground overflow-hidden">
-      <TitleBar
-        showSidebar={!isSidebarCollapsed}
-        showPanel={!isPanelCollapsed}
-        onToggleSidebar={toggleSidebar}
-        onTogglePanel={togglePanel}
-        onSplitEditorRight={handleSplitEditorRight}
-        onOpenFolder={handleOpenFolder}
-        onSave={handleSaveFile}
-      />
-      
       <div className="flex flex-1 overflow-hidden">
         <ActivityBar 
           activeActivity={activeActivity} 
@@ -1299,7 +1356,6 @@ function IDELayoutContent() {
           showSidebar={!isSidebarCollapsed}
           onToggleSidebar={toggleSidebar}
           showPanel={!isPanelCollapsed}
-          onTogglePanel={togglePanel}
         />
         
         <ResizablePanelGroup 
@@ -1331,6 +1387,7 @@ function IDELayoutContent() {
               movingOutNodeId={movingOutNodeId}
               removingNodeId={removingNodeId}
               onToggleExpand={handleToggleExpand}
+              onOpenFolder={handleOpenFolder}
             />
           </ResizablePanel>
           
