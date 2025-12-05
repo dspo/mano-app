@@ -30,7 +30,7 @@ export function useFileSystemAutoSave(
   const latestContentRef = useRef<unknown>(content)
   const latestFileHandleRef = useRef(fileHandle)
   
-  // 更新最新的引用
+  // Update latest references
   latestContentRef.current = content
   latestFileHandleRef.current = fileHandle
 
@@ -43,18 +43,18 @@ export function useFileSystemAutoSave(
     try {
       isSavingRef.current = true
 
-      // 将内容序列化为字符串
+      // Serialize content to string
       const textContent =
         typeof contentToSave === 'string' ? contentToSave : JSON.stringify(contentToSave, null, 2)
 
-      // 使用跨平台的文件系统策略
+      // Use cross-platform file system strategy
       const fileSystem = getFileSystem()
       await fileSystem.saveToFile(currentHandle as IFileHandle, textContent)
 
       console.log('[FileSystemAutoSave] Saved to disk')
       onSaveSuccess?.()
       
-      // 更新已保存的内容引用
+      // Update saved content reference
       previousContentRef.current = contentToSave
     } catch (error) {
       console.error('[FileSystemAutoSave] Failed to save:', error)
@@ -65,30 +65,30 @@ export function useFileSystemAutoSave(
   }, [onSaveSuccess, onSaveError])
 
   useEffect(() => {
-    // 清除之前的定时器
+    // Clear previous timer
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current)
     }
 
-    // 没有文件句柄时不保存
+    // Don't save when file handle is missing
     if (!fileHandle) {
       return
     }
 
-    // 首次渲染，初始化 previousContentRef
+    // First render, initialize previousContentRef
     if (previousContentRef.current === undefined) {
       previousContentRef.current = content
       return
     }
 
-    // 比较内容是否真正改变（深度比较）
+    // Compare if content actually changed (deep comparison)
     const currentContentStr = JSON.stringify(content)
     const previousContentStr = JSON.stringify(previousContentRef.current)
     
     if (currentContentStr !== previousContentStr) {
       console.log('[FileSystemAutoSave] Content changed, scheduling save...')
       
-      // 设置防抖定时器
+      // Set debounce timer
       timeoutRef.current = setTimeout(() => {
         saveToFile(content)
       }, delay)
@@ -101,14 +101,14 @@ export function useFileSystemAutoSave(
     }
   }, [content, fileHandle, delay, saveToFile])
 
-  // 组件卸载时立即保存未保存的内容
+  // Immediately save unsaved content on component unmount
   useEffect(() => {
     return () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current)
       }
       
-      // 检查是否有未保存的内容
+      // Check for unsaved content
       const latestContent = latestContentRef.current
       const currentHandle = latestFileHandleRef.current
       
@@ -117,7 +117,7 @@ export function useFileSystemAutoSave(
         previousContentRef.current !== undefined &&
         JSON.stringify(latestContent) !== JSON.stringify(previousContentRef.current)
       ) {
-        // 组件卸载时的最后保存（同步执行）
+        // Final save on component unmount (synchronous execution)
         saveToFile(latestContent)
       }
     }

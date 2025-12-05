@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 
 /**
- * 自动保存 hook - 在内容变化后延迟执行保存
+ * Auto-save hook - executes save with delay after content changes
  */
 export function useAutoSave<T>(
   value: T,
@@ -12,12 +12,12 @@ export function useAutoSave<T>(
   const previousValueRef = useRef<T>(value)
 
   useEffect(() => {
-    // 清除之前的定时器
+    // Clear previous timer
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current)
     }
 
-    // 只有当值真正改变时才设置新的定时器
+    // Only set new timer when value actually changes
     if (value !== previousValueRef.current) {
       timeoutRef.current = setTimeout(() => {
         onSave(value)

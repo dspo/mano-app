@@ -183,7 +183,7 @@ export function EditorGroupWrapper({ group }: EditorGroupWrapperProps) {
                   fileHandle={tab.fileHandle}
                   readOnly={tab.readOnly}
                   onSaveSuccess={() => {
-                    // 标记为已保存到磁盘
+                    // Mark as saved to disk
                     dispatch({
                       type: 'MARK_TAB_SAVED',
                       tabId: tab.id,
@@ -192,7 +192,7 @@ export function EditorGroupWrapper({ group }: EditorGroupWrapperProps) {
                   }}
                   onSaveError={(error) => {
                     console.error('Failed to auto-save:', error)
-                    // 可选：显示错误提示
+                    // Optional: show error message
                   }}
                   onChange={(newValue: unknown) => {
                     dispatch({
