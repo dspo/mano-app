@@ -453,7 +453,7 @@ function IDELayoutContent() {
   // Rename node
   const handleRenameNode = async (nodeId: string, newName: string) => {
     if (!configFileHandle) {
-      toast.error('请先Open folder')
+      toast.error('请先打开文件夹')
       return
     }
 
@@ -568,7 +568,7 @@ function IDELayoutContent() {
   // Remove node to trash
   const handleRemoveNode = async (node: FileNode) => {
     if (!configFileHandle || !dirHandle) {
-      toast.error('请先Open folder')
+      toast.error('请先打开文件夹')
       return
     }
 
@@ -760,7 +760,7 @@ function IDELayoutContent() {
   // Move node out from trash
   const handleMoveOut = async (node: FileNode) => {
     if (!configFileHandle || !dirHandle) {
-      toast.error('请先Open folder')
+      toast.error('请先打开文件夹')
       return
     }
 
@@ -1096,7 +1096,7 @@ function IDELayoutContent() {
     
     // Check if we have directory access for non-trash files
     if (!dirHandle) {
-      toast.error('请先Open folder')
+      toast.error('请先打开文件夹')
       return
     }
     
