@@ -658,9 +658,9 @@ function IDELayoutContent() {
         }
       }
 
-      // 检查垃圾篓中是否有同名节点,如果有则重命名
+      // Check if there are nodes with the same name in trash, rename if needed
       const checkAndRenameIfNeeded = (nodeToAdd: FileNode, existingNodes: FileNode[]): FileNode => {
-        // 只对文本节点检查重名
+        // Only check renaming for text nodes
         if (nodeToAdd.nodeType !== 'SlateText' && nodeToAdd.nodeType !== 'Markdown') {
           return nodeToAdd
         }
@@ -668,7 +668,7 @@ function IDELayoutContent() {
         let newName = nodeToAdd.name
         let counter = 1
         
-        // 检查是否与垃圾篓中的任何文本节点重名
+        // Check for name conflicts with any text node in trash
         while (hasTextNodeWithName(existingNodes, newName, nodeToAdd.id)) {
           newName = `${nodeToAdd.name} (${counter})`
           counter++
