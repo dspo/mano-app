@@ -58,7 +58,7 @@ function App() {
 
   return (
     <div className="p-4">
-      <h1>Welcome to Mano IDE</h1>
+      <h1>Welcome to Mano</h1>
       <Button onClick={() => setCount(c => c + 1)}>
         Count is {count}
               onReorder={handleTreeReorder}

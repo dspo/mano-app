@@ -1,4 +1,4 @@
-# Mano IDE - 代码编辑器布局实现
+# Mano - 编辑器布局实现
 
 基于 React + Tailwind CSS 4.x + shadcn/ui 实现的现代代码编辑器/IDE 布局。
 
