@@ -597,10 +597,10 @@ function IDELayoutContent() {
       }
       closeNodeAndChildren(node)
 
-      // 设置动画状态
+      // Set animation state
       setRemovingNodeId(node.id)
       
-      // 等待动画完成
+      // Wait for animation to complete
       await new Promise(resolve => setTimeout(resolve, 500))
 
       const { getFileSystem } = await import('@/services/fileSystem')
