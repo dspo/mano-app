@@ -730,17 +730,17 @@ function IDELayoutContent() {
       toast.success('已移至垃圾篓')
       console.log('[handleRemoveNode] Moved to trash:', renamedNode)
       
-      // 清除动画状态
+      // Clear animation state
       setRemovingNodeId(null)
     } catch (e) {
       console.error('Remove node failed:', e)
       toast.error('移除节点失败')
-      // 清除动画状态
+      // Clear animation state
       setRemovingNodeId(null)
     }
   }
 
-  // 将节点从垃圾篓移出
+  // Move node out from trash
   const handleMoveOut = async (node: FileNode) => {
     if (!configFileHandle || !dirHandle) {
       toast.error('请先打开文件夹')
@@ -894,23 +894,23 @@ function IDELayoutContent() {
       toast.success('已移出垃圾篓')
       console.log('[handleMoveOut] Moved out from trash:', restoredNode)
       
-      // 清除动画状态
+      // Clear animation state
       setMovingOutNodeId(null)
     } catch (e) {
       console.error('Move out failed:', e)
       toast.error('移出失败')
-      // 清除动画状态
+      // Clear animation state
       setMovingOutNodeId(null)
     }
   }
 
-  // 处理节点折叠/展开状态变化
+  // Handle node expand/collapse state change
   const handleToggleExpand = async (nodeId: string, isExpanded: boolean) => {
     if (!configFileHandle) {
       return
     }
 
-    // 递归更新节点的 expanded 状态
+    // Recursively update node's expanded state
     const updateNodeExpanded = (nodes: FileNode[]): FileNode[] => {
       return nodes.map(node => {
         if (node.id === nodeId) {
