@@ -161,13 +161,6 @@ function IDELayoutContent() {
   const [movingOutNodeId, setMovingOutNodeId] = useState<string | null>(null)
   const [removingNodeId, setRemovingNodeId] = useState<string | null>(null)
 
-  // Initialize bottom panel as collapsed on mount
-  useEffect(() => {
-    if (panelRef.current && isPanelCollapsed) {
-      panelRef.current.collapse()
-    }
-  }, [])
-
   // Configure drag sensors
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -608,7 +601,7 @@ function IDELayoutContent() {
       const fs = getFileSystem()
 
       // 递归处理所有文本节点：读取内容、base64编码、删除文件
-      const processNode = async (n: FileNode): Promise<FileNode> => {
+      const processNode = async (n: FileNode, trashNodes: FileNode[] = []): Promise<FileNode> => {
         let processedNode = { ...n }
 
         // 如果是文本节点（SlateText 或 Markdown）
@@ -633,9 +626,33 @@ function IDELayoutContent() {
 
         // 递归处理子节点
         if (n.children && n.children.length > 0) {
-          processedNode.children = await Promise.all(
-            n.children.map(child => processNode(child))
-          )
+          const processedChildren: FileNode[] = []
+          for (const child of n.children) {
+            // 检查子节点是否需要重命名（避免与垃圾篓中的节点重名）
+            let renamedChild = child
+            if ((child.nodeType === 'SlateText' || child.nodeType === 'Markdown')) {
+              let newName = child.name
+              let counter = 1
+              const allTrashNodes = [...trashNodes, ...(processedNode.children || [])]
+              
+              while (hasTextNodeWithName(allTrashNodes, newName, child.id)) {
+                newName = `${child.name} (${counter})`
+                counter++
+              }
+              
+              if (newName !== child.name) {
+                renamedChild = { ...child, name: newName }
+                console.log(`[handleRemoveNode] Renamed child ${child.name} to ${newName}`)
+              }
+            }
+            
+            const processedChild = await processNode(renamedChild, trashNodes)
+            processedChildren.push(processedChild)
+          }
+          processedNode = {
+            ...processedNode,
+            children: processedChildren
+          }
         }
 
         return processedNode
@@ -804,7 +821,7 @@ function IDELayoutContent() {
       const renamedNode = checkAndRenameNode(node, nodesOutsideTrash)
 
       // 递归处理节点：解码 content 并恢复文件
-      const restoreNode = async (n: FileNode): Promise<FileNode> => {
+      const restoreNode = async (n: FileNode, parentNodes: FileNode[] = nodesOutsideTrash): Promise<FileNode> => {
         let restoredNode = { ...n }
 
         // 如果是文本节点且有 content 字段（base64编码）
@@ -832,11 +849,32 @@ function IDELayoutContent() {
 
         // 递归处理子节点
         if (n.children && n.children.length > 0) {
+          const restoredChildren: FileNode[] = []
+          for (const child of n.children) {
+            // 检查子节点是否需要重命名（避免与同级或外部节点重名）
+            let renamedChild = child
+            if ((child.nodeType === 'SlateText' || child.nodeType === 'Markdown')) {
+              let newName = child.name
+              let counter = 1
+              const siblingAndParentNodes = [...(restoredNode.children || []), ...parentNodes]
+              
+              while (hasTextNodeWithName(siblingAndParentNodes, newName, child.id)) {
+                newName = `${child.name} (${counter})`
+                counter++
+              }
+              
+              if (newName !== child.name) {
+                renamedChild = { ...child, name: newName }
+                console.log(`[handleMoveOut] Renamed child ${child.name} to ${newName}`)
+              }
+            }
+            
+            const restoredChild = await restoreNode(renamedChild, parentNodes)
+            restoredChildren.push(restoredChild)
+          }
           restoredNode = {
             ...restoredNode,
-            children: await Promise.all(
-              n.children.map(child => restoreNode(child))
-            )
+            children: restoredChildren
           }
         }
 
