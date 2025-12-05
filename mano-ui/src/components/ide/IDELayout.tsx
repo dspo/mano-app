@@ -607,22 +607,22 @@ function IDELayoutContent() {
       const { getNodeFilename } = await import('@/services/fileSystem')
       const fs = getFileSystem()
 
-      // 递归处理所有文本节点：读取内容、base64编码、删除文件
+      // Recursively process all text nodes: read content, base64 encode, delete file
       const processNode = async (n: FileNode): Promise<FileNode> => {
         let processedNode = { ...n }
 
-        // 如果是文本节点（SlateText 或 Markdown）
+        // If it's a text node (SlateText or Markdown)
         if (n.nodeType === 'SlateText' || n.nodeType === 'Markdown') {
           try {
-            // 读取文件内容
+            // Read file content
             const filename = getNodeFilename(n)
             const { content } = await fs.getOrCreateFile(dirHandle, filename, '')
             
-            // Base64 编码并存储到 content 字段
+            // Base64 encode and store to content field
             const base64Content = btoa(unescape(encodeURIComponent(content)))
             processedNode.content = base64Content
 
-            // 删除物理文件
+            // Delete physical file
             await fs.deleteFile(dirHandle, filename)
             console.log(`[handleRemoveNode] Deleted file: ${filename}`)
           } catch (error) {
@@ -631,7 +631,7 @@ function IDELayoutContent() {
           }
         }
 
-        // 递归处理子节点
+        // Recursively process child nodes
         if (n.children && n.children.length > 0) {
           processedNode.children = await Promise.all(
             n.children.map(child => processNode(child))
@@ -641,7 +641,7 @@ function IDELayoutContent() {
         return processedNode
       }
 
-      // 处理节点及其所有子节点
+      // Process the node and all its child nodes
       const processedNode = await processNode(node)
 
       // 查找或创建 __trash__ 节点
