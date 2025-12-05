@@ -1,4 +1,4 @@
-import { ChevronRight, ChevronDown, FileText, Library, TextQuote, TextAlignStart, Plus, Trash2, ArrowUpFromLine } from 'lucide-react'
+import { ChevronRight, ChevronDown, FileText, Library, TextQuote, TextAlignStart, Plus, Trash2, ArrowUpFromLine, Trash } from 'lucide-react'
 import { DndContext, useDraggable, useDroppable, PointerSensor, useSensor, useSensors, DragOverlay } from '@dnd-kit/core'
 import type { DragEndEvent, DragStartEvent, DragOverEvent } from '@dnd-kit/core'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -32,12 +32,26 @@ interface FileTreeItemProps {
   onRemoveNode?: (node: FileNode) => void
   onMoveOut?: (node: FileNode) => void
   isInTrash?: boolean
+  movingOutNodeId?: string | null
+  removingNodeId?: string | null
+  contextMenuNodeId?: string | null
+  onContextMenuChange?: (nodeId: string | null) => void
+  onToggleExpand?: (nodeId: string, isExpanded: boolean) => void
 }
 
-function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragOverId, dropMode, dropLevel, onCreateNode, editingNodeId, onRenameNode, onCancelEdit, onRemoveNode, onMoveOut, isInTrash = false }: FileTreeItemProps) {
-  const [isOpen, setIsOpen] = useState(true)
+function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragOverId, dropMode, dropLevel, onCreateNode, editingNodeId, onRenameNode, onCancelEdit, onRemoveNode, onMoveOut, isInTrash = false, movingOutNodeId, removingNodeId, contextMenuNodeId, onContextMenuChange, onToggleExpand }: FileTreeItemProps) {
+  // Read initial state from node.expanded (default false if not set)
+  const [isOpen, setIsOpen] = useState(node.expanded ?? false)
   const [editValue, setEditValue] = useState(node.name)
   const isEditing = editingNodeId === node.id
+  const isContextMenuActive = contextMenuNodeId === node.id
+  
+  // Handle toggle and notify parent
+  const handleToggle = () => {
+    const newState = !isOpen
+    setIsOpen(newState)
+    onToggleExpand?.(node.id, newState)
+  }
   
   // Check if current node is trash or inside trash
   const isTrashNode = node.id === '__trash__' || isInTrash
@@ -59,6 +73,20 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
       default:
         return <FileText className="w-4 h-4 shrink-0" />
     }
+  }
+
+  // Select icon for directory nodes
+  const getDirectoryIcon = () => {
+    // Special icon for trash node
+    if (node.id === '__trash__') {
+      // Empty trash vs trash with items
+      return hasChildren ? (
+        <Trash2 className="w-4 h-4 shrink-0" />
+      ) : (
+        <Trash className="w-4 h-4 shrink-0" />
+      )
+    }
+    return <Library className="w-4 h-4 shrink-0" />
   }
 
   // DnD kit bindings - disable dragging for nodes in trash
@@ -83,7 +111,13 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
   if (!isDirectory) {
     // Render file node - can also have children now
     return (
-      <div className="relative">
+      <div 
+        className={cn(
+          "relative transition-all duration-500",
+          movingOutNodeId === node.id && "opacity-0 scale-95",
+          removingNodeId === node.id && "opacity-0 scale-95"
+        )}
+      >
         {showBefore && (
           <div 
             className="absolute top-0 h-0.5 bg-primary rounded z-10"
@@ -92,7 +126,7 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
           />
         )}
 
-        <ContextMenu>
+        <ContextMenu onOpenChange={(open) => onContextMenuChange?.(open ? node.id : null)}>
           <ContextMenuTrigger asChild>
             <div
               ref={(el) => {
@@ -100,14 +134,16 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
                 setDropRef(el)
               }}
               data-id={node.id}
-              className="relative"
+              className={cn(
+                "relative flex items-center transition-all duration-300",
+                isContextMenuActive && "scale-[1.02] shadow-md shadow-primary/10 rounded-lg"
+              )}
             >
               {isEditing ? (
                 <div
                   className="w-full flex items-center gap-2 px-2 py-1 text-sm relative z-10"
                   style={{ paddingLeft: `${level * 12 + 8}px` }}
                 >
-                  {hasChildren && <div className="w-3 h-3 shrink-0" />}
                   {getFileIcon()}
                   <input
                     type="text"
@@ -135,37 +171,40 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
                     className="flex-1 bg-background border border-primary rounded px-1 py-0.5 text-sm outline-none"
                     onFocus={(e) => e.target.select()}
                   />
+                  {hasChildren && <div className="w-3 h-3 shrink-0" />}
                 </div>
               ) : (
-                <button
-                  className={cn(
-                    'w-full flex items-center gap-2 px-2 py-1 text-sm hover:bg-accent/50 cursor-pointer relative z-10',
-                    selectedFile === node.id && 'bg-accent',
-                    node.readOnly && 'opacity-60',
-                    isDragging && 'opacity-30'
-                  )}
-                  style={{ paddingLeft: `${level * 12 + 8}px` }}
-                  onClick={(e) => {
-                    if (hasChildren && e.shiftKey) {
-                      setIsOpen(!isOpen)
-                    } else {
-                      onFileClick(node)
-                    }
-                  }}
-                  {...listeners}
-                  {...attributes}
-                  disabled={node.readOnly}
-                >
+                <>
+                  <button
+                    className={cn(
+                      'flex-1 flex items-center gap-2 px-2 py-1 text-sm hover:bg-accent/50 cursor-pointer relative z-10',
+                      selectedFile === node.id && 'bg-accent',
+                      node.readOnly && 'opacity-60',
+                      isDragging && 'opacity-30'
+                    )}
+                    style={{ paddingLeft: `${level * 12 + 8}px` }}
+                    onClick={() => onFileClick(node)}
+                    {...listeners}
+                    {...attributes}
+                    disabled={node.readOnly}
+                  >
+                    {getFileIcon()}
+                    <span className="truncate">{node.name}</span>
+                  </button>
                   {hasChildren && (
-                    isOpen ? (
-                      <ChevronDown className="w-3 h-3 shrink-0 opacity-50" />
-                    ) : (
-                      <ChevronRight className="w-3 h-3 shrink-0 opacity-50" />
-                    )
+                    <button
+                      className="px-2 py-1 hover:bg-accent/50 cursor-pointer relative z-10"
+                      onClick={handleToggle}
+                      disabled={node.readOnly}
+                    >
+                      {isOpen ? (
+                        <ChevronDown className="w-3 h-3 shrink-0 opacity-50" />
+                      ) : (
+                        <ChevronRight className="w-3 h-3 shrink-0 opacity-50" />
+                      )}
+                    </button>
                   )}
-                  {getFileIcon()}
-                  <span className="truncate">{node.name}</span>
-                </button>
+                </>
               )}
             </div>
           </ContextMenuTrigger>
@@ -215,6 +254,11 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
                 onRemoveNode={onRemoveNode}
                 onMoveOut={onMoveOut}
                 isInTrash={isTrashNode}
+                movingOutNodeId={movingOutNodeId}
+                removingNodeId={removingNodeId}
+                contextMenuNodeId={contextMenuNodeId}
+                onContextMenuChange={onContextMenuChange}
+                onToggleExpand={onToggleExpand}
               />
             ))}
           </div>
@@ -231,7 +275,13 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
 
   // Render directory node
   return (
-    <div className="relative">
+    <div 
+      className={cn(
+        "relative transition-all duration-500",
+        movingOutNodeId === node.id && "opacity-0 scale-95",
+        removingNodeId === node.id && "opacity-0 scale-95"
+      )}
+    >
       {showBefore && (
         <div 
           className="absolute top-0 h-0.5 bg-primary rounded z-10"
@@ -239,7 +289,7 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
         />
       )}
 
-      <ContextMenu>
+      <ContextMenu onOpenChange={(open) => onContextMenuChange?.(open ? node.id : null)}>
         <ContextMenuTrigger asChild>
           <div
             ref={(el) => {
@@ -247,15 +297,17 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
               setDropRef(el)
             }}
             data-id={node.id}
-            className="relative"
+            className={cn(
+              "relative transition-all duration-300",
+              isContextMenuActive && "scale-[1.02] shadow-md shadow-primary/10 rounded-lg"
+            )}
           >
             {isEditing ? (
               <div
                 className="w-full flex items-center gap-1 px-2 py-1 text-sm relative z-10"
                 style={{ paddingLeft: `${level * 12 + 8}px` }}
               >
-                <div className="w-4 h-4 shrink-0" />
-                <Library className="w-4 h-4 shrink-0" />
+                {getDirectoryIcon()}
                 <input
                   type="text"
                   value={editValue}
@@ -282,6 +334,7 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
                   className="flex-1 bg-background border border-primary rounded px-1 py-0.5 text-sm outline-none"
                   onFocus={(e) => e.target.select()}
                 />
+                <div className="w-4 h-4 shrink-0" />
               </div>
             ) : (
               <button
@@ -291,17 +344,17 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
                   isDragging && 'opacity-30'
                 )}
                 style={{ paddingLeft: `${level * 12 + 8}px` }}
-                onClick={() => setIsOpen(!isOpen)}
+                onClick={handleToggle}
                 {...listeners}
                 {...attributes}
               >
-                {isOpen ? (
-                  <ChevronDown className="w-4 h-4 shrink-0" />
-                ) : (
-                  <ChevronRight className="w-4 h-4 shrink-0" />
-                )}
-                <Library className="w-4 h-4 shrink-0" />
+                {getDirectoryIcon()}
                 <span className="truncate">{node.name}</span>
+                {isOpen ? (
+                  <ChevronDown className="w-4 h-4 shrink-0 ml-auto" />
+                ) : (
+                  <ChevronRight className="w-4 h-4 shrink-0 ml-auto" />
+                )}
               </button>
             )}
           </div>
@@ -352,6 +405,11 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
               onRemoveNode={onRemoveNode}
               onMoveOut={onMoveOut}
               isInTrash={isTrashNode}
+              movingOutNodeId={movingOutNodeId}
+              removingNodeId={removingNodeId}
+              contextMenuNodeId={contextMenuNodeId}
+              onContextMenuChange={onContextMenuChange}
+              onToggleExpand={onToggleExpand}
             />
           ))}
         </div>
@@ -378,13 +436,17 @@ interface PrimarySidebarProps {
   onCancelEdit?: () => void
   onRemoveNode?: (node: FileNode) => void
   onMoveOut?: (node: FileNode) => void
+  movingOutNodeId?: string | null
+  removingNodeId?: string | null
+  onToggleExpand?: (nodeId: string, isExpanded: boolean) => void
 }
 
-export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree = [], onReorder, onCreateNode, editingNodeId, onRenameNode, onCancelEdit, onRemoveNode, onMoveOut }: PrimarySidebarProps) {
+export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree = [], onReorder, onCreateNode, editingNodeId, onRenameNode, onCancelEdit, onRemoveNode, onMoveOut, movingOutNodeId, removingNodeId, onToggleExpand }: PrimarySidebarProps) {
   const [dragOverId, setDragOverId] = useState<string | null>(null)
   const [dropMode, setDropMode] = useState<'before' | 'after' | 'into' | null>(null)
   const [dropLevel, setDropLevel] = useState<number>(0)
   const [activeNode, setActiveNode] = useState<FileNode | null>(null)
+  const [contextMenuNodeId, setContextMenuNodeId] = useState<string | null>(null)
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   )
@@ -527,8 +589,9 @@ export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree =
           {getTitle()}
         </h3>
       </div>
-      <DndContext sensors={sensors} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
-        <ScrollArea className="flex-1">
+      <div className="flex-1 overflow-hidden">
+        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
+          <ScrollArea className="h-full w-full">
           {activity === 'explorer' && (
             <div className="py-2">
               {fileTree.map((node) => (
@@ -548,6 +611,11 @@ export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree =
                   onCancelEdit={onCancelEdit}
                   onRemoveNode={onRemoveNode}
                   onMoveOut={onMoveOut}
+                  movingOutNodeId={movingOutNodeId}
+                  removingNodeId={removingNodeId}
+                  contextMenuNodeId={contextMenuNodeId}
+                  onContextMenuChange={setContextMenuNodeId}
+                  onToggleExpand={onToggleExpand}
                 />
               ))}
             </div>
@@ -587,6 +655,7 @@ export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree =
           )}
         </DragOverlay>
       </DndContext>
+      </div>
     </div>
   )
 }

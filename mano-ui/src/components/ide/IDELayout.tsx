@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { TitleBar } from './TitleBar'
 import { ActivityBar } from './ActivityBar'
 import { PrimarySidebar } from './PrimarySidebar'
-import { insertInto, insertBeforeAfter, findNodePath, removeAtPath, isAncestor, hasTextNodeWithName, checkDuplicateNames } from '@/lib/tree-utils'
+import { insertInto, insertBeforeAfter, findNodePath, removeAtPath, isAncestor, hasTextNodeWithName, checkDuplicateNames, isInTrash } from '@/lib/tree-utils'
 import type { ManoNode } from '@/types/mano-config'
 import { EditorContainer } from './EditorContainer'
 import { BottomPanel } from './BottomPanel'
@@ -58,7 +58,7 @@ function App() {
 
   return (
     <div className="p-4">
-      <h1>Welcome to Mano IDE</h1>
+      <h1>Welcome to Mano</h1>
       <Button onClick={() => setCount(c => c + 1)}>
         Count is {count}
               onReorder={handleTreeReorder}
@@ -157,7 +157,9 @@ function IDELayoutContent() {
   
   // Track collapsed state for UI updates
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
-  const [isPanelCollapsed, setIsPanelCollapsed] = useState(false)
+  const [isPanelCollapsed, setIsPanelCollapsed] = useState(true)
+  const [movingOutNodeId, setMovingOutNodeId] = useState<string | null>(null)
+  const [removingNodeId, setRemovingNodeId] = useState<string | null>(null)
 
   // Configure drag sensors
   const sensors = useSensors(
@@ -577,47 +579,89 @@ function IDELayoutContent() {
     }
 
     try {
+      // 关闭所有打开该节点的标签页（递归关闭子节点）
+      const closeNodeAndChildren = (n: FileNode) => {
+        if (n.nodeType !== 'Directory') {
+          dispatch({ type: 'CLOSE_FILE_IN_ALL_GROUPS', fileId: n.id })
+        }
+        if (n.children) {
+          n.children.forEach(child => closeNodeAndChildren(child))
+        }
+      }
+      closeNodeAndChildren(node)
+
+      // Set animation state
+      setRemovingNodeId(node.id)
+      
+      // Wait for animation to complete
+      await new Promise(resolve => setTimeout(resolve, 500))
+
       const { getFileSystem } = await import('@/services/fileSystem')
       const { getNodeFilename } = await import('@/services/fileSystem')
       const fs = getFileSystem()
 
-      // 递归处理所有文本节点：读取内容、base64编码、删除文件
-      const processNode = async (n: FileNode): Promise<FileNode> => {
+        // Recursively process all text nodes: read content, base64 encode, delete file
+      const processNode = async (n: FileNode, trashNodes: FileNode[] = []): Promise<FileNode> => {
         let processedNode = { ...n }
 
-        // 如果是文本节点（SlateText 或 Markdown）
+        // If it's a text node (SlateText or Markdown)
         if (n.nodeType === 'SlateText' || n.nodeType === 'Markdown') {
           try {
-            // 读取文件内容
+            // Read file content
             const filename = getNodeFilename(n)
             const { content } = await fs.getOrCreateFile(dirHandle, filename, '')
             
-            // Base64 编码
+            // Base64 encode and store to content field
             const base64Content = btoa(unescape(encodeURIComponent(content)))
             processedNode.content = base64Content
 
-            // 删除文件
+            // Delete physical file
             await fs.deleteFile(dirHandle, filename)
             console.log(`[handleRemoveNode] Deleted file: ${filename}`)
           } catch (error) {
             console.error(`[handleRemoveNode] Failed to process node ${n.id}:`, error)
+            throw error
           }
         }
 
-        // 递归处理子节点
+        // Recursively process child nodes
         if (n.children && n.children.length > 0) {
-          processedNode.children = await Promise.all(
-            n.children.map(child => processNode(child))
-          )
+          const processedChildren: FileNode[] = []
+          for (const child of n.children) {
+            // 检查子节点是否需要重命名（避免与垃圾篓中的节点重名）
+            let renamedChild = child
+            if ((child.nodeType === 'SlateText' || child.nodeType === 'Markdown')) {
+              let newName = child.name
+              let counter = 1
+              const allTrashNodes = [...trashNodes, ...(processedNode.children || [])]
+
+              while (hasTextNodeWithName(allTrashNodes, newName, child.id)) {
+                newName = `${child.name} (${counter})`
+                counter++
+              }
+
+              if (newName !== child.name) {
+                renamedChild = { ...child, name: newName }
+                console.log(`[handleRemoveNode] Renamed child ${child.name} to ${newName}`)
+              }
+            }
+
+            const processedChild = await processNode(renamedChild, trashNodes)
+            processedChildren.push(processedChild)
+          }
+          processedNode = {
+            ...processedNode,
+            children: processedChildren
+          }
         }
 
         return processedNode
       }
 
-      // 处理节点及其所有子节点
+      // Process node and all its children
       const processedNode = await processNode(node)
 
-      // 查找或创建 __trash__ 节点
+      // Find or create __trash__ node
       let trashNode = fileTree.find(n => n.id === '__trash__')
       
       if (!trashNode) {
@@ -629,6 +673,30 @@ function IDELayoutContent() {
           readOnly: true,
           children: []
         }
+      }
+
+      // Check if there are nodes with the same name in trash, rename if needed
+      const checkAndRenameIfNeeded = (nodeToAdd: FileNode, existingNodes: FileNode[]): FileNode => {
+        // Only check renaming for text nodes
+        if (nodeToAdd.nodeType !== 'SlateText' && nodeToAdd.nodeType !== 'Markdown') {
+          return nodeToAdd
+        }
+
+        let newName = nodeToAdd.name
+        let counter = 1
+        
+        // Check for name conflicts with any text node in trash
+        while (hasTextNodeWithName(existingNodes, newName, nodeToAdd.id)) {
+          newName = `${nodeToAdd.name} (${counter})`
+          counter++
+        }
+
+        if (newName !== nodeToAdd.name) {
+          console.log(`[handleRemoveNode] Renamed ${nodeToAdd.name} to ${newName} to avoid conflict`)
+          return { ...nodeToAdd, name: newName }
+        }
+
+        return nodeToAdd
       }
 
       // 从原位置移除节点
@@ -647,12 +715,15 @@ function IDELayoutContent() {
 
       let updated = removeNodeById(fileTree, node.id)
 
+      // 检查并处理重名
+      const renamedNode = checkAndRenameIfNeeded(processedNode, trashNode.children || [])
+
       // 将处理后的节点添加到垃圾篓
       updated = updated.map(n => {
         if (n.id === '__trash__') {
           return {
             ...n,
-            children: [...(n.children || []), processedNode]
+            children: [...(n.children || []), renamedNode]
           }
         }
         return n
@@ -660,7 +731,7 @@ function IDELayoutContent() {
 
       // 如果垃圾篓不存在，添加到根节点
       if (!fileTree.find(n => n.id === '__trash__')) {
-        trashNode.children = [processedNode]
+        trashNode.children = [renamedNode]
         updated = [...updated, trashNode as FileNode]
       }
 
@@ -669,19 +740,24 @@ function IDELayoutContent() {
       // 保存到 mano.conf.json
       const { saveManoConfig } = await import('@/services/fileSystem')
       await saveManoConfig(configFileHandle, {
-        data: updated as any,
+        data: updated,
         lastUpdated: new Date().toISOString()
       })
 
       toast.success('已移至垃圾篓')
-      console.log('[handleRemoveNode] Moved to trash:', processedNode)
+      console.log('[handleRemoveNode] Moved to trash:', renamedNode)
+      
+      // Clear animation state
+      setRemovingNodeId(null)
     } catch (e) {
       console.error('Remove node failed:', e)
       toast.error('移除节点失败')
+      // Clear animation state
+      setRemovingNodeId(null)
     }
   }
 
-  // 将节点从垃圾篓移出
+  // Move node out from trash
   const handleMoveOut = async (node: FileNode) => {
     if (!configFileHandle || !dirHandle) {
       toast.error('请先打开文件夹')
@@ -689,27 +765,79 @@ function IDELayoutContent() {
     }
 
     try {
+      // 关闭所有打开该节点的标签页（递归关闭子节点）
+      const closeNodeAndChildren = (n: FileNode) => {
+        if (n.nodeType !== 'Directory') {
+          dispatch({ type: 'CLOSE_FILE_IN_ALL_GROUPS', fileId: n.id })
+        }
+        if (n.children) {
+          n.children.forEach(child => closeNodeAndChildren(child))
+        }
+      }
+      closeNodeAndChildren(node)
+
+      // 设置动画状态
+      setMovingOutNodeId(node.id)
+      
+      // 等待动画完成
+      await new Promise(resolve => setTimeout(resolve, 500))
+
       const { getFileSystem } = await import('@/services/fileSystem')
       const { getNodeFilename } = await import('@/services/fileSystem')
       const fs = getFileSystem()
 
-      // 递归处理节点：解码 content 并恢复文件
-      const restoreNode = async (n: FileNode): Promise<FileNode> => {
+      // 获取垃圾篓之外的所有节点，用于检查重名
+      const getNodesOutsideTrash = (nodes: FileNode[]): FileNode[] => {
+        return nodes.filter(n => n.id !== '__trash__')
+      }
+
+      const nodesOutsideTrash = getNodesOutsideTrash(fileTree)
+
+      // 检查并重命名以避免冲突
+      const checkAndRenameNode = (nodeToRestore: FileNode, existingNodes: FileNode[]): FileNode => {
+        // 只对文本节点检查重名
+        if (nodeToRestore.nodeType !== 'SlateText' && nodeToRestore.nodeType !== 'Markdown') {
+          return nodeToRestore
+        }
+
+        let newName = nodeToRestore.name
+        let counter = 1
+        
+        // 检查是否与垃圾篓外的任何文本节点重名
+        while (hasTextNodeWithName(existingNodes, newName, nodeToRestore.id)) {
+          newName = `${nodeToRestore.name} (${counter})`
+          counter++
+        }
+
+        if (newName !== nodeToRestore.name) {
+          console.log(`[handleMoveOut] Renamed ${nodeToRestore.name} to ${newName} to avoid conflict`)
+          return { ...nodeToRestore, name: newName }
+        }
+
+        return nodeToRestore
+      }
+
+      // First check and rename node
+      const renamedNode = checkAndRenameNode(node, nodesOutsideTrash)
+
+      // Recursively process nodes: decode content and restore files
+      const restoreNode = async (n: FileNode, parentNodes: FileNode[] = nodesOutsideTrash): Promise<FileNode> => {
         let restoredNode = { ...n }
 
-        // 如果是文本节点且有 content 字段（base64编码）
+        // If it's a text node with content field (base64 encoded)
         if ((n.nodeType === 'SlateText' || n.nodeType === 'Markdown') && n.content) {
           try {
-            // Base64 解码
+            // Base64 decode
             const decodedContent = decodeURIComponent(escape(atob(n.content)))
             
-            // 恢复文件
-            const filename = getNodeFilename(n)
+            // Create file with new name
+            const filename = getNodeFilename(restoredNode)
             const fileHandle = await fs.getOrCreateFile(dirHandle, filename, '')
             await fs.saveToFile(fileHandle.fileHandle, decodedContent)
             
-            // 创建没有 content 字段的新对象
-            const { content: _content, ...nodeWithoutContent } = restoredNode
+            // Clear content field
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { content, ...nodeWithoutContent } = restoredNode
             restoredNode = nodeWithoutContent as FileNode
             
             console.log(`[handleMoveOut] Restored file: ${filename}`)
@@ -719,23 +847,44 @@ function IDELayoutContent() {
           }
         }
 
-        // 递归处理子节点
+        // Recursively process child nodes
         if (n.children && n.children.length > 0) {
+          const restoredChildren: FileNode[] = []
+          for (const child of n.children) {
+            // 检查子节点是否需要重命名（避免与同级或外部节点重名）
+            let renamedChild = child
+            if ((child.nodeType === 'SlateText' || child.nodeType === 'Markdown')) {
+              let newName = child.name
+              let counter = 1
+              const siblingAndParentNodes = [...(restoredNode.children || []), ...parentNodes]
+
+              while (hasTextNodeWithName(siblingAndParentNodes, newName, child.id)) {
+                newName = `${child.name} (${counter})`
+                counter++
+              }
+
+              if (newName !== child.name) {
+                renamedChild = { ...child, name: newName }
+                console.log(`[handleMoveOut] Renamed child ${child.name} to ${newName}`)
+              }
+            }
+
+            const restoredChild = await restoreNode(renamedChild, parentNodes)
+            restoredChildren.push(restoredChild)
+          }
           restoredNode = {
             ...restoredNode,
-            children: await Promise.all(
-              n.children.map(child => restoreNode(child))
-            )
+            children: restoredChildren
           }
         }
 
         return restoredNode
       }
 
-      // 恢复节点及其所有子节点
-      const restoredNode = await restoreNode(node)
+      // Restore node and all its children
+      const restoredNode = await restoreNode(renamedNode)
 
-      // 从垃圾篓中移除节点
+      // Remove node from trash
       const removeFromTrash = (nodes: FileNode[]): FileNode[] => {
         return nodes.map(n => {
           if (n.id === '__trash__' && n.children) {
@@ -776,15 +925,55 @@ function IDELayoutContent() {
       // 保存到 mano.conf.json
       const { saveManoConfig } = await import('@/services/fileSystem')
       await saveManoConfig(configFileHandle, {
-        data: updated as any,
+        data: updated,
         lastUpdated: new Date().toISOString()
       })
 
       toast.success('已移出垃圾篓')
       console.log('[handleMoveOut] Moved out from trash:', restoredNode)
+      
+      // Clear animation state
+      setMovingOutNodeId(null)
     } catch (e) {
       console.error('Move out failed:', e)
       toast.error('移出失败')
+      // Clear animation state
+      setMovingOutNodeId(null)
+    }
+  }
+
+  // Handle node expand/collapse state change
+  const handleToggleExpand = async (nodeId: string, isExpanded: boolean) => {
+    if (!configFileHandle) {
+      return
+    }
+
+    // Recursively update node's expanded state
+    const updateNodeExpanded = (nodes: FileNode[]): FileNode[] => {
+      return nodes.map(node => {
+        if (node.id === nodeId) {
+          return { ...node, expanded: isExpanded }
+        }
+        if (node.children) {
+          return { ...node, children: updateNodeExpanded(node.children) }
+        }
+        return node
+      })
+    }
+
+    const updated = updateNodeExpanded(fileTree)
+    setFileTree(updated)
+
+    // Save to mano.conf.json
+    try {
+      const { saveManoConfig } = await import('@/services/fileSystem')
+      await saveManoConfig(configFileHandle, {
+        data: updated,
+        lastUpdated: new Date().toISOString()
+      })
+      console.log(`[handleToggleExpand] Node ${nodeId} expanded: ${isExpanded}`)
+    } catch (e) {
+      console.error('Failed to save expand state:', e)
     }
   }
 
@@ -794,13 +983,64 @@ function IDELayoutContent() {
       return
     }
     
-    // Check if we have directory access
+    setSelectedFile(file.id)
+    
+    // Check if file is in trash - if so, read from base64 content
+    const inTrash = isInTrash(fileTree, file.id)
+    
+    if (inTrash) {
+      // File is in trash - read from base64 content field
+      try {
+        console.log('[handleFileClick] Opening file from trash:', file.name)
+        
+        let fileType: 'text' | 'slate' = 'text'
+        let parsedContent: unknown = ''
+        
+        if (file.content) {
+          // Decode base64 content (handle UTF-8)
+          const decodedContent = decodeURIComponent(escape(atob(file.content)))
+          
+          if (file.nodeType === 'SlateText') {
+            fileType = 'slate'
+            try {
+              parsedContent = JSON.parse(decodedContent)
+            } catch {
+              const { DEFAULT_SLATE_CONTENT } = await import('@/types/mano-config')
+              parsedContent = DEFAULT_SLATE_CONTENT
+            }
+          } else if (file.nodeType === 'Markdown') {
+            fileType = 'text'
+            parsedContent = decodedContent
+          }
+        }
+        
+        // Store in memory (not to disk)
+        setFileContentsMap(prev => ({ ...prev, [file.id]: file.content || '' }))
+        
+        // Open file in editor with readOnly flag
+        dispatch({
+          type: 'OPEN_FILE',
+          fileId: file.id,
+          fileName: file.name,
+          fileType: fileType,
+          content: parsedContent,
+          fileHandle: undefined,
+          readOnly: true, // Mark as read-only for trash files
+        })
+        
+        toast.success(`已打开（预览）: ${file.name}`, { duration: 1500 })
+      } catch (error) {
+        console.error('Failed to open trash file:', error)
+        toast.error(`打开文件失败: ${file.name}`)
+      }
+      return
+    }
+    
+    // Check if we have directory access for non-trash files
     if (!dirHandle) {
       toast.error('请先打开文件夹')
       return
     }
-    
-    setSelectedFile(file.id)
     
     try {
       console.log('[handleFileClick] Opening file:', file.name, 'Type:', file.nodeType)
@@ -1029,6 +1269,9 @@ function IDELayoutContent() {
               onCancelEdit={handleCancelEdit}
               onRemoveNode={handleRemoveNode}
               onMoveOut={handleMoveOut}
+              movingOutNodeId={movingOutNodeId}
+              removingNodeId={removingNodeId}
+              onToggleExpand={handleToggleExpand}
             />
           </ResizablePanel>
           

@@ -1,4 +1,4 @@
-import { Minimize2, Maximize2, X, Circle, Check, PanelRight } from 'lucide-react'
+import { Minimize2, Maximize2, X, Check, PanelRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -7,6 +7,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { ManoLogoIcon } from '@/icons/ManoLogoIcon'
 
 interface TitleBarProps {
   showSidebar: boolean
@@ -30,8 +31,8 @@ export function TitleBar({
   return (
     <div className="h-12 border-b bg-background flex items-center justify-between px-4">
       <div className="flex items-center gap-2">
-        <Circle className="w-4 h-4 text-primary fill-primary" />
-        <span className="font-semibold text-sm">Mano IDE</span>
+        <ManoLogoIcon className="w-4 h-4" />
+        <span className="font-semibold text-sm">Mano</span>
         
         <div className="flex items-center gap-1 ml-4">
           <DropdownMenu>

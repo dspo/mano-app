@@ -12,6 +12,7 @@ export interface ManoNode {
   nodeType: NodeType
   children?: ManoNode[]
   content?: string  // Base64 encoded content for deleted nodes in trash
+  expanded?: boolean  // Whether the directory node is expanded (default: false for collapsed)
 }
 
 export interface ManoConfig {

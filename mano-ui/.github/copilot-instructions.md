@@ -1,4 +1,4 @@
-# Mano IDE - AI Coding Agent Instructions
+# Mano - AI Coding Agent Instructions
 
 ## Project Overview
 

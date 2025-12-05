@@ -137,3 +137,20 @@ export function checkDuplicateNames(tree: ManoNode[]): Array<{ name: string; ids
   
   return duplicates
 }
+
+/**
+ * 检查节点是否在垃圾篓中
+ * @param tree 整个节点树
+ * @param nodeId 要检查的节点 ID
+ * @returns true 表示在垃圾篓中，false 表示不在
+ */
+export function isInTrash(tree: ManoNode[], nodeId: string): boolean {
+  const trashPath = findNodePath(tree, '__trash__')
+  if (!trashPath) return false
+  
+  const nodePath = findNodePath(tree, nodeId)
+  if (!nodePath) return false
+  
+  // 检查 nodePath 是否以 trashPath 开始
+  return trashPath.every((v, i) => v === nodePath[i])
+}

@@ -22,11 +22,11 @@ export function AutoSavePlateEditor({
   onSaveSuccess,
   onSaveError,
 }: AutoSavePlateEditorProps) {
-  // 自动保存到 IndexedDB（1秒防抖）- 作为本地备份
-  useIndexedDBAutoSave(`editor-content-${tabId}`, value, 1000)
+  // 自动保存到 IndexedDB（1秒防抖）- 作为本地备份（readOnly 时跳过）
+  useIndexedDBAutoSave(readOnly ? null : `editor-content-${tabId}`, value, 1000)
 
-  // 自动保存到文件系统（1秒防抖）- 持久化到磁盘
-  useFileSystemAutoSave(fileHandle, value, 1000, onSaveSuccess, onSaveError)
+  // 自动保存到文件系统（1秒防抖）- 持久化到磁盘（readOnly 时跳过）
+  useFileSystemAutoSave(readOnly ? undefined : fileHandle, value, 1000, onSaveSuccess, onSaveError)
 
   return (
     <PlateEditor 
