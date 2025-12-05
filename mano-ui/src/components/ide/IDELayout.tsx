@@ -590,32 +590,32 @@ function IDELayoutContent() {
       }
       closeNodeAndChildren(node)
 
-      // 设置动画状态
+      // Set animation state
       setRemovingNodeId(node.id)
       
-      // 等待动画完成
+      // Wait for animation to complete
       await new Promise(resolve => setTimeout(resolve, 500))
 
       const { getFileSystem } = await import('@/services/fileSystem')
       const { getNodeFilename } = await import('@/services/fileSystem')
       const fs = getFileSystem()
 
-      // 递归处理所有文本节点：读取内容、base64编码、删除文件
+        // Recursively process all text nodes: read content, base64 encode, delete file
       const processNode = async (n: FileNode, trashNodes: FileNode[] = []): Promise<FileNode> => {
         let processedNode = { ...n }
 
-        // 如果是文本节点（SlateText 或 Markdown）
+        // If it's a text node (SlateText or Markdown)
         if (n.nodeType === 'SlateText' || n.nodeType === 'Markdown') {
           try {
-            // 读取文件内容
+            // Read file content
             const filename = getNodeFilename(n)
             const { content } = await fs.getOrCreateFile(dirHandle, filename, '')
             
-            // Base64 编码并存储到 content 字段
+            // Base64 encode and store to content field
             const base64Content = btoa(unescape(encodeURIComponent(content)))
             processedNode.content = base64Content
 
-            // 删除物理文件
+            // Delete physical file
             await fs.deleteFile(dirHandle, filename)
             console.log(`[handleRemoveNode] Deleted file: ${filename}`)
           } catch (error) {
@@ -624,7 +624,7 @@ function IDELayoutContent() {
           }
         }
 
-        // 递归处理子节点
+        // Recursively process child nodes
         if (n.children && n.children.length > 0) {
           const processedChildren: FileNode[] = []
           for (const child of n.children) {
@@ -634,18 +634,18 @@ function IDELayoutContent() {
               let newName = child.name
               let counter = 1
               const allTrashNodes = [...trashNodes, ...(processedNode.children || [])]
-              
+
               while (hasTextNodeWithName(allTrashNodes, newName, child.id)) {
                 newName = `${child.name} (${counter})`
                 counter++
               }
-              
+
               if (newName !== child.name) {
                 renamedChild = { ...child, name: newName }
                 console.log(`[handleRemoveNode] Renamed child ${child.name} to ${newName}`)
               }
             }
-            
+
             const processedChild = await processNode(renamedChild, trashNodes)
             processedChildren.push(processedChild)
           }
@@ -658,10 +658,10 @@ function IDELayoutContent() {
         return processedNode
       }
 
-      // 处理节点及其所有子节点
+      // Process node and all its children
       const processedNode = await processNode(node)
 
-      // 查找或创建 __trash__ 节点
+      // Find or create __trash__ node
       let trashNode = fileTree.find(n => n.id === '__trash__')
       
       if (!trashNode) {
@@ -675,9 +675,9 @@ function IDELayoutContent() {
         }
       }
 
-      // 检查垃圾篓中是否有同名节点,如果有则重命名
+      // Check if there are nodes with the same name in trash, rename if needed
       const checkAndRenameIfNeeded = (nodeToAdd: FileNode, existingNodes: FileNode[]): FileNode => {
-        // 只对文本节点检查重名
+        // Only check renaming for text nodes
         if (nodeToAdd.nodeType !== 'SlateText' && nodeToAdd.nodeType !== 'Markdown') {
           return nodeToAdd
         }
@@ -685,7 +685,7 @@ function IDELayoutContent() {
         let newName = nodeToAdd.name
         let counter = 1
         
-        // 检查是否与垃圾篓中的任何文本节点重名
+        // Check for name conflicts with any text node in trash
         while (hasTextNodeWithName(existingNodes, newName, nodeToAdd.id)) {
           newName = `${nodeToAdd.name} (${counter})`
           counter++
@@ -747,17 +747,17 @@ function IDELayoutContent() {
       toast.success('已移至垃圾篓')
       console.log('[handleRemoveNode] Moved to trash:', renamedNode)
       
-      // 清除动画状态
+      // Clear animation state
       setRemovingNodeId(null)
     } catch (e) {
       console.error('Remove node failed:', e)
       toast.error('移除节点失败')
-      // 清除动画状态
+      // Clear animation state
       setRemovingNodeId(null)
     }
   }
 
-  // 将节点从垃圾篓移出
+  // Move node out from trash
   const handleMoveOut = async (node: FileNode) => {
     if (!configFileHandle || !dirHandle) {
       toast.error('请先打开文件夹')
@@ -817,25 +817,25 @@ function IDELayoutContent() {
         return nodeToRestore
       }
 
-      // 先检查并重命名节点
+      // First check and rename node
       const renamedNode = checkAndRenameNode(node, nodesOutsideTrash)
 
-      // 递归处理节点：解码 content 并恢复文件
+      // Recursively process nodes: decode content and restore files
       const restoreNode = async (n: FileNode, parentNodes: FileNode[] = nodesOutsideTrash): Promise<FileNode> => {
         let restoredNode = { ...n }
 
-        // 如果是文本节点且有 content 字段（base64编码）
+        // If it's a text node with content field (base64 encoded)
         if ((n.nodeType === 'SlateText' || n.nodeType === 'Markdown') && n.content) {
           try {
-            // Base64 解码
+            // Base64 decode
             const decodedContent = decodeURIComponent(escape(atob(n.content)))
             
-            // 使用新名称创建文件
+            // Create file with new name
             const filename = getNodeFilename(restoredNode)
             const fileHandle = await fs.getOrCreateFile(dirHandle, filename, '')
             await fs.saveToFile(fileHandle.fileHandle, decodedContent)
             
-            // 清空 content 字段
+            // Clear content field
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { content, ...nodeWithoutContent } = restoredNode
             restoredNode = nodeWithoutContent as FileNode
@@ -847,7 +847,7 @@ function IDELayoutContent() {
           }
         }
 
-        // 递归处理子节点
+        // Recursively process child nodes
         if (n.children && n.children.length > 0) {
           const restoredChildren: FileNode[] = []
           for (const child of n.children) {
@@ -857,18 +857,18 @@ function IDELayoutContent() {
               let newName = child.name
               let counter = 1
               const siblingAndParentNodes = [...(restoredNode.children || []), ...parentNodes]
-              
+
               while (hasTextNodeWithName(siblingAndParentNodes, newName, child.id)) {
                 newName = `${child.name} (${counter})`
                 counter++
               }
-              
+
               if (newName !== child.name) {
                 renamedChild = { ...child, name: newName }
                 console.log(`[handleMoveOut] Renamed child ${child.name} to ${newName}`)
               }
             }
-            
+
             const restoredChild = await restoreNode(renamedChild, parentNodes)
             restoredChildren.push(restoredChild)
           }
@@ -881,10 +881,10 @@ function IDELayoutContent() {
         return restoredNode
       }
 
-      // 恢复节点及其所有子节点
+      // Restore node and all its children
       const restoredNode = await restoreNode(renamedNode)
 
-      // 从垃圾篓中移除节点
+      // Remove node from trash
       const removeFromTrash = (nodes: FileNode[]): FileNode[] => {
         return nodes.map(n => {
           if (n.id === '__trash__' && n.children) {
@@ -932,23 +932,23 @@ function IDELayoutContent() {
       toast.success('已移出垃圾篓')
       console.log('[handleMoveOut] Moved out from trash:', restoredNode)
       
-      // 清除动画状态
+      // Clear animation state
       setMovingOutNodeId(null)
     } catch (e) {
       console.error('Move out failed:', e)
       toast.error('移出失败')
-      // 清除动画状态
+      // Clear animation state
       setMovingOutNodeId(null)
     }
   }
 
-  // 处理节点折叠/展开状态变化
+  // Handle node expand/collapse state change
   const handleToggleExpand = async (nodeId: string, isExpanded: boolean) => {
     if (!configFileHandle) {
       return
     }
 
-    // 递归更新节点的 expanded 状态
+    // Recursively update node's expanded state
     const updateNodeExpanded = (nodes: FileNode[]): FileNode[] => {
       return nodes.map(node => {
         if (node.id === nodeId) {
@@ -964,7 +964,7 @@ function IDELayoutContent() {
     const updated = updateNodeExpanded(fileTree)
     setFileTree(updated)
 
-    // 保存到 mano.conf.json
+    // Save to mano.conf.json
     try {
       const { saveManoConfig } = await import('@/services/fileSystem')
       await saveManoConfig(configFileHandle, {
