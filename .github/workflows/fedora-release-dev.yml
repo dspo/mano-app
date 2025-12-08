@@ -1,0 +1,65 @@
+name: Fedora Release Dev
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  release-fedora:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    container:
+      image: fedora:41
+    
+    steps:
+      - name: Install system dependencies
+        run: |
+          dnf install -y git curl wget file gcc gcc-c++ openssl-devel \
+            webkit2gtk4.1-devel libappindicator-gtk3-devel librsvg2-devel \
+            patchelf make
+      
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-gnu
+      
+      - name: Install frontend dependencies
+        run: |
+          cd mano-ui
+          pnpm install
+      
+      - name: Delete existing dev release
+        continue-on-error: true
+        run: |
+          echo "Attempting to delete existing dev release and tag..."
+          gh release delete dev --yes || echo "No existing release to delete"
+          gh api --method DELETE /repos/${{ github.repository }}/git/refs/tags/dev || echo "No existing tag to delete"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Build and Release Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          args: '--target x86_64-unknown-linux-gnu'
+          tagName: dev
+          releaseName: 'Dev Build - Fedora'
+          releaseBody: 'Automated Fedora development build from main branch'
+          releaseDraft: false
+          prerelease: true
