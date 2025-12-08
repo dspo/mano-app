@@ -1422,10 +1422,11 @@ function IDELayoutContent() {
               
               <ResizablePanel 
                 ref={panelRef}
-                defaultSize={30} 
+                defaultSize={0} 
                 minSize={10} 
                 maxSize={60}
                 collapsible={true}
+                collapsedSize={0}
                 onCollapse={() => setIsPanelCollapsed(true)}
                 onExpand={() => setIsPanelCollapsed(false)}
               >
