@@ -10,6 +10,9 @@
     "preview": "vite preview",
     "tauri": "tauri"
   },
+  "optionalDependencies": {
+    "@esbuild/win32-x64": "^0.25.12"
+  },
   "dependencies": {
     "@ai-sdk/react": "2.0.28",
     "@ariakit/react": "^0.4.20",
@@ -92,6 +95,7 @@
     "zod": "^4.1.13"
   },
   "devDependencies": {
+    "@rollup/rollup-win32-arm64-msvc": "^4.53.3",
     "@eslint/js": "^9.39.1",
     "@types/lodash": "^4.17.21",
     "@types/node": "^24.10.1",
