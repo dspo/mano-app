@@ -17,6 +17,16 @@ jobs:
         include:
           - platform: 'macos-latest'
             args: '--target aarch64-apple-darwin'
+            target: 'aarch64-apple-darwin'
+            label: 'macOS ARM64'
+          - platform: 'windows-latest'
+            args: '--target x86_64-pc-windows-msvc'
+            target: 'x86_64-pc-windows-msvc'
+            label: 'Windows AMD64'
+          - platform: 'windows-latest'
+            args: '--target aarch64-pc-windows-msvc'
+            target: 'aarch64-pc-windows-msvc'
+            label: 'Windows ARM64'
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -49,7 +59,7 @@ jobs:
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: aarch64-apple-darwin
+          targets: ${{ matrix.target }}
 
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
@@ -69,19 +79,21 @@ jobs:
           args: ${{ matrix.args }}
 
       - name: Display artifact sizes
+        shell: bash
         run: |
           echo "=== Build Artifacts ==="
           echo ""
           
-          # Find all built artifacts in the target directory
-          BUNDLE_DIR="mano-tauri/target/aarch64-apple-darwin/release/bundle"
+          TARGET="${{ matrix.target }}"
+          PLATFORM="${{ matrix.label }}"
+          BUNDLE_DIR="mano-tauri/target/$TARGET/release/bundle"
           
           if [ -d "$BUNDLE_DIR" ]; then
-            echo "📦 macOS Artifacts:"
+            echo "📦 $PLATFORM Artifacts:"
             echo ""
             
-            # DMG files
-            if [ -d "$BUNDLE_DIR/dmg" ] && [ -n "$(find "$BUNDLE_DIR/dmg" -name "*.dmg" -print -quit)" ]; then
+            # macOS DMG files
+            if [ -d "$BUNDLE_DIR/dmg" ] && [ -n "$(find "$BUNDLE_DIR/dmg" -name "*.dmg" -print -quit 2>/dev/null)" ]; then
               for file in "$BUNDLE_DIR/dmg"/*.dmg; do
                 [ -f "$file" ] || continue
                 size=$(du -sh "$file" | cut -f1)
@@ -90,10 +102,30 @@ jobs:
               done
             fi
             
-            # App bundles
-            if [ -d "$BUNDLE_DIR/macos" ] && [ -n "$(find "$BUNDLE_DIR/macos" -name "*.app" -print -quit)" ]; then
+            # macOS App bundles
+            if [ -d "$BUNDLE_DIR/macos" ] && [ -n "$(find "$BUNDLE_DIR/macos" -name "*.app" -print -quit 2>/dev/null)" ]; then
               for file in "$BUNDLE_DIR/macos"/*.app; do
                 [ -e "$file" ] || continue
+                size=$(du -sh "$file" | cut -f1)
+                name=$(basename "$file")
+                echo "  • $name: $size"
+              done
+            fi
+            
+            # Windows MSI installers
+            if [ -d "$BUNDLE_DIR/msi" ] && [ -n "$(find "$BUNDLE_DIR/msi" -name "*.msi" -print -quit 2>/dev/null)" ]; then
+              for file in "$BUNDLE_DIR/msi"/*.msi; do
+                [ -f "$file" ] || continue
+                size=$(du -sh "$file" | cut -f1)
+                name=$(basename "$file")
+                echo "  • $name: $size"
+              done
+            fi
+            
+            # Windows NSIS installers
+            if [ -d "$BUNDLE_DIR/nsis" ] && [ -n "$(find "$BUNDLE_DIR/nsis" -name "*.exe" -print -quit 2>/dev/null)" ]; then
+              for file in "$BUNDLE_DIR/nsis"/*.exe; do
+                [ -f "$file" ] || continue
                 size=$(du -sh "$file" | cut -f1)
                 name=$(basename "$file")
                 echo "  • $name: $size"
@@ -114,31 +146,55 @@ jobs:
           script: |
             const fs = require('fs');
             const path = require('path');
-            const { execFileSync } = require('child_process');
             
-            const bundleDir = 'mano-tauri/target/aarch64-apple-darwin/release/bundle';
+            const target = '${{ matrix.target }}';
+            const platform = '${{ matrix.label }}';
+            const bundleDir = `mano-tauri/target/${target}/release/bundle`;
             
             if (!fs.existsSync(bundleDir)) {
               console.log('Bundle directory not found');
               return;
             }
             
-            function getDirectorySize(dirPath) {
+            function getFileSize(filePath) {
               try {
-                // Use execFileSync for safer execution without shell interpretation
-                const result = execFileSync('du', ['-sh', dirPath]);
-                const output = result.toString().trim();
-                return output.split('\t')[0] || 'N/A';
+                const stats = fs.statSync(filePath);
+                const sizeInMB = stats.size / (1024 * 1024);
+                return `${sizeInMB.toFixed(2)} MB`;
               } catch (error) {
                 return 'N/A';
               }
             }
             
-            let comment = '## 📦 Build Artifacts\n\n';
-            comment += '### macOS ARM64 Build\n\n';
+            function getDirSize(dirPath) {
+              try {
+                let totalSize = 0;
+                
+                function calculateSize(itemPath) {
+                  const stats = fs.statSync(itemPath);
+                  if (stats.isDirectory()) {
+                    const items = fs.readdirSync(itemPath);
+                    items.forEach(item => {
+                      calculateSize(path.join(itemPath, item));
+                    });
+                  } else {
+                    totalSize += stats.size;
+                  }
+                }
+                
+                calculateSize(dirPath);
+                const sizeInMB = totalSize / (1024 * 1024);
+                return `${sizeInMB.toFixed(2)} MB`;
+              } catch (error) {
+                return 'N/A';
+              }
+            }
+            
+            let comment = `## 📦 Build Artifacts\n\n`;
+            comment += `### ${platform} Build\n\n`;
             
             try {
-              // DMG files
+              // macOS DMG files
               const dmgDir = path.join(bundleDir, 'dmg');
               if (fs.existsSync(dmgDir)) {
                 const dmgFiles = fs.readdirSync(dmgDir).filter(f => f.endsWith('.dmg'));
@@ -146,14 +202,14 @@ jobs:
                   comment += '**DMG Installer:**\n';
                   dmgFiles.forEach(file => {
                     const filePath = path.join(dmgDir, file);
-                    const size = getDirectorySize(filePath);
+                    const size = getFileSize(filePath);
                     comment += `- \`${file}\`: **${size}**\n`;
                   });
                   comment += '\n';
                 }
               }
               
-              // App bundles
+              // macOS App bundles
               const macosDir = path.join(bundleDir, 'macos');
               if (fs.existsSync(macosDir)) {
                 const appFiles = fs.readdirSync(macosDir).filter(f => f.endsWith('.app'));
@@ -161,7 +217,37 @@ jobs:
                   comment += '**App Bundle:**\n';
                   appFiles.forEach(file => {
                     const filePath = path.join(macosDir, file);
-                    const size = getDirectorySize(filePath);
+                    const size = getDirSize(filePath);
+                    comment += `- \`${file}\`: **${size}**\n`;
+                  });
+                  comment += '\n';
+                }
+              }
+              
+              // Windows MSI installers
+              const msiDir = path.join(bundleDir, 'msi');
+              if (fs.existsSync(msiDir)) {
+                const msiFiles = fs.readdirSync(msiDir).filter(f => f.endsWith('.msi'));
+                if (msiFiles.length > 0) {
+                  comment += '**MSI Installer:**\n';
+                  msiFiles.forEach(file => {
+                    const filePath = path.join(msiDir, file);
+                    const size = getFileSize(filePath);
+                    comment += `- \`${file}\`: **${size}**\n`;
+                  });
+                  comment += '\n';
+                }
+              }
+              
+              // Windows NSIS installers
+              const nsisDir = path.join(bundleDir, 'nsis');
+              if (fs.existsSync(nsisDir)) {
+                const exeFiles = fs.readdirSync(nsisDir).filter(f => f.endsWith('.exe'));
+                if (exeFiles.length > 0) {
+                  comment += '**NSIS Installer:**\n';
+                  exeFiles.forEach(file => {
+                    const filePath = path.join(nsisDir, file);
+                    const size = getFileSize(filePath);
                     comment += `- \`${file}\`: **${size}**\n`;
                   });
                   comment += '\n';
@@ -169,7 +255,7 @@ jobs:
               }
               
               // Total bundle size
-              const totalSize = getDirectorySize(bundleDir);
+              const totalSize = getDirSize(bundleDir);
               comment += `**Total bundle size:** ${totalSize}\n`;
               
             } catch (error) {
