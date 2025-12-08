@@ -2,7 +2,7 @@ import { ChevronRight, ChevronDown, FileText, Library, TextQuote, TextAlignStart
 import { DndContext, useDraggable, useDroppable, PointerSensor, useSensor, useSensors, DragOverlay } from '@dnd-kit/core'
 import type { DragEndEvent, DragStartEvent, DragOverEvent } from '@dnd-kit/core'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import type { ManoNode } from '@/types/mano-config'
 import { ManoTextAlignStartIcon } from '@/icons/icons'
@@ -28,6 +28,7 @@ interface FileTreeItemProps {
   dropLevel?: number
   onCreateNode?: (parentNode: FileNode) => void
   editingNodeId?: string | null
+  onStartRename?: (nodeId: string) => void
   onRenameNode?: (nodeId: string, newName: string) => void
   onCancelEdit?: () => void
   onRemoveNode?: (node: FileNode) => void
@@ -41,12 +42,16 @@ interface FileTreeItemProps {
   onToggleExpand?: (nodeId: string, isExpanded: boolean) => void
 }
 
-function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragOverId, dropMode, dropLevel, onCreateNode, editingNodeId, onRenameNode, onCancelEdit, onRemoveNode, onMoveOut, onDeleteNode, isInTrash = false, movingOutNodeId, removingNodeId, contextMenuNodeId, onContextMenuChange, onToggleExpand }: FileTreeItemProps) {
+function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragOverId, dropMode, dropLevel, onCreateNode, editingNodeId, onStartRename, onRenameNode, onCancelEdit, onRemoveNode, onMoveOut, onDeleteNode, isInTrash = false, movingOutNodeId, removingNodeId, contextMenuNodeId, onContextMenuChange, onToggleExpand }: FileTreeItemProps) {
   // Read initial state from node.expanded (default false if not set)
   const [isOpen, setIsOpen] = useState(node.expanded ?? false)
   const [editValue, setEditValue] = useState(node.name)
   const isEditing = editingNodeId === node.id
   const isContextMenuActive = contextMenuNodeId === node.id
+  
+  // Double-click detection
+  const lastClickTimeRef = useRef<number>(0)
+  const clickTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   
   // Handle toggle and notify parent
   const handleToggle = () => {
@@ -57,6 +62,65 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
   
   // Check if current node is trash or inside trash
   const isTrashNode = node.id === '__trash__' || isInTrash
+  
+  // Handle double-click to enter rename mode
+  const handleNodeDoubleClick = () => {
+    // Prevent renaming trash node or nodes inside trash
+    if (isTrashNode) return
+    // Also prevent renaming if node is read-only
+    if (node.readOnly) return
+    
+    onStartRename?.(node.id)
+  }
+  
+  // Handle click with double-click detection
+  const handleNodeClick = () => {
+    const now = Date.now()
+    const timeSinceLastClick = now - lastClickTimeRef.current
+    
+    // Clear any pending timeout
+    if (clickTimeoutRef.current) {
+      clearTimeout(clickTimeoutRef.current)
+      clickTimeoutRef.current = null
+    }
+    
+    // Double-click detected (within 300ms)
+    if (timeSinceLastClick < 300) {
+      handleNodeDoubleClick()
+      lastClickTimeRef.current = 0
+      return
+    }
+    
+    lastClickTimeRef.current = now
+    
+    // Single click
+    clickTimeoutRef.current = setTimeout(() => {
+      // For directories: toggle expand/collapse
+      if (isDirectory) {
+        handleToggle()
+      } else {
+        // For files: select the file
+        onFileClick(node)
+      }
+      lastClickTimeRef.current = 0
+    }, 300)
+  }
+  
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (clickTimeoutRef.current) {
+        clearTimeout(clickTimeoutRef.current)
+      }
+    }
+  }, [])
+  
+  // Update editValue when editing starts
+  useEffect(() => {
+    if (isEditing) {
+      setEditValue(node.name)
+    }
+  }, [isEditing, node.name])
   
   // Determine if node is a directory
   const isDirectory = node.nodeType === 'Directory'
@@ -185,7 +249,7 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
                       isDragging && 'opacity-30'
                     )}
                     style={{ paddingLeft: `${level * 12 + 8}px` }}
-                    onClick={() => onFileClick(node)}
+                    onClick={handleNodeClick}
                     {...listeners}
                     {...attributes}
                     disabled={node.readOnly}
@@ -263,6 +327,7 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
                 dropLevel={dropLevel}
                 onCreateNode={onCreateNode}
                 editingNodeId={editingNodeId}
+                onStartRename={onStartRename}
                 onRenameNode={onRenameNode}
                 onCancelEdit={onCancelEdit}
                 onRemoveNode={onRemoveNode}
@@ -359,7 +424,7 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
                   isDragging && 'opacity-30'
                 )}
                 style={{ paddingLeft: `${level * 12 + 8}px` }}
-                onClick={handleToggle}
+                onClick={handleNodeClick}
                 {...listeners}
                 {...attributes}
               >
@@ -427,6 +492,7 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
               dropLevel={dropLevel}
               onCreateNode={onCreateNode}
               editingNodeId={editingNodeId}
+              onStartRename={onStartRename}
               onRenameNode={onRenameNode}
               onCancelEdit={onCancelEdit}
               onRemoveNode={onRemoveNode}
@@ -460,6 +526,7 @@ interface PrimarySidebarProps {
   onReorder?: (payload: { sourceId: string; targetId: string; mode: 'before' | 'after' | 'into' }) => void
   onCreateNode?: (parentNode: FileNode) => void
   editingNodeId?: string | null
+  onStartRename?: (nodeId: string) => void
   onRenameNode?: (nodeId: string, newName: string) => void
   onCancelEdit?: () => void
   onRemoveNode?: (node: FileNode) => void
@@ -471,7 +538,7 @@ interface PrimarySidebarProps {
   onOpenFolder?: () => void
 }
 
-export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree = [], onReorder, onCreateNode, editingNodeId, onRenameNode, onCancelEdit, onRemoveNode, onMoveOut, onDeleteNode, movingOutNodeId, removingNodeId, onToggleExpand, onOpenFolder }: PrimarySidebarProps) {
+export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree = [], onReorder, onCreateNode, editingNodeId, onStartRename, onRenameNode, onCancelEdit, onRemoveNode, onMoveOut, onDeleteNode, movingOutNodeId, removingNodeId, onToggleExpand, onOpenFolder }: PrimarySidebarProps) {
   const [dragOverId, setDragOverId] = useState<string | null>(null)
   const [dropMode, setDropMode] = useState<'before' | 'after' | 'into' | null>(null)
   const [dropLevel, setDropLevel] = useState<number>(0)
@@ -650,6 +717,7 @@ export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree =
                   dropLevel={dropLevel}
                   onCreateNode={onCreateNode}
                   editingNodeId={editingNodeId}
+                  onStartRename={onStartRename}
                   onRenameNode={onRenameNode}
                   onCancelEdit={onCancelEdit}
                   onRemoveNode={onRemoveNode}
