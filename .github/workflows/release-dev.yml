@@ -26,10 +26,6 @@ jobs:
           - platform: 'ubuntu-24.04'
             args: '--target x86_64-unknown-linux-gnu'
             target: 'x86_64-unknown-linux-gnu'
-          - platform: 'ubuntu-latest'
-            args: '--target x86_64-unknown-linux-gnu'
-            target: 'x86_64-unknown-linux-gnu'
-            use_fedora: true
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -75,15 +71,10 @@ jobs:
           pnpm install
 
       - name: Install Ubuntu dependencies
-        if: startsWith(matrix.platform, 'ubuntu-') && !matrix.use_fedora
+        if: startsWith(matrix.platform, 'ubuntu-')
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
-
-      - name: Install Fedora dependencies
-        if: matrix.use_fedora
-        run: |
-          sudo dnf install -y webkit2gtk4.1-devel libappindicator-gtk3-devel librsvg2-devel patchelf openssl-devel curl wget file gcc gcc-c++
 
       - name: Delete existing dev release
         continue-on-error: true
