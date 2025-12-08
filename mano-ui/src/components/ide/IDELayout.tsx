@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { ActivityBar } from './ActivityBar'
 import { PrimarySidebar } from './PrimarySidebar'
-import { insertInto, insertBeforeAfter, findNodePath, removeAtPath, isAncestor, hasTextNodeWithName, checkDuplicateNames, isInTrash } from '@/lib/tree-utils'
+import { insertInto, insertBeforeAfter, findNodePath, removeAtPath, isAncestor, checkDuplicateNames, isInTrash, buildTextNodeNameSet, hasNameInSet } from '@/lib/tree-utils'
 import type { ManoNode } from '@/types/mano-config'
 import { EditorContainer } from './EditorContainer'
 import { BottomPanel } from './BottomPanel'
@@ -144,6 +144,7 @@ function IDELayoutContent() {
   const [activeTab, setActiveTab] = useState<{ id: string; fileName: string } | null>(null)
   const [notification, setNotification] = useState<{ message: string; x: number; y: number } | null>(null)
   const [fileTree, setFileTree] = useState<FileNode[]>([])
+  const [textNodeNameSet, setTextNodeNameSet] = useState<Set<string>>(new Set())
   const [_fileContentsMap, setFileContentsMap] = useState<Record<string, string>>(fileContents)
   const [_fileHandlesMap, setFileHandlesMap] = useState<Record<string, FileSystemFileHandle | IFileHandle>>({})
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null)
@@ -170,6 +171,16 @@ function IDELayoutContent() {
       },
     })
   )
+
+  /**
+   * Synchronize textNodeNameSet with fileTree lifecycle
+   * When fileTree changes, automatically rebuild the Set
+   * This ensures Set is always in sync with the tree's current state
+   */
+  useEffect(() => {
+    const newNameSet = buildTextNodeNameSet(fileTree)
+    setTextNodeNameSet(newNameSet)
+  }, [fileTree])
 
   // Handle drag start
   const handleDragStart = (event: DragStartEvent) => {
@@ -275,15 +286,15 @@ function IDELayoutContent() {
       // Read or create mano.conf.json
       const { config, fileHandle } = await fs.readOrCreateManoConfig(directory)
       
-      // Validate if there are duplicate text node names in tree structure
+      // Validate if there are duplicate node names in tree structure
       const duplicates = checkDuplicateNames(config.data)
       if (duplicates.length > 0) {
-        console.error('[IDELayout] 检测到重名文本节点:', duplicates)
+        console.error('[IDELayout] 检测到重名节点:', duplicates)
         const errorMsg = duplicates.map(d => 
           `"${d.name}" (节点ID: ${d.ids.join(', ')})`
         ).join('; ')
         toast.error(
-          `mano.conf.json 中存在重名文本节点：${errorMsg}。文本节点对应物理文件，文件名必须唯一，请修复后再次打开。`,
+          `mano.conf.json 中存在重名节点：${errorMsg}。所有节点名称必须全局唯一，请修复后再次打开。`,
           { duration: 8000 }
         )
         return
@@ -319,15 +330,15 @@ function IDELayoutContent() {
       // Read or create mano.conf.json
       const { config, fileHandle } = await fs.readOrCreateManoConfig(directory)
       
-      // Validate if there are duplicate text node names in tree structure
+      // Validate if there are duplicate node names in tree structure
       const duplicates = checkDuplicateNames(config.data)
       if (duplicates.length > 0) {
-        console.error('[IDELayout] 检测到重名文本节点:', duplicates)
+        console.error('[IDELayout] 检测到重名节点:', duplicates)
         const errorMsg = duplicates.map(d => 
           `"${d.name}" (节点ID: ${d.ids.join(', ')})`
         ).join('; ')
         toast.error(
-          `mano.conf.json 中存在重名文本节点：${errorMsg}。文本节点对应物理文件，文件名必须唯一，请修复后再次打开。`,
+          `mano.conf.json 中存在重名节点：${errorMsg}。所有节点名称必须全局唯一，请修复后再次打开。`,
           { duration: 8000 }
         )
         return
@@ -474,6 +485,11 @@ function IDELayoutContent() {
     }
   }
 
+  // Start renaming a node (triggered by double-click)
+  const handleStartRename = (nodeId: string) => {
+    setEditingNodeId(nodeId)
+  }
+
   // Create new node
   const handleCreateNode = async (parentNode: FileNode) => {
     if (!configFileHandle) {
@@ -487,8 +503,8 @@ function IDELayoutContent() {
       let finalName = baseName
       let counter = 1
       
-      // Check entire workspace, not just sibling nodes
-      while (hasTextNodeWithName(fileTree as any, finalName)) {
+      // Check entire workspace using Set (O(1) lookup)
+      while (hasNameInSet(textNodeNameSet, finalName)) {
         finalName = `${baseName}${counter}`
         counter++
       }
@@ -549,9 +565,10 @@ function IDELayoutContent() {
         return
       }
 
-      // Check entire workspace for duplicate text node names (excluding self)
-      if (hasTextNodeWithName(fileTree as any, newName, nodeId)) {
-        toast.error(`工作区中已存在名为 "${newName}" 的文本节点，文件名必须唯一`)
+      // Check entire workspace for duplicate node names (excluding self)
+      // If new name is same as current, it's allowed (no actual change)
+      if (newName !== node.name && hasNameInSet(textNodeNameSet, newName)) {
+        toast.error(`工作区中已存在名为 "${newName}" 的节点，所有节点名称必须全局唯一`)
         return
       }
 
@@ -690,29 +707,11 @@ function IDELayoutContent() {
           }
         }
 
-        // Recursively process child nodes
+        // Recursively process child nodes (no renaming needed - global deduplication ensures no conflicts)
         if (n.children && n.children.length > 0) {
           const processedChildren: FileNode[] = []
           for (const child of n.children) {
-            // Check if child node needs renaming (avoid conflicts with nodes in trash)
-            let renamedChild = child
-            if ((child.nodeType === 'SlateText' || child.nodeType === 'Markdown')) {
-              let newName = child.name
-              let counter = 1
-              const allTrashNodes = [...trashNodes, ...(processedNode.children || [])]
-
-              while (hasTextNodeWithName(allTrashNodes, newName, child.id)) {
-                newName = `${child.name} (${counter})`
-                counter++
-              }
-
-              if (newName !== child.name) {
-                renamedChild = { ...child, name: newName }
-                console.log(`[handleRemoveNode] Renamed child ${child.name} to ${newName}`)
-              }
-            }
-
-            const processedChild = await processNode(renamedChild, trashNodes)
+            const processedChild = await processNode(child, trashNodes)
             processedChildren.push(processedChild)
           }
           processedNode = {
@@ -741,30 +740,6 @@ function IDELayoutContent() {
         }
       }
 
-      // Check if there are nodes with the same name in trash, rename if needed
-      const checkAndRenameIfNeeded = (nodeToAdd: FileNode, existingNodes: FileNode[]): FileNode => {
-        // Only check renaming for text nodes
-        if (nodeToAdd.nodeType !== 'SlateText' && nodeToAdd.nodeType !== 'Markdown') {
-          return nodeToAdd
-        }
-
-        let newName = nodeToAdd.name
-        let counter = 1
-        
-        // Check for name conflicts with any text node in trash
-        while (hasTextNodeWithName(existingNodes, newName, nodeToAdd.id)) {
-          newName = `${nodeToAdd.name} (${counter})`
-          counter++
-        }
-
-        if (newName !== nodeToAdd.name) {
-          console.log(`[handleRemoveNode] Renamed ${nodeToAdd.name} to ${newName} to avoid conflict`)
-          return { ...nodeToAdd, name: newName }
-        }
-
-        return nodeToAdd
-      }
-
       // Remove node from original position
       const removeNodeById = (nodes: FileNode[], id: string): FileNode[] => {
         return nodes.filter(n => {
@@ -781,15 +756,12 @@ function IDELayoutContent() {
 
       let updated = removeNodeById(fileTree, node.id)
 
-      // Check and handle name conflicts
-      const renamedNode = checkAndRenameIfNeeded(processedNode, trashNode.children || [])
-
-      // Add processed node to trash
+      // Add processed node to trash (no renaming needed - global deduplication ensures no conflicts)
       updated = updated.map(n => {
         if (n.id === '__trash__') {
           return {
             ...n,
-            children: [...(n.children || []), renamedNode]
+            children: [...(n.children || []), processedNode]
           }
         }
         return n
@@ -797,7 +769,7 @@ function IDELayoutContent() {
 
       // If trash doesn't exist, add to root
       if (!fileTree.find(n => n.id === '__trash__')) {
-        trashNode.children = [renamedNode]
+        trashNode.children = [processedNode]
         updated = [...updated, trashNode as FileNode]
       }
 
@@ -811,7 +783,7 @@ function IDELayoutContent() {
       })
 
       toast.success('已移至垃圾篓')
-      console.log('[handleRemoveNode] Moved to trash:', renamedNode)
+      console.log('[handleRemoveNode] Moved to trash:', processedNode)
       
       // Clear animation state
       setRemovingNodeId(null)
@@ -860,32 +832,6 @@ function IDELayoutContent() {
       const nodesOutsideTrash = getNodesOutsideTrash(fileTree)
 
       // Check and rename to avoid conflicts
-      const checkAndRenameNode = (nodeToRestore: FileNode, existingNodes: FileNode[]): FileNode => {
-        // Only check renaming for text nodes
-        if (nodeToRestore.nodeType !== 'SlateText' && nodeToRestore.nodeType !== 'Markdown') {
-          return nodeToRestore
-        }
-
-        let newName = nodeToRestore.name
-        let counter = 1
-        
-        // Check for duplicate names with any text node outside trash
-        while (hasTextNodeWithName(existingNodes, newName, nodeToRestore.id)) {
-          newName = `${nodeToRestore.name} (${counter})`
-          counter++
-        }
-
-        if (newName !== nodeToRestore.name) {
-          console.log(`[handleMoveOut] Renamed ${nodeToRestore.name} to ${newName} to avoid conflict`)
-          return { ...nodeToRestore, name: newName }
-        }
-
-        return nodeToRestore
-      }
-
-      // First check and rename node
-      const renamedNode = checkAndRenameNode(node, nodesOutsideTrash)
-
       // Recursively process nodes: decode content and restore files
       const restoreNode = async (n: FileNode, parentNodes: FileNode[] = nodesOutsideTrash): Promise<FileNode> => {
         let restoredNode = { ...n }
@@ -913,29 +859,11 @@ function IDELayoutContent() {
           }
         }
 
-        // Recursively process child nodes
+        // Recursively process child nodes (no renaming needed - global deduplication ensures no conflicts)
         if (n.children && n.children.length > 0) {
           const restoredChildren: FileNode[] = []
           for (const child of n.children) {
-            // Check if child node needs renaming (avoid conflicts with sibling or external nodes)
-            let renamedChild = child
-            if ((child.nodeType === 'SlateText' || child.nodeType === 'Markdown')) {
-              let newName = child.name
-              let counter = 1
-              const siblingAndParentNodes = [...(restoredNode.children || []), ...parentNodes]
-
-              while (hasTextNodeWithName(siblingAndParentNodes, newName, child.id)) {
-                newName = `${child.name} (${counter})`
-                counter++
-              }
-
-              if (newName !== child.name) {
-                renamedChild = { ...child, name: newName }
-                console.log(`[handleMoveOut] Renamed child ${child.name} to ${newName}`)
-              }
-            }
-
-            const restoredChild = await restoreNode(renamedChild, parentNodes)
+            const restoredChild = await restoreNode(child, parentNodes)
             restoredChildren.push(restoredChild)
           }
           restoredNode = {
@@ -948,7 +876,7 @@ function IDELayoutContent() {
       }
 
       // Restore node and all its children
-      const restoredNode = await restoreNode(renamedNode)
+      const restoredNode = await restoreNode(node)
 
       // Remove node from trash
       const removeFromTrash = (nodes: FileNode[]): FileNode[] => {
@@ -1379,6 +1307,7 @@ function IDELayoutContent() {
               onReorder={handleTreeReorder}
               onCreateNode={handleCreateNode}
               editingNodeId={editingNodeId}
+              onStartRename={handleStartRename}
               onRenameNode={handleRenameNode}
               onCancelEdit={handleCancelEdit}
               onRemoveNode={handleRemoveNode}

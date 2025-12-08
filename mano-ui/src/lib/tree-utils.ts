@@ -83,53 +83,59 @@ export function isAncestor(tree: ManoNode[], ancestorId: string, nodeId: string)
  * @param excludeId The node ID to exclude (for rename scenarios, exclude itself)
  * @returns true if duplicate name exists, false if no duplicate
  */
-export function hasTextNodeWithName(tree: ManoNode[], name: string, excludeId?: string): boolean {
-  function search(nodes: ManoNode[]): boolean {
+
+/**
+ * Build a Set of all node names in the tree (including ALL node types)
+ * Used for global name uniqueness validation
+ * Time: O(n), Space: O(n)
+ */
+export function buildTextNodeNameSet(tree: ManoNode[]): Set<string> {
+  const nameSet = new Set<string>()
+  
+  function traverse(nodes: ManoNode[]) {
     for (const node of nodes) {
-      // Only check text nodes (SlateText and Markdown), Directory doesn't correspond to file
-      if ((node.nodeType === 'SlateText' || node.nodeType === 'Markdown') && 
-          node.name === name && 
-          node.id !== excludeId) {
-        return true
-      }
+      nameSet.add(node.name)
       if (node.children) {
-        if (search(node.children)) return true
+        traverse(node.children)
       }
     }
-    return false
   }
-  return search(tree)
+  
+  traverse(tree)
+  return nameSet
 }
 
 /**
- * Validate the entire tree structure, check if there are duplicate text node names in the workspace
- * Because text nodes correspond to physical files, filenames must be unique throughout the workspace
- * @param tree The tree structure to check
- * @returns Array containing duplicate name information, empty array means no duplicates
+ * Check if a node name exists in a pre-built name Set
+ * Time: O(1), Space: O(1)
+ */
+export function hasNameInSet(nameSet: Set<string>, name: string): boolean {
+  return nameSet.has(name)
+}
+
+/**
+ * Check for duplicate node names in the tree (checks ALL node types)
+ * Returns array of duplicates with their IDs
  */
 export function checkDuplicateNames(tree: ManoNode[]): Array<{ name: string; ids: string[] }> {
   const duplicates: Array<{ name: string; ids: string[] }> = []
-  const textNodeNames = new Map<string, string[]>() // name -> [ids]
+  const allNodeNames = new Map<string, string[]>()
   
-  function collectTextNodes(nodes: ManoNode[]) {
+  function collectNodes(nodes: ManoNode[]) {
     for (const node of nodes) {
-      // Only collect text nodes (SlateText and Markdown)
-      if (node.nodeType === 'SlateText' || node.nodeType === 'Markdown') {
-        const ids = textNodeNames.get(node.name) || []
-        ids.push(node.id)
-        textNodeNames.set(node.name, ids)
-      }
+      const ids = allNodeNames.get(node.name) || []
+      ids.push(node.id)
+      allNodeNames.set(node.name, ids)
       
       if (node.children && node.children.length > 0) {
-        collectTextNodes(node.children)
+        collectNodes(node.children)
       }
     }
   }
   
-  collectTextNodes(tree)
+  collectNodes(tree)
   
-  // Find duplicates (occurrence count > 1)
-  for (const [name, ids] of textNodeNames.entries()) {
+  for (const [name, ids] of allNodeNames.entries()) {
     if (ids.length > 1) {
       duplicates.push({ name, ids })
     }
