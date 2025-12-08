@@ -17,10 +17,16 @@ jobs:
         include:
           - platform: 'macos-latest'
             args: '--target aarch64-apple-darwin'
+            target: 'aarch64-apple-darwin'
+            label: 'macOS ARM64'
           - platform: 'windows-latest'
             args: '--target x86_64-pc-windows-msvc'
+            target: 'x86_64-pc-windows-msvc'
+            label: 'Windows AMD64'
           - platform: 'windows-latest'
             args: '--target aarch64-pc-windows-msvc'
+            target: 'aarch64-pc-windows-msvc'
+            label: 'Windows ARM64'
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -53,7 +59,7 @@ jobs:
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ contains(matrix.args, 'aarch64-apple-darwin') && 'aarch64-apple-darwin' || contains(matrix.args, 'x86_64-pc-windows-msvc') && 'x86_64-pc-windows-msvc' || 'aarch64-pc-windows-msvc' }}
+          targets: ${{ matrix.target }}
 
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
@@ -78,18 +84,8 @@ jobs:
           echo "=== Build Artifacts ==="
           echo ""
           
-          # Determine target directory based on platform
-          if [[ "${{ matrix.args }}" == *"aarch64-apple-darwin"* ]]; then
-            TARGET="aarch64-apple-darwin"
-            PLATFORM="macOS ARM64"
-          elif [[ "${{ matrix.args }}" == *"x86_64-pc-windows-msvc"* ]]; then
-            TARGET="x86_64-pc-windows-msvc"
-            PLATFORM="Windows AMD64"
-          elif [[ "${{ matrix.args }}" == *"aarch64-pc-windows-msvc"* ]]; then
-            TARGET="aarch64-pc-windows-msvc"
-            PLATFORM="Windows ARM64"
-          fi
-          
+          TARGET="${{ matrix.target }}"
+          PLATFORM="${{ matrix.label }}"
           BUNDLE_DIR="mano-tauri/target/$TARGET/release/bundle"
           
           if [ -d "$BUNDLE_DIR" ]; then
@@ -150,22 +146,9 @@ jobs:
           script: |
             const fs = require('fs');
             const path = require('path');
-            const { execSync } = require('child_process');
             
-            // Determine target directory based on args
-            let target, platform;
-            const args = '${{ matrix.args }}';
-            if (args.includes('aarch64-apple-darwin')) {
-              target = 'aarch64-apple-darwin';
-              platform = 'macOS ARM64';
-            } else if (args.includes('x86_64-pc-windows-msvc')) {
-              target = 'x86_64-pc-windows-msvc';
-              platform = 'Windows AMD64';
-            } else if (args.includes('aarch64-pc-windows-msvc')) {
-              target = 'aarch64-pc-windows-msvc';
-              platform = 'Windows ARM64';
-            }
-            
+            const target = '${{ matrix.target }}';
+            const platform = '${{ matrix.label }}';
             const bundleDir = `mano-tauri/target/${target}/release/bundle`;
             
             if (!fs.existsSync(bundleDir)) {
@@ -175,33 +158,33 @@ jobs:
             
             function getFileSize(filePath) {
               try {
-                if (process.platform === 'win32') {
-                  // Windows doesn't have du, use PowerShell
-                  const result = execSync(`powershell -Command "(Get-Item '${filePath}').length / 1MB"`, { encoding: 'utf-8' });
-                  return `${parseFloat(result).toFixed(2)} MB`;
-                } else {
-                  const result = execSync(`du -sh "${filePath}"`, { encoding: 'utf-8' });
-                  return result.trim().split('\t')[0];
-                }
+                const stats = fs.statSync(filePath);
+                const sizeInMB = stats.size / (1024 * 1024);
+                return `${sizeInMB.toFixed(2)} MB`;
               } catch (error) {
-                try {
-                  const stats = fs.statSync(filePath);
-                  return `${(stats.size / 1024 / 1024).toFixed(2)} MB`;
-                } catch (e) {
-                  return 'N/A';
-                }
+                return 'N/A';
               }
             }
             
             function getDirSize(dirPath) {
               try {
-                if (process.platform === 'win32') {
-                  const result = execSync(`powershell -Command "(Get-ChildItem -Path '${dirPath}' -Recurse | Measure-Object -Property Length -Sum).Sum / 1MB"`, { encoding: 'utf-8' });
-                  return `${parseFloat(result).toFixed(2)} MB`;
-                } else {
-                  const result = execSync(`du -sh "${dirPath}"`, { encoding: 'utf-8' });
-                  return result.trim().split('\t')[0];
+                let totalSize = 0;
+                
+                function calculateSize(itemPath) {
+                  const stats = fs.statSync(itemPath);
+                  if (stats.isDirectory()) {
+                    const items = fs.readdirSync(itemPath);
+                    items.forEach(item => {
+                      calculateSize(path.join(itemPath, item));
+                    });
+                  } else {
+                    totalSize += stats.size;
+                  }
                 }
+                
+                calculateSize(dirPath);
+                const sizeInMB = totalSize / (1024 * 1024);
+                return `${sizeInMB.toFixed(2)} MB`;
               } catch (error) {
                 return 'N/A';
               }
