@@ -27,6 +27,14 @@ jobs:
             args: '--target aarch64-pc-windows-msvc'
             target: 'aarch64-pc-windows-msvc'
             label: 'Windows ARM64'
+          - platform: 'ubuntu-22.04'
+            args: '--target x86_64-unknown-linux-gnu'
+            target: 'x86_64-unknown-linux-gnu'
+            label: 'Linux AMD64'
+          - platform: 'ubuntu-22.04'
+            args: '--target aarch64-unknown-linux-gnu'
+            target: 'aarch64-unknown-linux-gnu'
+            label: 'Linux ARM64'
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -70,6 +78,25 @@ jobs:
         run: |
           cd mano-ui
           pnpm install
+
+      - name: Install Linux dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Install ARM64 cross-compilation tools
+        if: matrix.platform == 'ubuntu-22.04' && matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo dpkg --add-architecture arm64
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+          sudo apt-get install -y libwebkit2gtk-4.1-dev:arm64 libappindicator3-dev:arm64 librsvg2-dev:arm64
+          echo "PKG_CONFIG_SYSROOT_DIR=/usr/aarch64-linux-gnu" >> $GITHUB_ENV
+          echo "PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig" >> $GITHUB_ENV
+          echo "CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
+          echo "CXX_aarch64_unknown_linux_gnu=aarch64-linux-gnu-g++" >> $GITHUB_ENV
+          echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
 
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
@@ -125,6 +152,26 @@ jobs:
             # Windows NSIS installers
             if [ -d "$BUNDLE_DIR/nsis" ] && [ -n "$(find "$BUNDLE_DIR/nsis" -name "*.exe" -print -quit 2>/dev/null)" ]; then
               for file in "$BUNDLE_DIR/nsis"/*.exe; do
+                [ -f "$file" ] || continue
+                size=$(du -sh "$file" | cut -f1)
+                name=$(basename "$file")
+                echo "  • $name: $size"
+              done
+            fi
+            
+            # Linux DEB packages
+            if [ -d "$BUNDLE_DIR/deb" ] && [ -n "$(find "$BUNDLE_DIR/deb" -name "*.deb" -print -quit 2>/dev/null)" ]; then
+              for file in "$BUNDLE_DIR/deb"/*.deb; do
+                [ -f "$file" ] || continue
+                size=$(du -sh "$file" | cut -f1)
+                name=$(basename "$file")
+                echo "  • $name: $size"
+              done
+            fi
+            
+            # Linux AppImage packages
+            if [ -d "$BUNDLE_DIR/appimage" ] && [ -n "$(find "$BUNDLE_DIR/appimage" -name "*.AppImage" -print -quit 2>/dev/null)" ]; then
+              for file in "$BUNDLE_DIR/appimage"/*.AppImage; do
                 [ -f "$file" ] || continue
                 size=$(du -sh "$file" | cut -f1)
                 name=$(basename "$file")
@@ -247,6 +294,36 @@ jobs:
                   comment += '**NSIS Installer:**\n';
                   exeFiles.forEach(file => {
                     const filePath = path.join(nsisDir, file);
+                    const size = getFileSize(filePath);
+                    comment += `- \`${file}\`: **${size}**\n`;
+                  });
+                  comment += '\n';
+                }
+              }
+              
+              // Linux DEB packages
+              const debDir = path.join(bundleDir, 'deb');
+              if (fs.existsSync(debDir)) {
+                const debFiles = fs.readdirSync(debDir).filter(f => f.endsWith('.deb'));
+                if (debFiles.length > 0) {
+                  comment += '**DEB Package:**\n';
+                  debFiles.forEach(file => {
+                    const filePath = path.join(debDir, file);
+                    const size = getFileSize(filePath);
+                    comment += `- \`${file}\`: **${size}**\n`;
+                  });
+                  comment += '\n';
+                }
+              }
+              
+              // Linux AppImage packages
+              const appimageDir = path.join(bundleDir, 'appimage');
+              if (fs.existsSync(appimageDir)) {
+                const appimageFiles = fs.readdirSync(appimageDir).filter(f => f.endsWith('.AppImage'));
+                if (appimageFiles.length > 0) {
+                  comment += '**AppImage:**\n';
+                  appimageFiles.forEach(file => {
+                    const filePath = path.join(appimageDir, file);
                     const size = getFileSize(filePath);
                     comment += `- \`${file}\`: **${size}**\n`;
                   });
