@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react'
+import { useEffect } from 'react'
 import { set, get, del } from 'idb-keyval'
 
 /**
@@ -33,7 +33,7 @@ export function useIndexedDBAutoSave<T>(
  * Hook for manually saving content to IndexedDB
  */
 export function useIndexedDBSave() {
-  const save = useCallback(async <T,>(key: string, value: T) => {
+  const save = async <T,>(key: string, value: T) => {
     try {
       await set(key, value)
       console.log(`[IndexedDB] Saved: ${key}`)
@@ -42,9 +42,9 @@ export function useIndexedDBSave() {
       console.error(`[IndexedDB] Failed to save ${key}:`, error)
       return false
     }
-  }, [])
+  }
 
-  const load = useCallback(async <T,>(key: string): Promise<T | undefined> => {
+  const load = async <T,>(key: string): Promise<T | undefined> => {
     try {
       const value = await get<T>(key)
       if (value !== undefined) {
@@ -55,9 +55,9 @@ export function useIndexedDBSave() {
       console.error(`[IndexedDB] Failed to load ${key}:`, error)
       return undefined
     }
-  }, [])
+  }
 
-  const remove = useCallback(async (key: string) => {
+  const remove = async (key: string) => {
     try {
       await del(key)
       console.log(`[IndexedDB] Removed: ${key}`)
@@ -66,7 +66,7 @@ export function useIndexedDBSave() {
       console.error(`[IndexedDB] Failed to remove ${key}:`, error)
       return false
     }
-  }, [])
+  }
 
   return { save, load, remove }
 }

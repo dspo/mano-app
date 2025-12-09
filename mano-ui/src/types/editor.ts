@@ -1,16 +1,35 @@
 import type { IFileHandle } from '@/services/fileSystem'
 
-// Editor tab
-export interface EditorTab {
-  id: string
-  fileId: string
+/**
+ * Editor Model - Single Source of Truth for File Content
+ * 
+ * This represents the actual content of a file, decoupled from its UI representation.
+ * Multiple tabs can reference the same model, ensuring content consistency.
+ * 
+ * This follows the architecture pattern of VS Code and Monaco Editor.
+ */
+export interface EditorModel {
+  id: string              // Unique model ID (e.g., "model-1")
+  fileId: string          // Reference to the node/file ID
   fileName: string
   fileType: 'text' | 'slate' // text: plain text, slate: rich text
-  content: unknown // string for text, Slate JSON for slate
+  content: unknown        // string for text, Slate JSON for slate
   isDirty: boolean
-  isSavedToDisk: boolean // Whether saved to disk
-  fileHandle?: FileSystemFileHandle | IFileHandle // File handle for saving
-  readOnly?: boolean // Whether in read-only mode (files in trash)
+  isSavedToDisk: boolean
+  version: number         // Incremented on every content change to force consumer refresh
+  fileHandle?: FileSystemFileHandle | IFileHandle
+  readOnly?: boolean      // Whether file is in read-only mode (e.g., trash)
+}
+
+/**
+ * Editor Tab - View of an Editor Model
+ * 
+ * A tab is a lightweight reference to a model.
+ * Multiple tabs can view the same model - they automatically stay in sync.
+ */
+export interface EditorTab {
+  id: string              // Unique tab ID (e.g., "tab-1")
+  modelId: string         // Reference to EditorModel (not a copy)
 }
 
 // Editor group
@@ -27,11 +46,13 @@ export type EditorLayout =
 
 // Editor global state
 export interface EditorState {
+  models: Record<string, EditorModel>  // Content storage (single source of truth)
   layout: EditorLayout
   groups: Record<string, EditorGroup>
   lastFocusedGroupId: string  // ID of the last focused editor group
   nextGroupId: number
   nextTabId: number
+  nextModelId: number          // New: for generating model IDs
 }
 
 // Editor Action types
@@ -43,9 +64,9 @@ export type EditorAction =
   | { type: 'SET_ACTIVE_TAB'; tabId: string; groupId: string }
   | { type: 'SPLIT_GROUP'; groupId: string; direction: 'horizontal' | 'vertical' }
   | { type: 'CLOSE_GROUP'; groupId: string }
-  | { type: 'UPDATE_TAB_CONTENT'; tabId: string; groupId: string; content: unknown }
-  | { type: 'MARK_TAB_SAVED'; tabId: string; groupId: string }
-  | { type: 'MARK_TAB_SAVED_TO_DISK'; tabId: string; groupId: string }
+  | { type: 'UPDATE_MODEL_CONTENT'; modelId: string; content: unknown }
+  | { type: 'MARK_MODEL_SAVED'; modelId: string }
+  | { type: 'MARK_MODEL_SAVED_TO_DISK'; modelId: string }
   | { type: 'MOVE_TAB_BETWEEN_GROUPS'; tabId: string; sourceGroupId: string; targetGroupId: string }
   | { type: 'MOVE_TAB_TO_EDGE'; tabId: string; sourceGroupId: string; edge: 'left' | 'right' }
   | { type: 'REORDER_TABS'; groupId: string; tabIds: string[] }

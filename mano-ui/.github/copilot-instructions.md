@@ -27,11 +27,15 @@ await fileSystem.saveToFile(fileHandle, content)
 State lives in `EditorContext` (see `src/contexts/EditorContext.tsx`). All editor operations go through dispatched actions:
 
 - `OPEN_FILE` - Opens file in tab (checks for duplicates, creates new tab if needed)
-- `UPDATE_TAB_CONTENT` - Updates content (marks isDirty=true)
-- `MARK_TAB_SAVED_TO_DISK` - Confirms disk write (sets isSavedToDisk=true)
+- `UPDATE_MODEL_CONTENT` - Updates model content and increments version (marks isDirty=true)
+- `MARK_MODEL_SAVED` - Confirms disk write (sets isSavedToDisk=true)
 - `CLOSE_TAB`, `SPLIT_GROUP`, `MOVE_TAB_BETWEEN_GROUPS` - Layout operations
 
 **Important**: Never modify state directly. Always dispatch actions via `useEditor()` hook.
+
+**Multi-Tab Sync**: Same file opened in multiple tabs shares one EditorModel. When content changes:
+1. Tab A edits → `UPDATE_MODEL_CONTENT` → model.content + version updated
+2. Tab B (same model) → `value` prop changes → PlateEditor detects external change → syncs editor state
 
 ### File Type System
 
@@ -132,17 +136,22 @@ Wrap `PlateEditor` with auto-save logic (see `src/components/plate/AutoSavePlate
 ```typescript
 <PlateEditor
   value={slateValue}
-  onChange={(newValue) => dispatch({ type: 'UPDATE_TAB_CONTENT', content: newValue })}
+  onChange={(newValue) => dispatch({ type: 'UPDATE_MODEL_CONTENT', modelId, content: newValue })}
   readOnly={false}
 />
 ```
 
 **Content Flow**:
 1. User edits → `onChange` fires
-2. Dispatch `UPDATE_TAB_CONTENT` (marks isDirty)
+2. Dispatch `UPDATE_MODEL_CONTENT` (marks isDirty, increments version)
 3. `useFileSystemAutoSave` detects change
 4. After 1s debounce → saves to disk
-5. On success → dispatch `MARK_TAB_SAVED_TO_DISK`
+5. On success → dispatch `MARK_MODEL_SAVED`
+
+**Multi-Tab Sync Pattern**: PlateEditor uses `useEffect` to detect external value changes:
+- Tracks `isInternalChange` ref to distinguish own edits from external updates
+- When `value` prop changes externally, directly updates `editor.children` and calls `editor.onChange()`
+- Component uses `key={model.id}` to remount only when switching files (preserves cursor during edits)
 
 ### Drag-and-Drop (dnd-kit)
 
@@ -235,7 +244,7 @@ Lives in project root, managed by file system strategies:
 
 ## Styling Conventions
 
-**Tailwind CSS 4.x only** - No native CSS files (except global `index.css` for resets). Use `cn()` utility for conditional classes:
+**shadcn/ui** and **Tailwind CSS 4.x only** - No native CSS files (except global `index.css` for resets). Use `cn()` utility for conditional classes:
 
 ```typescript
 import { cn } from '@/lib/utils'
@@ -272,3 +281,17 @@ className={cn(
 - `src/lib/tree-utils.ts` - Immutable tree operations
 - `src/components/ide/IDELayout.tsx` - Main layout orchestrator (995 lines, handles most user interactions)
 - `src/hooks/useFileSystemAutoSave.ts` - Cross-platform auto-save with debouncing
+
+## React
+
+React version of this project is v19.2 which introduced the React Compiler.
+You should use react-compiler instead of `useMemo`, `useCallback`, and `React.memo`.
+Read more about React Compiler here: https://react.dev/learn/react-compiler
+
+**Note**: The React Compiler automatically optimizes function references and expensive computations. Manual memoization hooks are no longer needed and should not be added to new code.
+
+## Output Doc
+
+All markdown documentation should be in `doc/` folder.
+To output English doc is allowed.
+**But** each doc file should have a Chinese edition.

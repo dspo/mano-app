@@ -1,9 +1,10 @@
 import React, { createContext, useReducer } from 'react'
 import type { ReactNode } from 'react'
-import type { EditorState, EditorAction, EditorLayout, EditorGroup, EditorTab } from '@/types/editor'
+import type { EditorState, EditorAction, EditorLayout, EditorGroup, EditorTab, EditorModel } from '@/types/editor'
 
 // Initial state
 const initialState: EditorState = {
+  models: {},
   layout: { type: 'group', groupId: 'group-1' },
   groups: {
     'group-1': {
@@ -15,6 +16,7 @@ const initialState: EditorState = {
   lastFocusedGroupId: 'group-1',
   nextGroupId: 2,
   nextTabId: 1,
+  nextModelId: 1,
 }
 
 // Reducer
@@ -25,9 +27,34 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
       const group = state.groups[targetGroupId]
       if (!group) return state
 
-      // Check if file is already open
-      const existingTab = group.tabs.find(tab => tab.fileId === action.fileId)
-      if (existingTab) {
+      // Check if model for this file already exists
+      const existingModel = Object.values(state.models).find(m => m.fileId === action.fileId)
+      
+      if (existingModel) {
+        // File already open - check if tab exists in this group
+        const existingTab = group.tabs.find(tab => tab.modelId === existingModel.id)
+        if (existingTab) {
+          // Tab already exists in this group, just activate it
+          return {
+            ...state,
+            lastFocusedGroupId: targetGroupId,
+            groups: {
+              ...state.groups,
+              [targetGroupId]: {
+                ...group,
+                activeTabId: existingTab.id,
+              },
+            },
+          }
+        }
+        
+        // File open in other group, create new tab pointing to same model
+        const newTabId = `tab-${state.nextTabId}`
+        const newTab: EditorTab = {
+          id: newTabId,
+          modelId: existingModel.id,
+        }
+
         return {
           ...state,
           lastFocusedGroupId: targetGroupId,
@@ -35,28 +62,41 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
             ...state.groups,
             [targetGroupId]: {
               ...group,
-              activeTabId: existingTab.id,
+              tabs: [...group.tabs, newTab],
+              activeTabId: newTabId,
             },
           },
+          nextTabId: state.nextTabId + 1,
         }
       }
 
-      // Create new tab
-      const newTabId = `tab-${state.nextTabId}`
-      const newTab = {
-        id: newTabId,
+      // File not open yet - create new model
+      const newModelId = `model-${state.nextModelId}`
+      const newModel: EditorModel = {
+        id: newModelId,
         fileId: action.fileId,
         fileName: action.fileName,
         fileType: action.fileType,
         content: action.content,
         isDirty: false,
-        isSavedToDisk: true, // Newly opened files default to saved
+        isSavedToDisk: true,
+        version: 0,
         fileHandle: action.fileHandle,
         readOnly: action.readOnly || false,
       }
 
+      const newTabId = `tab-${state.nextTabId}`
+      const newTab: EditorTab = {
+        id: newTabId,
+        modelId: newModelId,
+      }
+
       return {
         ...state,
+        models: {
+          ...state.models,
+          [newModelId]: newModel,
+        },
         lastFocusedGroupId: targetGroupId,
         groups: {
           ...state.groups,
@@ -67,6 +107,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
           },
         },
         nextTabId: state.nextTabId + 1,
+        nextModelId: state.nextModelId + 1,
       }
     }
 
@@ -74,6 +115,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
       const group = state.groups[action.groupId]
       if (!group) return state
 
+      const closedTab = group.tabs.find(tab => tab.id === action.tabId)
       const newTabs = group.tabs.filter(tab => tab.id !== action.tabId)
       let newActiveTabId = group.activeTabId
 
@@ -88,8 +130,26 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
         }
       }
 
+      let newModels = { ...state.models }
+
+      // Check if model is still referenced by any tab in any group
+      if (closedTab) {
+        const modelIsInUse = Object.values(state.groups).some(grp =>
+          grp.id === action.groupId
+            ? newTabs.some(tab => tab.modelId === closedTab.modelId) // Use newTabs for current group
+            : grp.tabs.some(tab => tab.modelId === closedTab.modelId) // Use old tabs for other groups
+        )
+
+        // If model is not in use anymore, remove it
+        if (!modelIsInUse) {
+          const { [closedTab.modelId]: _, ...remaining } = newModels
+          newModels = remaining
+        }
+      }
+
       const newState = {
         ...state,
+        models: newModels,
         groups: {
           ...state.groups,
           [action.groupId]: {
@@ -139,7 +199,11 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
 
       Object.keys(newState.groups).forEach(groupId => {
         const group = newState.groups[groupId]
-        const tabsWithFile = group.tabs.filter(tab => tab.fileId === action.fileId)
+        // Match by the model's fileId because tabs no longer carry fileId
+        const tabsWithFile = group.tabs.filter(tab => {
+          const model = newState.models[tab.modelId]
+          return model?.fileId === action.fileId
+        })
         
         if (tabsWithFile.length > 0) {
           hasChanges = true
@@ -226,67 +290,54 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
       }
     }
 
-    case 'UPDATE_TAB_CONTENT': {
-      const group = state.groups[action.groupId]
-      if (!group) return state
-
-      const newTabs = group.tabs.map(tab =>
-        tab.id === action.tabId
-          ? { ...tab, content: action.content, isDirty: true, isSavedToDisk: false }
-          : tab
-      )
+    case 'UPDATE_MODEL_CONTENT': {
+      const model = state.models[action.modelId]
+      if (!model) return state
 
       return {
         ...state,
-        groups: {
-          ...state.groups,
-          [action.groupId]: {
-            ...group,
-            tabs: newTabs,
+        models: {
+          ...state.models,
+          [action.modelId]: {
+            ...model,
+            content: action.content,
+            isDirty: true,
+            isSavedToDisk: false,
+            version: (model.version ?? 0) + 1,
           },
         },
       }
     }
 
-    case 'MARK_TAB_SAVED': {
-      const group = state.groups[action.groupId]
-      if (!group) return state
-
-      const newTabs = group.tabs.map(tab =>
-        tab.id === action.tabId
-          ? { ...tab, isDirty: false, isSavedToDisk: true }
-          : tab
-      )
+    case 'MARK_MODEL_SAVED': {
+      const model = state.models[action.modelId]
+      if (!model) return state
 
       return {
         ...state,
-        groups: {
-          ...state.groups,
-          [action.groupId]: {
-            ...group,
-            tabs: newTabs,
+        models: {
+          ...state.models,
+          [action.modelId]: {
+            ...model,
+            isDirty: false,
+            isSavedToDisk: true,
           },
         },
       }
     }
 
-    case 'MARK_TAB_SAVED_TO_DISK': {
-      const group = state.groups[action.groupId]
-      if (!group) return state
-
-      const newTabs = group.tabs.map(tab =>
-        tab.id === action.tabId
-          ? { ...tab, isDirty: false, isSavedToDisk: true }
-          : tab
-      )
+    case 'MARK_MODEL_SAVED_TO_DISK': {
+      const model = state.models[action.modelId]
+      if (!model) return state
 
       return {
         ...state,
-        groups: {
-          ...state.groups,
-          [action.groupId]: {
-            ...group,
-            tabs: newTabs,
+        models: {
+          ...state.models,
+          [action.modelId]: {
+            ...model,
+            isDirty: false,
+            isSavedToDisk: true,
           },
         },
       }

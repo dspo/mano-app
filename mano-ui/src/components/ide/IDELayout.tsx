@@ -229,12 +229,12 @@ function IDELayoutContent() {
 
     // Tab dropped on another group
     if (dropData.type === 'group' && dragData.sourceGroupId !== dropData.groupId) {
-      // Check if target group already has a tab with the same fileId
+      // Check if target group already has a tab with the same modelId
       const targetGroup = state.groups[dropData.groupId]
-      const existingTab = targetGroup?.tabs.find(tab => tab.fileId === dragData.tab.fileId)
+      const existingTab = targetGroup?.tabs.find(tab => tab.modelId === dragData.model.id)
       
       if (existingTab) {
-        // File already exists in target group - activate it and show notification
+        // Model already open in target group - activate it and show notification
         dispatch({
           type: 'SET_ACTIVE_TAB',
           tabId: existingTab.id,
@@ -245,7 +245,7 @@ function IDELayoutContent() {
         const mouseEvent = event.activatorEvent as MouseEvent
         if (mouseEvent) {
           setNotification({
-            message: `"${dragData.tab.fileName}" is already open in this editor group`,
+            message: `"${dragData.model.fileName}" is already open in this editor group`,
             x: mouseEvent.clientX,
             y: mouseEvent.clientY,
           })
@@ -1232,24 +1232,30 @@ function IDELayoutContent() {
     const activeTab = group.tabs.find(t => t.id === group.activeTabId)
     if (!activeTab) return
 
-    if (!activeTab.fileHandle) {
-      console.warn('[Save] No file handle for tab:', activeTab.fileName)
+    const model = state.models[activeTab.modelId]
+    if (!model) {
+      console.warn('[Save] Model not found for tab:', activeTab.id)
+      toast.error('Cannot save: model not found')
+      return
+    }
+
+    if (!model.fileHandle) {
+      console.warn('[Save] No file handle for model:', model.fileName)
       toast.error('Cannot save: file handle not found')
       return
     }
 
     try {
       const { saveToFileSystem } = await import('@/services/fileSystem')
-      const success = await saveToFileSystem(activeTab.fileHandle, activeTab.content)
+      const success = await saveToFileSystem(model.fileHandle, model.content)
       
       if (success) {
-        // Mark as saved to disk
+        // Mark model as saved to disk
         dispatch({
-          type: 'MARK_TAB_SAVED_TO_DISK',
-          tabId: activeTab.id,
-          groupId: group.id,
+          type: 'MARK_MODEL_SAVED_TO_DISK',
+          modelId: model.id,
         })
-        toast.success(`Saved ${activeTab.fileName}`)
+        toast.success(`Saved ${model.fileName}`)
       } else {
         toast.error('Failed to save file')
       }

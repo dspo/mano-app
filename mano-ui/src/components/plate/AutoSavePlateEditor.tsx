@@ -6,7 +6,7 @@ import type { IFileHandle } from '@/services/fileSystem'
 interface AutoSavePlateEditorProps {
   value: unknown
   onChange: (value: unknown) => void
-  tabId: string // For IndexedDB key
+  modelId: string // For IndexedDB key (use modelId instead of tabId for single source of truth)
   fileHandle?: FileSystemFileHandle | IFileHandle // File handle for saving to file system
   readOnly?: boolean
   onSaveSuccess?: () => void // Save success callback
@@ -16,14 +16,15 @@ interface AutoSavePlateEditorProps {
 export function AutoSavePlateEditor({ 
   value, 
   onChange, 
-  tabId,
+  modelId,
   fileHandle,
   readOnly = false,
   onSaveSuccess,
   onSaveError,
 }: AutoSavePlateEditorProps) {
   // Auto-save to IndexedDB (1s debounce) - as local backup (skip when readOnly)
-  useIndexedDBAutoSave(readOnly ? null : `editor-content-${tabId}`, value, 1000)
+  // Use modelId instead of tabId to avoid duplicate storage for same file opened in multiple tabs
+  useIndexedDBAutoSave(readOnly ? null : `editor-content-${modelId}`, value, 1000)
 
   // Auto-save to file system (1s debounce) - persist to disk (skip when readOnly)
   useFileSystemAutoSave(readOnly ? undefined : fileHandle, value, 1000, onSaveSuccess, onSaveError)
