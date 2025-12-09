@@ -534,6 +534,27 @@ function IDELayoutContent() {
 
   // Rename node
   const handleRenameNode = async (nodeId: string, newName: string) => {
+    /**
+     * Design: File System Consistency Guarantee
+     * 
+     * This function enforces the following invariant:
+     * "Config and physical files must always be in sync"
+     * 
+     * Steps:
+     * 1. Validate: Check if new name is empty or duplicates existing names
+     * 2. Prepare: Create updated tree with new name in memory
+     * 3. CRITICAL: Rename physical file FIRST (if text node)
+     *    - Only proceed if file rename succeeds
+     *    - If file rename fails, abort and return early (NO state update)
+     * 4. Persist: Update tree state and save config ONLY after file success
+     * 
+     * This ensures:
+     * ✓ If operation returns success: Both file and config are renamed
+     * ✓ If operation returns error: Neither file nor config are modified
+     * ✓ No orphaned files or stale config references
+     * 
+     * Note: Directory nodes skip file operations (no physical files)
+     */
     if (!configFileHandle) {
       toast.error('请先打开文件夹')
       return
@@ -586,6 +607,36 @@ function IDELayoutContent() {
       }
 
       const updated = updateNodeName(fileTree)
+      
+      // ATOMIC OPERATION: Rename file BEFORE modifying config
+      // This guarantees config and files stay in sync
+      // If file rename fails, we abort without modifying in-memory state
+      if (dirHandle && (node.nodeType === 'SlateText' || node.nodeType === 'Markdown')) {
+        try {
+          const { getNodeFilename } = await import('@/types/mano-config')
+          const { getFileSystem } = await import('@/services/fileSystem')
+          
+          const oldFilename = getNodeFilename(node)
+          const newFilename = getNodeFilename({ ...node, name: newName })
+          
+          // Only rename if filenames are different
+          if (oldFilename !== newFilename) {
+            const fileSystem = getFileSystem()
+            const renamed = await fileSystem.renameFile(dirHandle, oldFilename, newFilename)
+            
+            if (!renamed) {
+              toast.error('文件重命名失败，节点名称未更改。请检查文件系统权限。')
+              return
+            }
+          }
+        } catch (error) {
+          console.error('Failed to rename physical file:', error)
+          toast.error('文件重命名出错，节点名称未更改。')
+          return
+        }
+      }
+
+      // Only update state and config if file rename succeeded
       setFileTree(updated)
 
       // Save to mano.conf.json

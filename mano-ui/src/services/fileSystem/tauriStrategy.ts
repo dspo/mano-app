@@ -210,4 +210,19 @@ export class TauriFileSystemStrategy implements IFileSystemStrategy {
       return false
     }
   }
+
+  async renameFile(dirHandle: IDirectoryHandle, oldFilename: string, newFilename: string): Promise<boolean> {
+    const tauriHandle = dirHandle as TauriDirectoryHandle
+    const oldPath = tauriHandle.joinPath(oldFilename)
+    const newPath = tauriHandle.joinPath(newFilename)
+
+    try {
+      const { rename } = await import('@tauri-apps/plugin-fs')
+      await rename(oldPath, newPath)
+      return true
+    } catch (error) {
+      console.error(`[TauriFS] Failed to rename file: ${oldFilename} → ${newFilename}`, error)
+      return false
+    }
+  }
 }
