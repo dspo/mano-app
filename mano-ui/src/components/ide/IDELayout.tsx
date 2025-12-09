@@ -588,6 +588,30 @@ function IDELayoutContent() {
       const updated = updateNodeName(fileTree)
       setFileTree(updated)
 
+      // Rename physical file if it's a text node (SlateText or Markdown)
+      if (dirHandle && (node.nodeType === 'SlateText' || node.nodeType === 'Markdown')) {
+        try {
+          const { getNodeFilename } = await import('@/types/mano-config')
+          const { getFileSystem } = await import('@/services/fileSystem')
+          
+          const oldFilename = getNodeFilename(node)
+          const newFilename = getNodeFilename({ ...node, name: newName })
+          
+          // Only rename if filenames are different
+          if (oldFilename !== newFilename) {
+            const fileSystem = getFileSystem()
+            const renamed = await fileSystem.renameFile(dirHandle, oldFilename, newFilename)
+            
+            if (!renamed) {
+              toast.warning('节点已重命名，但文件重命名失败')
+            }
+          }
+        } catch (error) {
+          console.error('Failed to rename physical file:', error)
+          toast.warning('节点已重命名，但文件重命名出错')
+        }
+      }
+
       // Save to mano.conf.json
       const { saveManoConfig } = await import('@/services/fileSystem')
       await saveManoConfig(configFileHandle, { 

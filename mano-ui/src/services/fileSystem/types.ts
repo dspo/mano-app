@@ -85,4 +85,9 @@ export interface IFileSystemStrategy {
    * Delete a file from the file system
    */
   deleteFile(dirHandle: IDirectoryHandle, filename: string): Promise<boolean>
+
+  /**
+   * Rename a file in the file system
+   */
+  renameFile(dirHandle: IDirectoryHandle, oldFilename: string, newFilename: string): Promise<boolean>
 }

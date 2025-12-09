@@ -184,4 +184,27 @@ export class BrowserFileSystemStrategy implements IFileSystemStrategy {
       return false
     }
   }
+
+  async renameFile(dirHandle: IDirectoryHandle, oldFilename: string, newFilename: string): Promise<boolean> {
+    const browserHandle = (dirHandle as BrowserDirectoryHandle).handle
+
+    try {
+      // Browser File System Access API doesn't support direct rename
+      // Strategy: read old file → create new file → delete old file
+      const oldFileHandle = await browserHandle.getFileHandle(oldFilename)
+      const file = await oldFileHandle.getFile()
+      const content = await file.text()
+
+      const newFileHandle = await browserHandle.getFileHandle(newFilename, { create: true })
+      const writable = await newFileHandle.createWritable()
+      await writable.write(content)
+      await writable.close()
+
+      await browserHandle.removeEntry(oldFilename)
+      return true
+    } catch (error) {
+      console.error(`[BrowserFS] Failed to rename file: ${oldFilename} → ${newFilename}`, error)
+      return false
+    }
+  }
 }

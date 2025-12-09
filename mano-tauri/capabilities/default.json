@@ -69,6 +69,16 @@
         { "path": "$APP/**" }
       ]
     },
+    {
+      "identifier": "fs:allow-rename",
+      "allow": [
+        { "path": "$HOME/**" },
+        { "path": "$DESKTOP/**" },
+        { "path": "$DOCUMENTS/**" },
+        { "path": "$DOWNLOADS/**" },
+        { "path": "$APP/**" }
+      ]
+    },
     "dialog:default"
   ]
 }
