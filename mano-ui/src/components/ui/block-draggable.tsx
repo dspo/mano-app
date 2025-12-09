@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo, memo } from 'react';
-
 'use client';
+
+import { useState, useEffect, useMemo, memo } from 'react';
 
 
 import { DndPlugin, useDraggable, useDropLine } from '@platejs/dnd';

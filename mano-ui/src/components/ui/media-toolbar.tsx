@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
-
 'use client';
+
+import { useEffect } from 'react';
 
 
 import type { WithRequiredKey } from 'platejs';

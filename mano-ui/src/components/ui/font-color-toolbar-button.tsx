@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo, useCallback, useRef, memo, Children, cloneElement } from 'react';
-
 'use client';
+
+import { useState, useEffect, useMemo, useCallback, useRef, memo, Children, cloneElement } from 'react';
 /* eslint-disable react-hooks/refs -- Ref usage for color picker component refs */
 
 

@@ -1,6 +1,6 @@
-import { memo } from 'react';
-
 'use client';
+
+import { memo } from 'react';
 
 
 import type { TColumnElement } from 'platejs';

@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo, useCallback, useRef, createContext, startTransition, useContext, type RefObject, type ReactNode, type HTMLAttributes, type ComponentProps } from 'react';
-
 'use client';
+
+import { useState, useEffect, useMemo, useCallback, useRef, createContext, startTransition, useContext, type RefObject, type ReactNode, type HTMLAttributes, type ComponentProps } from 'react';
 
 
 import type { Point, TElement } from 'platejs';

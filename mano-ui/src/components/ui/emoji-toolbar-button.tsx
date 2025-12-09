@@ -1,6 +1,6 @@
-import { useCallback, memo } from 'react';
-
 'use client';
+
+import { useCallback, memo } from 'react';
 /* eslint-disable react-hooks/refs */
 
 
