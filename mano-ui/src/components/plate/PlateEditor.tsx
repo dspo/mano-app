@@ -21,7 +21,10 @@ export function PlateEditor({ value, onChange, readOnly = false }: PlateEditorPr
     // If value changed externally (another tab editing same file), sync editor state
     if (!isInternalChange.current && prevValue.current !== value) {
       editor.children = value as never
-      editor.onChange()
+      // Trigger editor update
+      if (typeof editor.onChange === 'function') {
+        editor.onChange()
+      }
     }
     prevValue.current = value
     isInternalChange.current = false
@@ -31,7 +34,6 @@ export function PlateEditor({ value, onChange, readOnly = false }: PlateEditorPr
     <div className="h-full flex flex-col bg-background">
       <Plate 
         editor={editor}
-        value={value as never}
         onChange={({ value: newValue }) => {
           if (!readOnly) {
             isInternalChange.current = true
