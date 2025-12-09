@@ -135,8 +135,10 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
       // Check if model is still referenced by any tab in any group
       if (closedTab) {
         const modelIsInUse = Object.values(state.groups).some(grp =>
-          grp.tabs.some(tab => tab.modelId === closedTab.modelId)
-        ) || newTabs.some(tab => tab.modelId === closedTab.modelId)
+          grp.id === action.groupId
+            ? newTabs.some(tab => tab.modelId === closedTab.modelId) // Use newTabs for current group
+            : grp.tabs.some(tab => tab.modelId === closedTab.modelId) // Use old tabs for other groups
+        )
 
         // If model is not in use anymore, remove it
         if (!modelIsInUse) {
