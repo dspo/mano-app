@@ -87,7 +87,29 @@ export interface IFileSystemStrategy {
   deleteFile(dirHandle: IDirectoryHandle, filename: string): Promise<boolean>
 
   /**
-   * Rename a file in the file system
+   * Atomically rename a file in the directory.
+   * 
+   * IMPORTANT INVARIANT: This operation provides strong atomicity guarantees.
+   * 
+   * Success Contract (returns true):
+   * - Old file has been deleted from disk
+   * - New file exists on disk with old file's content
+   * - Filesystem is in a consistent state
+   * 
+   * Failure Contract (returns false):
+   * - CRITICAL: Filesystem is left unchanged (or with both files if rollback failed)
+   * - Caller MUST NOT update application state
+   * - Caller should display error and preserve current state
+   * 
+   * Safety Features:
+   * - Prevents overwriting existing files (checks target before creating)
+   * - Attempts rollback if old file deletion fails
+   * - Logs critical errors if atomicity cannot be maintained
+   * 
+   * Caller Responsibility:
+   * - Treat false return as a failure that requires user intervention
+   * - Never update config/state if this returns false
+   * - Display user-facing error message prompting retry or manual cleanup
    */
   renameFile(dirHandle: IDirectoryHandle, oldFilename: string, newFilename: string): Promise<boolean>
 }

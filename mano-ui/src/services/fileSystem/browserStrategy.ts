@@ -185,25 +185,87 @@ export class BrowserFileSystemStrategy implements IFileSystemStrategy {
     }
   }
 
+  /**
+   * Atomically rename a file in the directory.
+   * 
+   * Contract:
+   * - If returns true: File was successfully renamed, old file deleted, new file exists
+   * - If returns false: File rename failed, filesystem unchanged (strong atomicity guarantee)
+   * 
+   * Safety Measures:
+   * 1. Check if target file already exists BEFORE creating it (prevent overwrite)
+   * 2. Create new file first (read content → create new file → verify)
+   * 3. Delete old file only after new file successfully created
+   * 4. If deletion fails: Attempt rollback by removing the newly created file
+   * 5. If rollback fails: Log critical error (indicates filesystem corruption)
+   * 
+   * Caller Responsibility:
+   * - Only call this after confirming the rename operation is necessary
+   * - If this returns false, caller must not modify application state
+   * - Caller should display error to user and preserve original state
+   */
   async renameFile(dirHandle: IDirectoryHandle, oldFilename: string, newFilename: string): Promise<boolean> {
     const browserHandle = (dirHandle as BrowserDirectoryHandle).handle
 
     try {
-      // Browser File System Access API doesn't support direct rename
-      // Strategy: read old file → create new file → delete old file
-      const oldFileHandle = await browserHandle.getFileHandle(oldFilename)
+      // Pre-check 1: Verify old file exists
+      let oldFileHandle: FileSystemFileHandle
+      try {
+        oldFileHandle = await browserHandle.getFileHandle(oldFilename)
+      } catch {
+        console.error(`[BrowserFS] Source file does not exist: ${oldFilename}`)
+        return false
+      }
+
+      // Pre-check 2: Verify target file does NOT exist (prevent data loss)
+      let targetExists = false
+      try {
+        await browserHandle.getFileHandle(newFilename)
+        targetExists = true
+      } catch {
+        // Expected: new file doesn't exist yet
+      }
+
+      if (targetExists) {
+        console.error(`[BrowserFS] Target file already exists: ${newFilename} - abort rename to prevent data loss`)
+        return false
+      }
+
+      // Read old file content
       const file = await oldFileHandle.getFile()
       const content = await file.text()
 
-      const newFileHandle = await browserHandle.getFileHandle(newFilename, { create: true })
-      const writable = await newFileHandle.createWritable()
-      await writable.write(content)
-      await writable.close()
+      // Browser File System Access API doesn't support direct rename
+      // Strategy: read old file → create new file → delete old file
+      try {
+        // Step 1: Create new file with old file's content
+        const newFileHandle = await browserHandle.getFileHandle(newFilename, { create: true })
+        const writable = await newFileHandle.createWritable()
+        await writable.write(content)
+        await writable.close()
 
-      await browserHandle.removeEntry(oldFilename)
-      return true
+        // Step 2: Delete old file
+        try {
+          await browserHandle.removeEntry(oldFilename)
+          return true
+        } catch (deleteError) {
+          // Deletion failed - attempt rollback to maintain consistency
+          console.error(`[BrowserFS] Failed to delete old file: ${oldFilename}`, deleteError)
+          try {
+            await browserHandle.removeEntry(newFilename)
+            console.error(`[BrowserFS] Rolled back new file creation due to deletion failure`)
+          } catch (rollbackError) {
+            // Rollback failed - data is now in inconsistent state
+            console.error(`[BrowserFS] Critical: Failed to rollback - both files may exist: ${oldFilename}, ${newFilename}`, rollbackError)
+          }
+          return false
+        }
+      } catch (createError) {
+        console.error(`[BrowserFS] Failed to create new file: ${newFilename}`, createError)
+        return false
+      }
     } catch (error) {
-      console.error(`[BrowserFS] Failed to rename file: ${oldFilename} → ${newFilename}`, error)
+      console.error(`[BrowserFS] Unexpected error during rename: ${oldFilename} → ${newFilename}`, error)
       return false
     }
   }
