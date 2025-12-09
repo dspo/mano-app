@@ -30,10 +30,28 @@
     "type": "p",
     "children": [
       {
-        "text": "自从盘古破鸿蒙，开辟从兹清浊辨。"
+        "text": "欲知造化会元功，须看《西游释厄传》。"
       }
     ],
-    "id": "jnEBv4nI5x"
+    "id": "2Ox0fT7qkV"
+  },
+  {
+    "type": "p",
+    "id": "A5Cvr-FHve",
+    "children": [
+      {
+        "text": "/"
+      }
+    ]
+  },
+  {
+    "type": "p",
+    "id": "uLW5c2Ht12",
+    "children": [
+      {
+        "text": "/"
+      }
+    ]
   },
   {
     "type": "p",
@@ -46,29 +64,20 @@
   },
   {
     "type": "p",
-    "children": [
-      {
-        "text": "欲知造化会元功，须看《西游释厄传》。"
-      }
-    ],
-    "id": "2Ox0fT7qkV"
-  },
-  {
-    "type": "p",
-    "id": "uLW5c2Ht12",
-    "children": [
-      {
-        "text": ""
-      }
-    ]
-  },
-  {
-    "type": "p",
     "id": "dw2bGKEISf",
     "children": [
       {
         "text": "本书完。"
       }
     ]
+  },
+  {
+    "type": "p",
+    "children": [
+      {
+        "text": "自从盘古破鸿蒙，开辟从兹清浊辨。"
+      }
+    ],
+    "id": "jnEBv4nI5x"
   }
 ]

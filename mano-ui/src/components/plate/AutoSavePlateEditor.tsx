@@ -1,4 +1,4 @@
-import { PlateEditor } from './PlateEditor'
+import { PlateEditor } from '@/components/editor/plate-editor'
 import { useIndexedDBAutoSave } from '@/hooks/useIndexedDB'
 import { useFileSystemAutoSave } from '@/hooks/useFileSystemAutoSave'
 import type { IFileHandle } from '@/services/fileSystem'
