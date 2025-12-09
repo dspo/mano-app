@@ -227,7 +227,7 @@ A: 15-20 分钟。掌握 Model/Tab/Group 三个概念，学会 4 个基本操作
 ## 📚 想深入学习？
 
 - ⏱️ **20 分钟** → 读 `EDITOR_ARCHITECTURE_GUIDE.md`
-- ⏱️ **40 分钟** → 读 `REFACTOR_SUMMARY.md`
+- ⏱️ **30 分钟** → 读 `MULTI_TAB_SYNC_IMPLEMENTATION.md` (了解多标签同步实现)
 - ⏱️ **20 分钟** → 阅读 `src/contexts/EditorContext.tsx` 源代码
 
 ---
@@ -254,7 +254,7 @@ A: 15-20 分钟。掌握 Model/Tab/Group 三个概念，学会 4 个基本操作
 | 不理解某个概念 | EDITOR_ARCHITECTURE_GUIDE.md 核心概念 |
 | 错误信息 | EDITOR_ARCHITECTURE_GUIDE.md 常见错误 |
 | 需要代码示例 | EDITOR_ARCHITECTURE_GUIDE.md 常见操作 |
-| 想理解实现细节 | REFACTOR_SUMMARY.md |
+| 想理解多标签同步 | MULTI_TAB_SYNC_IMPLEMENTATION.md |
 | 想看源代码 | src/contexts/EditorContext.tsx |
 
 ---

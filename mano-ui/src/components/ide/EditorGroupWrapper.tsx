@@ -191,7 +191,7 @@ export function EditorGroupWrapper({ group }: EditorGroupWrapperProps) {
                   <AutoSavePlateEditor
                     key={model.id} // Remount only when switching files (preserves cursor during edits)
                     value={model.content}
-                    tabId={tab.id}
+                    modelId={model.id}
                     fileHandle={model.fileHandle}
                     readOnly={model.readOnly}
                     onSaveSuccess={() => {

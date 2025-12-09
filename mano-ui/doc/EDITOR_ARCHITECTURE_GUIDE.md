@@ -1,342 +1,266 @@
-# 编辑器架构快速参考
+# Mano Editor Architecture Guide
 
-## 核心概念
+## Overview
 
-### EditorModel
-**表示**：文件的实际内容和状态（单一真实来源）
+The Mano editor implements a sophisticated multi-tab, multi-pane architecture with real-time content synchronization across tabs editing the same file. This guide explains the core architectural patterns and how they work together.
+
+## Core Concepts
+
+### EditorModel - Single Source of Truth
+
+Each opened file is represented by a single `EditorModel` instance, regardless of how many tabs display it:
 
 ```typescript
 interface EditorModel {
-  id: string              // "model-1"
-  fileId: string          // 对应 ManoNode 的 ID
-  fileName: string        // 显示名称
-  fileType: 'text' | 'slate'
-  content: unknown        // 文件内容
-  isDirty: boolean        // 是否有未保存的修改
-  isSavedToDisk: boolean  // 是否已保存到磁盘
-  version: number         // 内容版本号,每次修改递增
-  fileHandle?: FileSystemFileHandle | IFileHandle  // 文件句柄
-  readOnly?: boolean      // 是否只读(如垃圾篓中的文件)
+  id: string              // Unique identifier for the file
+  fileHandle: IFileHandle // Reference to the file on disk
+  content: SlateValue     // Content in Slate.js JSON format
+  version: number         // Incremented on each change (enables multi-tab sync detection)
+  isDirty: boolean        // Has unsaved changes
+  isSavedToDisk: boolean  // Last change was persisted
+  language: string        // For syntax highlighting
 }
 ```
 
-### EditorTab
-**表示**：对 EditorModel 的轻量级引用（可以有多个）
+**Key Principle**: Multiple tabs pointing to the same file share ONE model. When tab A edits, tab B automatically sees the changes through the shared model.
+
+### EditorTab - Lightweight View Reference
+
+Each tab is a lightweight reference to an EditorModel:
 
 ```typescript
 interface EditorTab {
-  id: string              // "tab-1"
-  modelId: string         // 指向 EditorModel.id
+  id: string              // Unique tab identifier
+  modelId: string         // Reference to EditorModel.id (same model = same file)
+  name: string            // Display name
+  isDirty: boolean        // Visual indicator
+  isActive: boolean       // Currently selected tab
 }
 ```
 
-### EditorGroup
-**表示**：一个编辑器窗口，包含多个标签页
+### EditorGroup - Tab Container
+
+Editor groups organize tabs (split pane):
 
 ```typescript
 interface EditorGroup {
   id: string
   tabs: EditorTab[]
-  activeTabId: string | null  // 当前激活的标签页
+  activeTabId: string
 }
 ```
 
-## 常见操作
+## Multi-Tab Content Synchronization
 
-### 打开文件
+### How Same-File Tabs Stay Synchronized
+
+**Scenario**: User opens `document.mano` in two tabs (left and right panes), edits in the left tab.
+
+**Flow**:
+
+1. **Edit in Tab A (Left Pane)**:
+   ```typescript
+   // PlateEditor onChange fires
+   dispatch({
+     type: 'UPDATE_MODEL_CONTENT',
+     modelId: 'file-1',
+     content: newSlateValue  // Slate.js JSON
+   })
+   ```
+
+2. **Model Update**:
+   ```typescript
+   // EditorContext reducer
+   const model = state.models[modelId]
+   model.content = content
+   model.version++           // Increment version
+   model.isDirty = true
+   ```
+
+3. **Tab B (Right Pane) Detects Change**:
+   ```typescript
+   // PlateEditor.tsx useEffect monitors model.version
+   useEffect(() => {
+     if (!isInternalChange.current && editor) {
+       // External change detected (different tab)
+       editor.children = newValue
+       editor.onChange()  // Update cursor position
+     }
+     isInternalChange.current = false
+   }, [value])  // watches model.content indirectly through value prop
+   ```
+
+4. **Result**: Both tabs display the same content with cursor positions preserved.
+
+### Preventing Infinite Loops
+
+The `isInternalChange` ref prevents feedback loops:
+
 ```typescript
-dispatch({
-  type: 'OPEN_FILE',
-  fileId: 'node-123',      // ManoNode 的 ID
-  fileName: 'my-file.mano',
-  fileType: 'slate',
-  content: [...],          // 文件内容
-  groupId: 'group-1',      // 可选，默认为当前组
-  fileHandle: handle,      // 可选，文件句柄
-  readOnly: false,         // 可选，是否只读
-})
+// Internal edit (this tab changed it)
+isInternalChange.current = true
+dispatch({ type: 'UPDATE_MODEL_CONTENT', ... })
+
+// External edit (another tab changed it)
+isInternalChange.current = false
+// useEffect will sync editor state
 ```
 
-**发生的事**：
-1. 检查是否已存在 `fileId: 'node-123'` 的 model
-2. 如果存在，创建新 tab 指向该 model
-3. 如果不存在，创建新 model + tab
+## State Management Architecture
 
-**结果**：相同文件的多个标签页会自动同步内容
+### Context Reducer Pattern
 
-### 更新文件内容（编辑）
+The `EditorContext` uses a reducer with these key actions:
+
 ```typescript
-const { dispatch } = useEditor()
-
-dispatch({
-  type: 'UPDATE_MODEL_CONTENT',
-  modelId: 'model-1',
-  content: newSlateValue,  // 编辑后的内容
-})
+type EditorAction =
+  | { type: 'OPEN_FILE'; modelId: string; fileHandle: IFileHandle; content: SlateValue }
+  | { type: 'UPDATE_MODEL_CONTENT'; modelId: string; content: SlateValue }
+  | { type: 'MARK_MODEL_SAVED'; modelId: string }
+  | { type: 'CLOSE_TAB'; tabId: string; groupId: string }
+  | { type: 'SPLIT_GROUP'; sourceGroupId: string; direction: 'vertical' | 'horizontal' }
+  | { type: 'MOVE_TAB_BETWEEN_GROUPS'; tabId: string; fromGroupId: string; toGroupId: string }
 ```
 
-**发生的事**：
-1. 更新 model.content
-2. 设置 model.isDirty = true
-3. 所有引用此 model 的 tab 都立即看到新内容
+**All state changes go through dispatch**: Never modify state directly. This ensures:
+- Single point of truth
+- Debuggability (all changes logged)
+- Multi-tab consistency
+- Proper cleanup on close
 
-### 关闭标签页
+### Critical: CLOSE_TAB Cleanup Logic
+
+When closing a tab, we must check if the model is still in use by other tabs:
+
 ```typescript
-dispatch({
-  type: 'CLOSE_TAB',
-  tabId: 'tab-1',
-  groupId: 'group-1',
-})
-```
-
-**发生的事**：
-1. 移除标签页
-2. Model 保留（供其他 tab 使用）
-3. 如果是最后一个标签页，清空内容
-
-### 删除文件（来自侧边栏）
-```typescript
-dispatch({
-  type: 'CLOSE_FILE_IN_ALL_GROUPS',
-  fileId: 'node-123',  // ManoNode 的 ID
-})
-```
-
-**发生的事**：
-1. 删除所有 model.fileId === 'node-123' 的 models
-2. 关闭所有相关的 tabs
-3. 从磁盘删除文件（调用方负责）
-
-### 拖拽标签页到另一个组
-```typescript
-dispatch({
-  type: 'MOVE_TAB_BETWEEN_GROUPS',
-  tabId: 'tab-1',
-  sourceGroupId: 'group-1',
-  targetGroupId: 'group-2',
-})
-```
-
-**特殊处理**：如果 group-2 已有相同文件的标签页，显示提示并激活现有标签页
-
-### 拖拽标签页创建分割
-```typescript
-dispatch({
-  type: 'MOVE_TAB_TO_EDGE',
-  tabId: 'tab-1',
-  sourceGroupId: 'group-1',
-  edge: 'right',  // 或 'left'
-})
-```
-
-**发生的事**：
-1. 创建新的编辑器组
-2. 移动 tab 到新组
-
-## 在组件中使用
-
-### 读取 Model 内容
-```typescript
-const { state } = useEditor()
-
-function EditorContainer() {
-  const tab = activeTab  // EditorTab
-  const model = state.models[tab.modelId]  // EditorModel
+case 'CLOSE_TAB': {
+  const { tabId, groupId } = action
   
-  return (
-    <PlateEditor
-      value={model.content}  // 直接使用 model.content
-      onChange={(newValue) => dispatch({
-        type: 'UPDATE_MODEL_CONTENT',
-        modelId: tab.modelId,
-        content: newValue,
-      })}
-    />
+  // Build newTabs for current group (tab removed)
+  const newTabs = state.groups[groupId].tabs.filter(t => t.id !== tabId)
+  const newGroups = { ...state.groups, [groupId]: { ...state.groups[groupId], tabs: newTabs } }
+  
+  // Check if modelId is used in ANY tab across ALL groups
+  const closingTab = state.groups[groupId].tabs.find(t => t.id === tabId)
+  const modelIsInUse = Object.entries(newGroups).some(([grpId, grp]) => 
+    grp.tabs.some(t => t.modelId === closingTab.modelId)
   )
-}
-```
-
-### 侦听 Model 变化
-```typescript
-// Model 变化时，组件自动重新渲染
-// （因为 state 变化，自动通过 useEditor() 获取新值）
-
-useEffect(() => {
-  const model = state.models[tab.modelId]
-  if (model?.isDirty) {
-    // Model 被标记为脏（有未保存的修改）
-  }
-}, [state.models, tab.modelId])
-```
-
-### 处理拖拽（dnd-kit）
-```typescript
-// 在 EditorGroup 中
-const sensors = useSensors(
-  useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
-)
-
-function handleDragStart(active: Active) {
-  const node = active.data.current?.node as ManoNode
-  setDragData({
-    type: 'tab',
-    model: state.models[...],  // 完整的 model
-    tab: activeTab,             // 引用的 tab
-    sourceGroupId: groupId,
-  })
-}
-
-function handleDragEnd(event: DragEndEvent) {
-  const dragData = event.active.data.current
-  const dropData = event.over?.data.current
   
-  if (dragData?.type === 'tab' && dropData?.type === 'group') {
-    dispatch({
-      type: 'MOVE_TAB_BETWEEN_GROUPS',
-      tabId: dragData.tab.id,
-      sourceGroupId: dragData.sourceGroupId,
-      targetGroupId: dropData.groupId,
-    })
+  // Only delete model if no other tabs reference it
+  if (!modelIsInUse) {
+    delete newState.models[closingTab.modelId]
   }
+  
+  return { ...newState, groups: newGroups }
 }
 ```
 
-## 自动保存
+**Why This Matters**: If we check the old `state.groups` (which still contains the closing tab), we'll incorrectly think the model is still in use, causing memory leaks.
 
-自动保存通过 `useFileSystemAutoSave` 实现：
+## Auto-Save Architecture
+
+### Debounced Filesystem Persistence
+
+The `useFileSystemAutoSave` hook manages saving to disk:
 
 ```typescript
-// 在 AutoSavePlateEditor 中
-const model = state.models[tab.modelId]
-
 useFileSystemAutoSave(
-  model.fileHandle,
-  model.content,
-  1000,  // 防抖延迟 1 秒
-  () => dispatch({
-    type: 'MARK_MODEL_SAVED_TO_DISK',
-    modelId: tab.modelId,
-  }),
-  (error) => console.error('Save failed:', error)
+  fileHandle,           // Where to save
+  content,              // What to save
+  1000,                 // Debounce delay (1 second)
+  onSuccess: () => dispatch({ type: 'MARK_MODEL_SAVED', modelId }),
+  onError: (err) => toast.error('Save failed')
 )
 ```
 
-**工作流**：
-1. 用户编辑 → dispatch `UPDATE_MODEL_CONTENT`
-2. 1 秒内无新编辑 → 调用自动保存
-3. 保存成功 → dispatch `MARK_MODEL_SAVED_TO_DISK`
-4. `isDirty` 和 `isSavedToDisk` 会自动更新 UI
+**Why Debounce?**
+- User types rapidly → many onChange events
+- Without debounce → write to disk 10+ times per second (slow, battery drain)
+- With debounce → wait for typing to pause, then save once
 
-## 关键差异（相比旧架构）
-
-| 方面 | 旧 | 新 |
-|------|----|----|
-| **内容存储** | `tab.content` | `models[tab.modelId].content` |
-| **多个标签页** | 内容不同步 ❌ | 自动同步 ✅ |
-| **编辑 action** | `UPDATE_TAB_CONTENT` | `UPDATE_MODEL_CONTENT` |
-| **关闭文件** | 手动关闭每个 tab | `CLOSE_FILE_IN_ALL_GROUPS` |
-| **拖拽冲突** | 无处理 | 显示提示，激活现有 tab |
-
-## 常见错误
-
-### ❌ 错误：读取 `tab.content`
-```typescript
-// 这会出错！EditorTab 不再有 content
-const content = tab.content  // undefined
-```
-
-### ✅ 正确：使用 `models[tab.modelId]`
-```typescript
-const model = state.models[tab.modelId]
-const content = model.content  // ✓
-```
-
-### ❌ 错误：直接修改 state
-```typescript
-// 不要这样做！
-state.models[modelId].content = newValue  // ❌
-```
-
-### ✅ 正确：使用 dispatch
-```typescript
-// 应该这样做
-dispatch({
-  type: 'UPDATE_MODEL_CONTENT',
-  modelId,
-  content: newValue,
-})  // ✓
-```
-
-### ❌ 错误：旧的 action 名称
-```typescript
-dispatch({ type: 'UPDATE_TAB_CONTENT', ... })  // ❌ 不存在
-```
-
-### ✅ 正确：新的 action 名称
-```typescript
-dispatch({ type: 'UPDATE_MODEL_CONTENT', ... })  // ✓
-```
-
-## 状态结构示例
+### Deep Comparison to Detect Changes
 
 ```typescript
-{
-  models: {
-    'model-1': {
-      id: 'model-1',
-      fileId: 'node-abc',
-      fileName: '第一章.mano',
-      fileType: 'slate',
-      content: [{ type: 'p', children: [...] }],
-      isDirty: true,
-      isSavedToDisk: false,
-    },
-    'model-2': {
-      id: 'model-2',
-      fileId: 'node-def',
-      fileName: 'README.md',
-      fileType: 'text',
-      content: '# 项目说明',
-      isDirty: false,
-      isSavedToDisk: true,
-    },
-  },
-  layout: {
-    type: 'split',
-    direction: 'horizontal',
-    children: [
-      { type: 'group', groupId: 'group-1' },
-      { type: 'group', groupId: 'group-2' },
-    ],
-  },
-  groups: {
-    'group-1': {
-      id: 'group-1',
-      tabs: [
-        { id: 'tab-1', modelId: 'model-1' },  // 第一章
-        { id: 'tab-2', modelId: 'model-2' },  // README
-      ],
-      activeTabId: 'tab-1',
-    },
-    'group-2': {
-      id: 'group-2',
-      tabs: [
-        { id: 'tab-3', modelId: 'model-1' },  // 同一个文件！
-      ],
-      activeTabId: 'tab-3',
-    },
-  },
-  lastFocusedGroupId: 'group-1',
-  nextGroupId: 3,
-  nextTabId: 4,
-  nextModelId: 3,
+// Only save if content actually changed
+const contentJson = JSON.stringify(content)
+if (contentJson !== lastContentJson.current) {
+  // Trigger save
+  saveToFile(fileHandle, content)
+  lastContentJson.current = contentJson
 }
 ```
 
-注意：`tab-1` 和 `tab-3` 都指向 `model-1`，所以它们的内容总是同步的。
+## Component Hierarchy
 
-## 下一步
+```
+IDELayout
+├── ActivityBar (file tree navigation)
+├── PrimarySidebar (file explorer)
+└── EditorContainer
+    ├── EditorGroup (Left Pane)
+    │   ├── EditorGroupWrapper
+    │   │   └── PlateEditor (renders active tab)
+    │   └── Editor Tab Bar
+    │
+    └── EditorGroup (Right Pane)
+        ├── EditorGroupWrapper
+        │   └── PlateEditor (renders active tab)
+        └── Editor Tab Bar
+```
 
-- 阅读完整的 `REFACTOR_SUMMARY.md`
-- 查看 `EditorContext.tsx` 了解所有 action 的实现
-- 运行测试清单验证功能正常
+**Key Detail**: Each `EditorGroup` has its own `PlateEditor`, but both can reference the same `EditorModel`. When one editor updates the model, the other detects it via `useEffect`.
+
+## Performance Considerations
+
+### Key Optimizations
+
+1. **Shared Model Reference**: No duplicate data in memory. 100 tabs of same file = 1 model + 100 tab refs.
+
+2. **Lazy Editor Creation**: `PlateEditor` only mounts when its tab becomes active. Saves memory when many tabs are open.
+
+3. **Change Detection via Version Number**: Instead of deep-comparing entire content, we watch the `version` number to detect external changes.
+
+4. **React Compiler Optimization**: Leverages React 19's compiler (no manual useMemo/useCallback needed).
+
+## Debugging Multi-Tab Issues
+
+### Common Issues
+
+**Issue**: Content changes in Tab A don't appear in Tab B
+- **Check**: Are tabs pointing to same modelId?
+- **Debug**: `console.log('Tab A modelId:', tabA.modelId, 'Tab B:', tabB.modelId)`
+- **Check**: Is useEffect in PlateEditor firing?
+- **Debug**: Add `console.log('External change detected')` in useEffect
+
+**Issue**: Saving to disk fails silently
+- **Check**: Browser console for auto-save errors
+- **Debug**: Add `console.log()` in useFileSystemAutoSave
+- **Check**: File permissions and disk space
+
+**Issue**: Memory usage grows over time
+- **Check**: Are closed models properly deleted from state?
+- **Debug**: `console.log('Models in state:', Object.keys(state.models).length)`
+- **Check**: CLOSE_TAB logic is using newGroups, not state.groups
+
+## File Structure
+
+Key files implementing this architecture:
+
+- `src/types/editor.ts` - Core types (EditorModel, EditorTab, EditorGroup)
+- `src/contexts/EditorContext.tsx` - State management reducer (single source of truth)
+- `src/components/plate/PlateEditor.tsx` - Slate.js wrapper with external change detection
+- `src/hooks/useFileSystemAutoSave.ts` - Debounced save to disk
+- `src/components/ide/EditorGroupWrapper.tsx` - Component wrapping PlateEditor with auto-save
+- `src/components/ide/IDELayout.tsx` - Main orchestrator coordinating all components
+
+## Summary
+
+Mano's editor architecture achieves real-time multi-tab synchronization through:
+
+1. **Single EditorModel per file** → no duplicate data
+2. **Lightweight EditorTab references** → efficient grouping
+3. **Context reducer for state** → predictable updates
+4. **useEffect for external change detection** → automatic sync
+5. **Debounced filesystem saves** → efficient persistence
+
+This pattern scales efficiently whether you have 2 tabs or 100 tabs open, and handles edge cases like model cleanup and version tracking automatically.
