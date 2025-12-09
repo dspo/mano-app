@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef } from 'react'
 import { getFileSystem } from '@/services/fileSystem'
 import type { IFileHandle } from '@/services/fileSystem'
 
@@ -34,7 +34,7 @@ export function useFileSystemAutoSave(
   latestContentRef.current = content
   latestFileHandleRef.current = fileHandle
 
-  const saveToFile = useCallback(async (contentToSave: unknown) => {
+  const saveToFile = async (contentToSave: unknown) => {
     const currentHandle = latestFileHandleRef.current
     if (!currentHandle || isSavingRef.current) {
       return
@@ -62,7 +62,7 @@ export function useFileSystemAutoSave(
     } finally {
       isSavingRef.current = false
     }
-  }, [onSaveSuccess, onSaveError])
+  }
 
   useEffect(() => {
     // Clear previous timer

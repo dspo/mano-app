@@ -1,5 +1,5 @@
 import { X, PanelRight } from 'lucide-react'
-import type { EditorGroup } from '@/types/editor'
+import type { EditorGroup, EditorModel } from '@/types/editor'
 import { useEditor } from '@/hooks/useEditor'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -24,12 +24,13 @@ interface EditorGroupWrapperProps {
 }
 
 interface SortableTabProps {
-  tab: { id: string; fileName: string; isDirty: boolean; isSavedToDisk: boolean; fileId: string }
+  tab: { id: string; modelId: string }
+  model: EditorModel
   groupId: string
   onClose: (tabId: string) => void
 }
 
-function SortableTab({ tab, groupId, onClose }: SortableTabProps) {
+function SortableTab({ tab, model, groupId, onClose }: SortableTabProps) {
   const {
     attributes,
     listeners,
@@ -41,6 +42,7 @@ function SortableTab({ tab, groupId, onClose }: SortableTabProps) {
     id: tab.id,
     data: {
       tab,
+      model,
       sourceGroupId: groupId,
       type: 'tab-sort', // Distinguish between intra-group sorting and cross-group movement
     },
@@ -61,11 +63,11 @@ function SortableTab({ tab, groupId, onClose }: SortableTabProps) {
       {...attributes}
       {...listeners}
     >
-      <span className="text-sm">{tab.fileName}</span>
-      {tab.isDirty && (
+      <span className="text-sm">{model.fileName}</span>
+      {model.isDirty && (
         <span 
-          className={`w-2 h-2 rounded-full ${tab.isSavedToDisk ? 'bg-orange-500' : 'bg-primary'}`}
-          title={tab.isSavedToDisk ? 'Saved to IndexedDB, not yet saved to disk' : 'Modified'}
+          className={`w-2 h-2 rounded-full ${model.isSavedToDisk ? 'bg-orange-500' : 'bg-primary'}`}
+          title={model.isSavedToDisk ? 'Saved to IndexedDB, not yet saved to disk' : 'Modified'}
         />
       )}
       <div
@@ -162,60 +164,67 @@ export function EditorGroupWrapper({ group }: EditorGroupWrapperProps) {
             }`}>
               <TabsList className="h-10 bg-transparent rounded-none justify-start border-0 flex-1">
                 <SortableContext items={group.tabs.map(t => t.id)} strategy={horizontalListSortingStrategy}>
-                  {group.tabs.map((tab) => (
-                    <SortableTab
-                      key={tab.id}
-                      tab={tab}
-                      groupId={group.id}
-                      onClose={handleFileClose}
-                    />
-                  ))}
+                  {group.tabs.map((tab) => {
+                    const model = state.models[tab.modelId]
+                    if (!model) return null
+                    return (
+                      <SortableTab
+                        key={tab.id}
+                        tab={tab}
+                        model={model}
+                        groupId={group.id}
+                        onClose={handleFileClose}
+                      />
+                    )
+                  })}
                 </SortableContext>
               </TabsList>
             </div>
 
-          {group.tabs.map((tab) => (
-            <TabsContent key={tab.id} value={tab.id} className="flex-1 m-0">
-              {tab.fileType === 'slate' ? (
-                <AutoSavePlateEditor
-                  value={tab.content}
-                  tabId={tab.id}
-                  fileHandle={tab.fileHandle}
-                  readOnly={tab.readOnly}
-                  onSaveSuccess={() => {
-                    // Mark as saved to disk
-                    dispatch({
-                      type: 'MARK_TAB_SAVED',
-                      tabId: tab.id,
-                      groupId: group.id,
-                    })
-                  }}
-                  onSaveError={(error) => {
-                    console.error('Failed to auto-save:', error)
-                    // Optional: show error message
-                  }}
-                  onChange={(newValue: unknown) => {
-                    dispatch({
-                      type: 'UPDATE_TAB_CONTENT',
-                      tabId: tab.id,
-                      groupId: group.id,
-                      content: newValue,
-                    })
-                  }}
-                />
-              ) : (
-                <ScrollArea className="h-full">
-                  <div className={`p-4 font-mono text-sm ${tab.readOnly ? 'bg-muted/30 pointer-events-none' : ''}`}>
-                    <pre className="whitespace-pre-wrap">
-                      {typeof tab.content === 'string' 
-                        ? tab.content 
-                        : JSON.stringify(tab.content, null, 2)}
-                    </pre>
-                  </div>
-                </ScrollArea>
-              )}
-            </TabsContent>
-          ))}
+          {group.tabs.map((tab) => {
+            const model = state.models[tab.modelId]
+            if (!model) return null
+
+            return (
+              <TabsContent key={tab.id} value={tab.id} className="flex-1 m-0">
+                {model.fileType === 'slate' ? (
+                  <AutoSavePlateEditor
+                    key={model.id} // Remount only when switching files (preserves cursor during edits)
+                    value={model.content}
+                    tabId={tab.id}
+                    fileHandle={model.fileHandle}
+                    readOnly={model.readOnly}
+                    onSaveSuccess={() => {
+                      dispatch({
+                        type: 'MARK_MODEL_SAVED',
+                        modelId: model.id,
+                      })
+                    }}
+                    onSaveError={(error) => {
+                      console.error('Failed to auto-save:', error)
+                    }}
+                    onChange={(newValue: unknown) => {
+                      dispatch({
+                        type: 'UPDATE_MODEL_CONTENT',
+                        modelId: model.id,
+                        content: newValue,
+                      })
+                    }}
+                  />
+                ) : (
+                  <ScrollArea className="h-full">
+                    <div className={`p-4 font-mono text-sm ${model.readOnly ? 'bg-muted/30 pointer-events-none' : ''}`}>
+                      <pre className="whitespace-pre-wrap">
+                        {typeof model.content === 'string' 
+                          ? model.content 
+                          : JSON.stringify(model.content, null, 2)}
+                      </pre>
+                    </div>
+                  </ScrollArea>
+                )}
+              </TabsContent>
+            )
+          })}
         </Tabs>
         </div>
       </ContextMenuTrigger>
