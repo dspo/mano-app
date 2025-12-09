@@ -1,6 +1,6 @@
-import { useState } from 'react';
-
 'use client';
+
+import { useState } from 'react';
 
 
 import type { TComboboxInputElement, TMentionElement } from 'platejs';

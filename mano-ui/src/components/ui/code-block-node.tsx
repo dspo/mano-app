@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
-
 'use client';
+
+import { useState, useEffect, useMemo } from 'react';
 
 
 import { formatCodeBlock, isLangSupported } from '@platejs/code-block';

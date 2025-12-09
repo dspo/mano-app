@@ -1,6 +1,6 @@
-import { memo } from 'react';
-
 'use client';
+
+import { memo } from 'react';
 
 
 import { useAIChatEditor } from '@platejs/ai/react';
