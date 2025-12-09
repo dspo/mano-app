@@ -625,7 +625,6 @@ function IDELayoutContent() {
             const renamed = await fileSystem.renameFile(dirHandle, oldFilename, newFilename)
             
             if (!renamed) {
-              fileRenameSucceeded = false
               toast.error('文件重命名失败，节点名称未更改。请检查文件系统权限。')
               return
             }
