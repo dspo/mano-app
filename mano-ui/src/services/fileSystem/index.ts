@@ -3,8 +3,9 @@
  * Strategy pattern implementation for cross-platform file system operations
  */
 
-import { isTauri } from '@/lib/utils'
-import { BrowserFileSystemStrategy } from './browserStrategy'
+import { isTauri, isChrome, isSafari } from '@/lib/utils'
+import { ChromeFileSystemStrategy } from './chromeStrategy'
+import { SafariFileSystemStrategy } from './safariStrategy'
 import { TauriFileSystemStrategy, TauriDirectoryHandle } from './tauriStrategy'
 import type { IFileSystemStrategy } from './types'
 
@@ -51,9 +52,12 @@ class FileSystemService {
       if (isTauri()) {
         console.log('[FileSystem] Using Tauri strategy')
         this.strategy = new TauriFileSystemStrategy()
+      } else if (isSafari()) {
+        console.warn('[FileSystem] Safari detected - file system operations not supported; prompting fallback')
+        this.strategy = new SafariFileSystemStrategy()
       } else {
-        console.log('[FileSystem] Using Browser strategy')
-        this.strategy = new BrowserFileSystemStrategy()
+        console.log('[FileSystem] Using Chrome strategy (fallback for non-Tauri, non-Safari browsers)')
+        this.strategy = new ChromeFileSystemStrategy()
       }
     }
     return this.strategy

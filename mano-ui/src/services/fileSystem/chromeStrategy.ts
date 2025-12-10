@@ -1,6 +1,6 @@
 /**
- * Browser File System Strategy
- * Uses File System Access API for browser environment
+ * Chrome File System Strategy
+ * Uses File System Access API for Chrome environment
  */
 
 import type { ManoConfig } from '@/types/mano-config'
@@ -21,9 +21,9 @@ declare global {
 }
 
 /**
- * Browser-specific directory handle wrapper
+ * Chrome-specific directory handle wrapper
  */
-class BrowserDirectoryHandle implements IDirectoryHandle {
+class ChromeDirectoryHandle implements IDirectoryHandle {
   readonly kind = 'directory' as const
   readonly name: string
   readonly handle: FileSystemDirectoryHandle
@@ -35,9 +35,9 @@ class BrowserDirectoryHandle implements IDirectoryHandle {
 }
 
 /**
- * Browser-specific file handle wrapper
+ * Chrome-specific file handle wrapper
  */
-class BrowserFileHandle implements IFileHandle {
+class ChromeFileHandle implements IFileHandle {
   readonly kind = 'file' as const
   readonly name: string
   readonly handle: FileSystemFileHandle
@@ -48,7 +48,7 @@ class BrowserFileHandle implements IFileHandle {
   }
 }
 
-export class BrowserFileSystemStrategy implements IFileSystemStrategy {
+export class ChromeFileSystemStrategy implements IFileSystemStrategy {
   isSupported(): boolean {
     return typeof window !== 'undefined' && 'showDirectoryPicker' in window
   }
@@ -58,7 +58,7 @@ export class BrowserFileSystemStrategy implements IFileSystemStrategy {
       const handle = await window.showDirectoryPicker({
         mode: 'readwrite',
       })
-      return new BrowserDirectoryHandle(handle)
+      return new ChromeDirectoryHandle(handle)
     } catch (error) {
       console.error('[BrowserFS] Failed to pick directory:', error)
       throw error
@@ -66,7 +66,7 @@ export class BrowserFileSystemStrategy implements IFileSystemStrategy {
   }
 
   async readOrCreateManoConfig(dirHandle: IDirectoryHandle): Promise<ManoConfigResult> {
-    const browserHandle = (dirHandle as BrowserDirectoryHandle).handle
+    const browserHandle = (dirHandle as ChromeDirectoryHandle).handle
 
     try {
       // Try to get existing mano.conf.json
@@ -75,25 +75,25 @@ export class BrowserFileSystemStrategy implements IFileSystemStrategy {
       const text = await file.text()
       const config = JSON.parse(text) as ManoConfig
 
-      console.log('[BrowserFS] Loaded mano.conf.json')
+      console.log('[ChromeFS] Loaded mano.conf.json')
       return {
         config,
-        fileHandle: new BrowserFileHandle(fileHandle),
+        fileHandle: new ChromeFileHandle(fileHandle),
       }
     } catch {
       // File doesn't exist, create it
-      console.log('[BrowserFS] mano.conf.json not found, creating default...')
+      console.log('[ChromeFS] mano.conf.json not found, creating default...')
 
       const fileHandle = await browserHandle.getFileHandle('mano.conf.json', { create: true })
       const config = createDefaultManoConfig()
 
       // Save default config
-      await this.saveToFile(new BrowserFileHandle(fileHandle), config)
+      await this.saveToFile(new ChromeFileHandle(fileHandle), config)
 
-      console.log('[BrowserFS] Created mano.conf.json')
+      console.log('[ChromeFS] Created mano.conf.json')
       return {
         config,
-        fileHandle: new BrowserFileHandle(fileHandle),
+        fileHandle: new ChromeFileHandle(fileHandle),
       }
     }
   }
@@ -103,34 +103,34 @@ export class BrowserFileSystemStrategy implements IFileSystemStrategy {
     filename: string,
     defaultContent: string | unknown = ''
   ): Promise<FileResult> {
-    const browserHandle = (dirHandle as BrowserDirectoryHandle).handle
+    const browserHandle = (dirHandle as ChromeDirectoryHandle).handle
 
     try {
       // Try to get existing file
       const fileHandle = await browserHandle.getFileHandle(filename)
-      const content = await this.readFromFile(new BrowserFileHandle(fileHandle))
+      const content = await this.readFromFile(new ChromeFileHandle(fileHandle))
       return {
-        fileHandle: new BrowserFileHandle(fileHandle),
+        fileHandle: new ChromeFileHandle(fileHandle),
         content,
       }
     } catch {
       // File doesn't exist, create it
-      console.log(`[BrowserFS] Creating new file: ${filename}`)
+      console.log(`[ChromeFS] Creating new file: ${filename}`)
 
       const fileHandle = await browserHandle.getFileHandle(filename, { create: true })
       const textContent =
         typeof defaultContent === 'string' ? defaultContent : JSON.stringify(defaultContent, null, 2)
 
-      await this.saveToFile(new BrowserFileHandle(fileHandle), textContent)
+      await this.saveToFile(new ChromeFileHandle(fileHandle), textContent)
       return {
-        fileHandle: new BrowserFileHandle(fileHandle),
+        fileHandle: new ChromeFileHandle(fileHandle),
         content: textContent,
       }
     }
   }
 
   async saveToFile(fileHandle: IFileHandle, content: string | unknown): Promise<boolean> {
-    const browserHandle = (fileHandle as BrowserFileHandle).handle
+    const browserHandle = (fileHandle as ChromeFileHandle).handle
 
     try {
       // Create a writable stream
@@ -146,22 +146,22 @@ export class BrowserFileSystemStrategy implements IFileSystemStrategy {
       // Close the file
       await writable.close()
 
-      console.log(`[BrowserFS] Saved to disk successfully`)
+      console.log(`[ChromeFS] Saved to disk successfully`)
       return true
     } catch (error) {
-      console.error('[BrowserFS] Failed to save:', error)
+      console.error('[ChromeFS] Failed to save:', error)
       return false
     }
   }
 
   async readFromFile(fileHandle: IFileHandle): Promise<string> {
-    const browserHandle = (fileHandle as BrowserFileHandle).handle
+    const browserHandle = (fileHandle as ChromeFileHandle).handle
 
     try {
       const file = await browserHandle.getFile()
       return await file.text()
     } catch (error) {
-      console.error('[BrowserFS] Failed to read:', error)
+      console.error('[ChromeFS] Failed to read:', error)
       throw error
     }
   }
@@ -173,14 +173,14 @@ export class BrowserFileSystemStrategy implements IFileSystemStrategy {
   }
 
   async deleteFile(dirHandle: IDirectoryHandle, filename: string): Promise<boolean> {
-    const browserHandle = (dirHandle as BrowserDirectoryHandle).handle
+    const browserHandle = (dirHandle as ChromeDirectoryHandle).handle
 
     try {
       await browserHandle.removeEntry(filename)
-      console.log(`[BrowserFS] Deleted file: ${filename}`)
+      console.log(`[ChromeFS] Deleted file: ${filename}`)
       return true
     } catch (error) {
-      console.error(`[BrowserFS] Failed to delete file: ${filename}`, error)
+      console.error(`[ChromeFS] Failed to delete file: ${filename}`, error)
       return false
     }
   }
@@ -205,7 +205,7 @@ export class BrowserFileSystemStrategy implements IFileSystemStrategy {
    * - Caller should display error to user and preserve original state
    */
   async renameFile(dirHandle: IDirectoryHandle, oldFilename: string, newFilename: string): Promise<boolean> {
-    const browserHandle = (dirHandle as BrowserDirectoryHandle).handle
+    const browserHandle = (dirHandle as ChromeDirectoryHandle).handle
 
     try {
       // Pre-check 1: Verify old file exists
@@ -213,7 +213,7 @@ export class BrowserFileSystemStrategy implements IFileSystemStrategy {
       try {
         oldFileHandle = await browserHandle.getFileHandle(oldFilename)
       } catch {
-        console.error(`[BrowserFS] Source file does not exist: ${oldFilename}`)
+        console.error(`[ChromeFS] Source file does not exist: ${oldFilename}`)
         return false
       }
 
@@ -227,7 +227,7 @@ export class BrowserFileSystemStrategy implements IFileSystemStrategy {
       }
 
       if (targetExists) {
-        console.error(`[BrowserFS] Target file already exists: ${newFilename} - abort rename to prevent data loss`)
+        console.error(`[ChromeFS] Target file already exists: ${newFilename} - abort rename to prevent data loss`)
         return false
       }
 
@@ -235,7 +235,7 @@ export class BrowserFileSystemStrategy implements IFileSystemStrategy {
       const file = await oldFileHandle.getFile()
       const content = await file.text()
 
-      // Browser File System Access API doesn't support direct rename
+      // Chrome File System Access API doesn't support direct rename
       // Strategy: read old file → create new file → delete old file
       try {
         // Step 1: Create new file with old file's content
@@ -250,22 +250,22 @@ export class BrowserFileSystemStrategy implements IFileSystemStrategy {
           return true
         } catch (deleteError) {
           // Deletion failed - attempt rollback to maintain consistency
-          console.error(`[BrowserFS] Failed to delete old file: ${oldFilename}`, deleteError)
+        console.error(`[ChromeFS] Failed to delete old file: ${oldFilename}`, deleteError)
           try {
             await browserHandle.removeEntry(newFilename)
-            console.error(`[BrowserFS] Rolled back new file creation due to deletion failure`)
+            console.error(`[ChromeFS] Rolled back new file creation due to deletion failure`)
           } catch (rollbackError) {
             // Rollback failed - data is now in inconsistent state
-            console.error(`[BrowserFS] Critical: Failed to rollback - both files may exist: ${oldFilename}, ${newFilename}`, rollbackError)
+            console.error(`[ChromeFS] Critical: Failed to rollback - both files may exist: ${oldFilename}, ${newFilename}`, rollbackError)
           }
           return false
         }
       } catch (createError) {
-        console.error(`[BrowserFS] Failed to create new file: ${newFilename}`, createError)
+        console.error(`[ChromeFS] Failed to create new file: ${newFilename}`, createError)
         return false
       }
     } catch (error) {
-      console.error(`[BrowserFS] Unexpected error during rename: ${oldFilename} → ${newFilename}`, error)
+      console.error(`[ChromeFS] Unexpected error during rename: ${oldFilename} → ${newFilename}`, error)
       return false
     }
   }
