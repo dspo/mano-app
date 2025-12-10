@@ -3,7 +3,7 @@
  * Strategy pattern implementation for cross-platform file system operations
  */
 
-import { isTauri, isChrome, isSafari } from '@/lib/utils'
+import { isTauri, isSafari } from '@/lib/utils'
 import { ChromeFileSystemStrategy } from './chromeStrategy'
 import { SafariFileSystemStrategy } from './safariStrategy'
 import { TauriFileSystemStrategy, TauriDirectoryHandle } from './tauriStrategy'

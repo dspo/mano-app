@@ -14,6 +14,14 @@ import { toast } from 'sonner'
 import type { IFileHandle, IDirectoryHandle } from '@/services/fileSystem'
 import { TauriDirectoryHandle } from '@/services/fileSystem/tauriStrategy'
 import { isTauri } from '@/lib/utils'
+import {
+  getFileSystem,
+  saveManoConfig,
+  getNodeFilename,
+  getOrCreateFile,
+  saveToFileSystem,
+} from '@/services/fileSystem'
+import { DEFAULT_SLATE_CONTENT } from '@/types/mano-config'
 
 // Alias for backward compatibility
 type FileNode = ManoNode
@@ -275,9 +283,7 @@ function IDELayoutContent() {
   // Open folder
   const handleOpenFolder = async () => {
     try {
-      // Dynamically import fileSystem module
-      const fileSystemModule = await import('@/services/fileSystem/index')
-      const fs = fileSystemModule.getFileSystem()
+      const fs = getFileSystem()
       
       // Select directory
       const directory = await fs.pickDirectory()
@@ -319,8 +325,7 @@ function IDELayoutContent() {
       console.log('[IDELayout] Handling workspace from Tauri menu:', workspacePath)
       
       // Dynamically import fileSystem module
-      const fileSystemModule = await import('@/services/fileSystem/index')
-      const fs = fileSystemModule.getFileSystem()
+      const fs = getFileSystem()
       
       // Create directory handle from the path received from Tauri
       const directory = new TauriDirectoryHandle(workspacePath)
@@ -460,7 +465,6 @@ function IDELayoutContent() {
         
         // Save to mano.conf.json
         if (configFileHandle) {
-          const { saveManoConfig } = await import('@/services/fileSystem')
           await saveManoConfig(configFileHandle, { data: updated as any, lastUpdated: new Date().toISOString() })
         }
         return
@@ -476,7 +480,6 @@ function IDELayoutContent() {
       setFileTree(updated)
       // Persist to mano.conf.json
       if (configFileHandle) {
-        const { saveManoConfig } = await import('@/services/fileSystem')
         await saveManoConfig(configFileHandle, { data: updated as any, lastUpdated: new Date().toISOString() })
       }
     } catch (e) {
@@ -613,9 +616,6 @@ function IDELayoutContent() {
       // If file rename fails, we abort without modifying in-memory state
       if (dirHandle && (node.nodeType === 'SlateText' || node.nodeType === 'Markdown')) {
         try {
-          const { getNodeFilename } = await import('@/types/mano-config')
-          const { getFileSystem } = await import('@/services/fileSystem')
-          
           const oldFilename = getNodeFilename(node)
           const newFilename = getNodeFilename({ ...node, name: newName })
           
@@ -640,7 +640,6 @@ function IDELayoutContent() {
       setFileTree(updated)
 
       // Save to mano.conf.json
-      const { saveManoConfig } = await import('@/services/fileSystem')
       await saveManoConfig(configFileHandle, { 
         data: updated as any, 
         lastUpdated: new Date().toISOString() 
@@ -730,8 +729,6 @@ function IDELayoutContent() {
       // Wait for animation to complete
       await new Promise(resolve => setTimeout(resolve, 500))
 
-      const { getFileSystem } = await import('@/services/fileSystem')
-      const { getNodeFilename } = await import('@/services/fileSystem')
       const fs = getFileSystem()
 
         // Recursively process all text nodes: read content, base64 encode, delete file
@@ -827,7 +824,6 @@ function IDELayoutContent() {
       setFileTree(updated)
 
       // Save to mano.conf.json
-      const { saveManoConfig } = await import('@/services/fileSystem')
       await saveManoConfig(configFileHandle, {
         data: updated,
         lastUpdated: new Date().toISOString()
@@ -871,8 +867,6 @@ function IDELayoutContent() {
       // Wait for animation to complete
       await new Promise(resolve => setTimeout(resolve, 500))
 
-      const { getFileSystem } = await import('@/services/fileSystem')
-      const { getNodeFilename } = await import('@/services/fileSystem')
       const fs = getFileSystem()
 
       // Get all nodes outside trash for checking duplicates
@@ -968,7 +962,6 @@ function IDELayoutContent() {
       setFileTree(updated)
 
       // Save to mano.conf.json
-      const { saveManoConfig } = await import('@/services/fileSystem')
       await saveManoConfig(configFileHandle, {
         data: updated,
         lastUpdated: new Date().toISOString()
@@ -1026,7 +1019,6 @@ function IDELayoutContent() {
       setFileTree(updated)
 
       // Save to mano.conf.json
-      const { saveManoConfig } = await import('@/services/fileSystem')
       await saveManoConfig(configFileHandle, {
         data: updated,
         lastUpdated: new Date().toISOString()
@@ -1069,7 +1061,6 @@ function IDELayoutContent() {
 
     // Save to mano.conf.json
     try {
-      const { saveManoConfig } = await import('@/services/fileSystem')
       await saveManoConfig(configFileHandle, {
         data: updated,
         lastUpdated: new Date().toISOString()
@@ -1108,7 +1099,6 @@ function IDELayoutContent() {
             try {
               parsedContent = JSON.parse(decodedContent)
             } catch {
-              const { DEFAULT_SLATE_CONTENT } = await import('@/types/mano-config')
               parsedContent = DEFAULT_SLATE_CONTENT
             }
           } else if (file.nodeType === 'Markdown') {
@@ -1149,9 +1139,6 @@ function IDELayoutContent() {
       console.log('[handleFileClick] Opening file:', file.name, 'Type:', file.nodeType)
       console.log('[handleFileClick] Full file object:', JSON.stringify(file, null, 2))
       console.log('[handleFileClick] dirHandle:', dirHandle)
-      
-      const { getOrCreateFile, getNodeFilename } = await import('@/services/fileSystem')
-      const { DEFAULT_SLATE_CONTENT } = await import('@/types/mano-config')
       
       // Get filename based on node type
       const filename = getNodeFilename(file)
@@ -1246,7 +1233,6 @@ function IDELayoutContent() {
     }
 
     try {
-      const { saveToFileSystem } = await import('@/services/fileSystem')
       const success = await saveToFileSystem(model.fileHandle, model.content)
       
       if (success) {

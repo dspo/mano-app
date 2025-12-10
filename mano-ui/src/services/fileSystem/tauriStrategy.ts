@@ -6,7 +6,7 @@
 import type { ManoConfig } from '@/types/mano-config'
 import { createDefaultManoConfig } from '@/types/mano-config'
 import { open } from '@tauri-apps/plugin-dialog'
-import { readTextFile, writeTextFile, exists, remove } from '@tauri-apps/plugin-fs'
+import { readTextFile, writeTextFile, exists, remove, rename } from '@tauri-apps/plugin-fs'
 import type {
   IFileSystemStrategy,
   IDirectoryHandle,
@@ -217,7 +217,6 @@ export class TauriFileSystemStrategy implements IFileSystemStrategy {
     const newPath = tauriHandle.joinPath(newFilename)
 
     try {
-      const { rename } = await import('@tauri-apps/plugin-fs')
       await rename(oldPath, newPath)
       return true
     } catch (error) {
