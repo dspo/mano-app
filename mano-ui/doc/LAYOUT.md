@@ -139,9 +139,7 @@ IDELayout (Root Container)
   - Active tab: `bg-accent` styling
   - Dirty state: Orange `•` indicator (unsaved changes)
   - Saved to disk: Green `✓` indicator
-- **Content Area**: Renders file editor based on type
-  - `slate` type: `PlateEditor` component (rich text editing via Plate.js)
-  - `text` type: `ScrollArea` with read-only preview
+- **Content Area**: Text editor built on `@/components/ui/textarea` (editable by default; read-only for trash previews)
 
 #### Split View
 - **Directions**: Horizontal or vertical splits
@@ -310,12 +308,9 @@ IDELayout (Root Container)
 ## File Type System
 
 ### Supported Types
-- **`slate`**: Rich text files (`.mano` extension)
-  - Format: Slate.js JSON (array of block objects)
-  - Renderer: `PlateEditor` component
-- **`text`**: Plain text files (all other extensions)
+- **`text`**: Plain text files (both `.mano` and `.md` nodes use this flow)
   - Format: Plain string
-  - Renderer: Read-only `ScrollArea`
+  - Renderer: `Textarea` editor (editable unless opened from trash, then read-only)
 
 ### File Naming
 - **Display Name**: User-editable label (stored in `ManoNode.name`)

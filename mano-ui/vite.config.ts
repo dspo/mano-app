@@ -18,4 +18,8 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  build: {
+    // App pulls in rich editor deps; raise limit to avoid noisy chunk warnings.
+    chunkSizeWarningLimit: 1500,
+  },
 })

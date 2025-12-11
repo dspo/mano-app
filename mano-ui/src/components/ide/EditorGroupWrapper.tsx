@@ -2,7 +2,6 @@ import { X, PanelRight } from 'lucide-react'
 import type { EditorGroup, EditorModel } from '@/types/editor'
 import { useEditor } from '@/hooks/useEditor'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   ContextMenu,
   ContextMenuContent,
@@ -17,7 +16,7 @@ import {
   horizontalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { AutoSavePlateEditor } from '@/components/plate/AutoSavePlateEditor'
+import { AutoSaveTextEditor } from '@/components/editor/TextEditor'
 
 interface EditorGroupWrapperProps {
   group: EditorGroup
@@ -187,41 +186,29 @@ export function EditorGroupWrapper({ group }: EditorGroupWrapperProps) {
 
             return (
               <TabsContent key={tab.id} value={tab.id} className="flex-1 m-0">
-                {model.fileType === 'slate' ? (
-                  <AutoSavePlateEditor
-                    key={model.id} // Remount only when switching files (preserves cursor during edits)
-                    value={model.content}
-                    modelId={model.id}
-                    fileHandle={model.fileHandle}
-                    readOnly={model.readOnly}
-                    onSaveSuccess={() => {
-                      dispatch({
-                        type: 'MARK_MODEL_SAVED',
-                        modelId: model.id,
-                      })
-                    }}
-                    onSaveError={(error) => {
-                      console.error('Failed to auto-save:', error)
-                    }}
-                    onChange={(newValue: unknown) => {
-                      dispatch({
-                        type: 'UPDATE_MODEL_CONTENT',
-                        modelId: model.id,
-                        content: newValue,
-                      })
-                    }}
-                  />
-                ) : (
-                  <ScrollArea className="h-full">
-                    <div className={`p-4 font-mono text-sm ${model.readOnly ? 'bg-muted/30 pointer-events-none' : ''}`}>
-                      <pre className="whitespace-pre-wrap">
-                        {typeof model.content === 'string' 
-                          ? model.content 
-                          : JSON.stringify(model.content, null, 2)}
-                      </pre>
-                    </div>
-                  </ScrollArea>
-                )}
+                <AutoSaveTextEditor
+                  key={model.id}
+                  value={model.content}
+                  modelId={model.id}
+                  fileHandle={model.fileHandle}
+                  readOnly={model.readOnly}
+                  onSaveSuccess={() => {
+                    dispatch({
+                      type: 'MARK_MODEL_SAVED',
+                      modelId: model.id,
+                    })
+                  }}
+                  onSaveError={(error) => {
+                    console.error('Failed to auto-save:', error)
+                  }}
+                  onChange={(newValue: string) => {
+                    dispatch({
+                      type: 'UPDATE_MODEL_CONTENT',
+                      modelId: model.id,
+                      content: newValue,
+                    })
+                  }}
+                />
               </TabsContent>
             )
           })}

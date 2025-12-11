@@ -1,8 +1,7 @@
 'use client';
-
-import { useCallback, memo } from 'react';
 /* eslint-disable react-hooks/refs */
 
+import * as React from 'react';
 
 import type { Emoji } from '@emoji-mart/data';
 
@@ -163,7 +162,7 @@ export function EmojiPicker({
   );
 }
 
-const EmojiButton = memo(function EmojiButton({
+const EmojiButton = React.memo(function EmojiButton({
   emoji,
   index,
   onMouseOver,
@@ -203,7 +202,7 @@ const EmojiButton = memo(function EmojiButton({
   );
 });
 
-const RowOfButtons = memo(function RowOfButtons({
+const RowOfButtons = React.memo(function RowOfButtons({
   emojiLibrary,
   row,
   onMouseOver,
@@ -253,7 +252,7 @@ function EmojiPickerContent({
 >) {
   const getRowWidth = settings.perLine.value * settings.buttonSize.value;
 
-  const isCategoryVisible = useCallback(
+  const isCategoryVisible = React.useCallback(
     (categoryId: any) =>
       visibleCategories.has(categoryId)
         ? visibleCategories.get(categoryId)
@@ -261,7 +260,7 @@ function EmojiPickerContent({
     [visibleCategories]
   );
 
-  const EmojiList = useCallback(
+  const EmojiList = React.useCallback(
     () =>
       emojiLibrary
         .getGrid()
@@ -311,7 +310,7 @@ function EmojiPickerContent({
     ]
   );
 
-  const SearchList = useCallback(
+  const SearchList = React.useCallback(
     () => (
       <div style={{ width: getRowWidth }} data-id="search">
         <div className="-top-px sticky z-1 bg-popover/90 p-1 py-2 font-semibold text-card-foreground text-sm backdrop-blur-xs">

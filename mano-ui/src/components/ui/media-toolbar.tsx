@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
-
+import * as React from 'react';
 
 import type { WithRequiredKey } from 'platejs';
 
@@ -61,7 +60,7 @@ export function MediaToolbar({
     !isImagePreviewOpen;
   const isEditing = useFloatingMediaValue('isEditing');
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (!open && isEditing) {
       FloatingMediaStore.set('isEditing', false);
     }

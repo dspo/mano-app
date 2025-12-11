@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-
+import * as React from 'react';
 import TextareaAutosize, {
   type TextareaAutosizeProps,
 } from 'react-textarea-autosize';
@@ -32,8 +31,8 @@ import { cn } from '@/lib/utils';
 
 export function EquationElement(props: PlateElementProps<TEquationElement>) {
   const selected = useSelected();
-  const [open, setOpen] = useState(selected);
-  const katexRef = useRef<HTMLDivElement | null>(null);
+  const [open, setOpen] = React.useState(selected);
+  const katexRef = React.useRef<HTMLDivElement | null>(null);
 
   useEquationElement({
     element: props.element,
@@ -96,15 +95,15 @@ export function InlineEquationElement(
   props: PlateElementProps<TEquationElement>
 ) {
   const element = props.element;
-  const katexRef = useRef<HTMLDivElement | null>(null);
+  const katexRef = React.useRef<HTMLDivElement | null>(null);
   const selected = useSelected();
   const isCollapsed = useEditorSelector(
     (editor) => editor.api.isCollapsed(),
     []
   );
-  const [open, setOpen] = useState(selected && isCollapsed);
+  const [open, setOpen] = React.useState(selected && isCollapsed);
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (selected && isCollapsed) {
       setOpen(true);
     }
@@ -195,7 +194,7 @@ const EquationPopoverContent = ({
   const readOnly = useReadOnly();
   const element = useElement<TEquationElement>();
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (isInline && open) {
       setOpen(true);
     }

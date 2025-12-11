@@ -1,7 +1,6 @@
 'use client';
 
-import { memo } from 'react';
-
+import * as React from 'react';
 
 import type { TColumnElement } from 'platejs';
 import type { PlateElementProps } from 'platejs/react';
@@ -100,12 +99,12 @@ export const ColumnElement = withHOC(
   }
 );
 
-const ColumnDragHandle = memo(function ColumnDragHandle() {
+const ColumnDragHandle = React.memo(function ColumnDragHandle() {
   return (
     <TooltipProvider>
       <Tooltip>
-        <TooltipTrigger asChild className="px-1!">
-          <Button variant="ghost" className="px-1! h-5">
+        <TooltipTrigger asChild>
+          <Button variant="ghost" className="!px-1 h-5">
             <GripHorizontal
               className="text-muted-foreground"
               onClick={(event) => {

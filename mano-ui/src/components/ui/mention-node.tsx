@@ -1,7 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-
+import * as React from 'react';
 
 import type { TComboboxInputElement, TMentionElement } from 'platejs';
 import type { PlateElementProps } from 'platejs/react';
@@ -82,7 +81,7 @@ export function MentionInputElement(
   props: PlateElementProps<TComboboxInputElement>
 ) {
   const { editor, element } = props;
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = React.useState('');
 
   return (
     <PlateElement {...props} as="span">
