@@ -21,7 +21,6 @@ import {
   getOrCreateFile,
   saveToFileSystem,
 } from '@/services/fileSystem'
-import { DEFAULT_SLATE_CONTENT } from '@/types/mano-config'
 
 // Alias for backward compatibility
 type FileNode = ManoNode
@@ -1087,25 +1086,9 @@ function IDELayoutContent() {
       try {
         console.log('[handleFileClick] Opening file from trash:', file.name)
         
-        let fileType: 'text' | 'slate' = 'text'
-        let parsedContent: unknown = ''
-        
-        if (file.content) {
-          // Decode base64 content (handle UTF-8)
-          const decodedContent = decodeURIComponent(escape(atob(file.content)))
-          
-          if (file.nodeType === 'SlateText') {
-            fileType = 'slate'
-            try {
-              parsedContent = JSON.parse(decodedContent)
-            } catch {
-              parsedContent = DEFAULT_SLATE_CONTENT
-            }
-          } else if (file.nodeType === 'Markdown') {
-            fileType = 'text'
-            parsedContent = decodedContent
-          }
-        }
+        const parsedContent = file.content
+          ? decodeURIComponent(escape(atob(file.content)))
+          : ''
         
         // Store in memory (not to disk)
         setFileContentsMap(prev => ({ ...prev, [file.id]: file.content || '' }))
@@ -1115,7 +1098,7 @@ function IDELayoutContent() {
           type: 'OPEN_FILE',
           fileId: file.id,
           fileName: file.name,
-          fileType: fileType,
+          fileType: 'text',
           content: parsedContent,
           fileHandle: undefined,
           readOnly: true, // Mark as read-only for trash files
@@ -1145,14 +1128,10 @@ function IDELayoutContent() {
       console.log('[handleFileClick] filename from getNodeFilename:', filename)
       
       // Determine file type and default content
-      let fileType: 'text' | 'slate' = 'text'
-      let defaultContent: string | unknown = ''
+      let fileType: 'text' = 'text'
+      let defaultContent = ''
       
-      if (file.nodeType === 'SlateText') {
-        fileType = 'slate'
-        defaultContent = DEFAULT_SLATE_CONTENT
-      } else if (file.nodeType === 'Markdown') {
-        fileType = 'text'
+      if (file.nodeType === 'Markdown') {
         defaultContent = `# ${file.name}\n\n`
       }
       
@@ -1167,18 +1146,7 @@ function IDELayoutContent() {
       console.log('[handleFileClick] Got file handle:', fileHandle)
       console.log('[handleFileClick] Content length:', content.length)
       
-      // Parse content based on file type
-      let parsedContent: unknown
-      if (fileType === 'slate') {
-        try {
-          parsedContent = JSON.parse(content)
-        } catch {
-          // If parse fails, use default
-          parsedContent = DEFAULT_SLATE_CONTENT
-        }
-      } else {
-        parsedContent = content
-      }
+      const parsedContent = content
       
       // Store file handle and content
       setFileHandlesMap(prev => ({ ...prev, [file.id]: fileHandle }))

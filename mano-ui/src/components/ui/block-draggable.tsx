@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, memo } from 'react';
-
+import * as React from 'react';
 
 import { DndPlugin, useDraggable, useDropLine } from '@platejs/dnd';
 import { expandListItemsWithChildren } from '@platejs/list';
@@ -32,7 +31,7 @@ const UNDRAGGABLE_KEYS = [KEYS.column, KEYS.tr, KEYS.td];
 export const BlockDraggable: RenderNodeWrapper = (props) => {
   const { editor, element, path } = props;
 
-  const enabled = useMemo(() => {
+  const enabled = React.useMemo(() => {
     if (editor.dom.readOnly) return false;
 
     if (path.length === 1 && !isType(editor, element, UNDRAGGABLE_KEYS)) {
@@ -91,7 +90,7 @@ function Draggable(props: PlateElementProps) {
   const isInColumn = path.length === 3;
   const isInTable = path.length === 4;
 
-  const [previewTop, setPreviewTop] = useState(0);
+  const [previewTop, setPreviewTop] = React.useState(0);
 
   const resetPreview = () => {
     if (previewRef.current) {
@@ -101,21 +100,21 @@ function Draggable(props: PlateElementProps) {
   };
 
   // clear up virtual multiple preview when drag end
-  useEffect(() => {
+  React.useEffect(() => {
     if (!isDragging) {
       resetPreview();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDragging]);
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (isAboutToDrag) {
       previewRef.current?.classList.remove('opacity-0');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAboutToDrag]);
 
-  const [dragButtonTop, setDragButtonTop] = useState(0);
+  const [dragButtonTop, setDragButtonTop] = React.useState(0);
 
   return (
     <div
@@ -150,7 +149,7 @@ function Draggable(props: PlateElementProps) {
               <Button
                 ref={handleRef}
                 variant="ghost"
-                className="left-0 absolute h-6 w-full p-0"
+                className="-left-0 absolute h-6 w-full p-0"
                 style={{ top: `${dragButtonTop + 3}px` }}
                 data-plate-prevent-deselect
               >
@@ -168,7 +167,7 @@ function Draggable(props: PlateElementProps) {
 
       <div
         ref={previewRef}
-        className={cn('left-0 absolute hidden w-full')}
+        className={cn('-left-0 absolute hidden w-full')}
         style={{ top: `${-previewTop}px` }}
         contentEditable={false}
       />
@@ -222,7 +221,7 @@ function Gutter({
   );
 }
 
-const DragHandle = memo(function DragHandle({
+const DragHandle = React.memo(function DragHandle({
   isDragging,
   previewRef,
   resetPreview,
@@ -334,7 +333,7 @@ const DragHandle = memo(function DragHandle({
   );
 });
 
-const DropLine = memo(function DropLine({
+const DropLine = React.memo(function DropLine({
   className,
   ...props
 }: React.ComponentProps<'div'>) {
