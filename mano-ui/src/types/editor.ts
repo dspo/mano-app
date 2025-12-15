@@ -12,8 +12,8 @@ export interface EditorModel {
   id: string              // Unique model ID (e.g., "model-1")
   fileId: string          // Reference to the node/file ID
   fileName: string
-  fileType: 'text' | 'slate' // text: plain text, slate: rich text
-  content: unknown        // string for text, Slate JSON for slate
+  fileType: 'slate'
+  content: string
   isDirty: boolean
   isSavedToDisk: boolean
   version: number         // Incremented on every content change to force consumer refresh
@@ -57,14 +57,14 @@ export interface EditorState {
 
 // Editor Action types
 export type EditorAction =
-  | { type: 'OPEN_FILE'; fileId: string; fileName: string; fileType: 'text' | 'slate'; content: unknown; groupId?: string; fileHandle?: FileSystemFileHandle | IFileHandle; readOnly?: boolean }
+  | { type: 'OPEN_FILE'; fileId: string; fileName: string; fileType: 'slate'; content: string; groupId?: string; fileHandle?: FileSystemFileHandle | IFileHandle; readOnly?: boolean }
   | { type: 'CLOSE_TAB'; tabId: string; groupId: string }
   | { type: 'CLOSE_ALL_TABS'; groupId: string }
   | { type: 'CLOSE_FILE_IN_ALL_GROUPS'; fileId: string }
   | { type: 'SET_ACTIVE_TAB'; tabId: string; groupId: string }
   | { type: 'SPLIT_GROUP'; groupId: string; direction: 'horizontal' | 'vertical' }
   | { type: 'CLOSE_GROUP'; groupId: string }
-  | { type: 'UPDATE_MODEL_CONTENT'; modelId: string; content: unknown }
+  | { type: 'UPDATE_MODEL_CONTENT'; modelId: string; content: string }
   | { type: 'MARK_MODEL_SAVED'; modelId: string }
   | { type: 'MARK_MODEL_SAVED_TO_DISK'; modelId: string }
   | { type: 'MOVE_TAB_BETWEEN_GROUPS'; tabId: string; sourceGroupId: string; targetGroupId: string }

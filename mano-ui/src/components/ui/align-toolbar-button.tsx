@@ -1,7 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-
+import * as React from 'react';
 
 import type { Alignment } from '@platejs/basic-styles';
 import type { DropdownMenuProps } from '@radix-ui/react-dropdown-menu';
@@ -52,7 +51,7 @@ export function AlignToolbarButton(props: DropdownMenuProps) {
       getProp: (node) => node.align,
     }) ?? 'left';
 
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = React.useState(false);
   const IconValue =
     items.find((item) => item.value === value)?.icon ?? AlignLeftIcon;
 

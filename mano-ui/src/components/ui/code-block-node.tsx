@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
-
+import * as React from 'react';
 
 import { formatCodeBlock, isLangSupported } from '@platejs/code-block';
 import { BracesIcon, Check, CheckIcon, CopyIcon } from 'lucide-react';
@@ -74,14 +73,14 @@ export function CodeBlockElement(props: PlateElementProps<TCodeBlockElement>) {
 }
 
 function CodeBlockCombobox() {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = React.useState(false);
   const readOnly = useReadOnly();
   const editor = useEditorRef();
   const element = useElement<TCodeBlockElement>();
   const value = element.lang || 'plaintext';
-  const [searchValue, setSearchValue] = useState('');
+  const [searchValue, setSearchValue] = React.useState('');
 
-  const items = useMemo(
+  const items = React.useMemo(
     () =>
       languages.filter(
         (language) =>
@@ -159,9 +158,9 @@ function CopyButton({
   React.ComponentProps<typeof Button>,
   'value'
 >) {
-  const [hasCopied, setHasCopied] = useState(false);
+  const [hasCopied, setHasCopied] = React.useState(false);
 
-  useEffect(() => {
+  React.useEffect(() => {
     setTimeout(() => {
       setHasCopied(false);
     }, 2000);

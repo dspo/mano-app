@@ -6,7 +6,7 @@
 import type { ManoConfig } from '@/types/mano-config'
 import { createDefaultManoConfig } from '@/types/mano-config'
 import { open } from '@tauri-apps/plugin-dialog'
-import { readTextFile, writeTextFile, exists, remove } from '@tauri-apps/plugin-fs'
+import { readTextFile, writeTextFile, exists, remove, rename } from '@tauri-apps/plugin-fs'
 import type {
   IFileSystemStrategy,
   IDirectoryHandle,
@@ -14,7 +14,7 @@ import type {
   ManoConfigResult,
   FileResult,
 } from './types'
-import { isTauri } from '@/lib/utils'
+import {isTauri} from "@tauri-apps/api/core";
 
 /**
  * Tauri-specific directory handle wrapper
@@ -66,12 +66,8 @@ class TauriFileHandle implements IFileHandle {
 }
 
 export class TauriFileSystemStrategy implements IFileSystemStrategy {
-  isSupported(): boolean {
-    return isTauri()
-  }
-
   async pickDirectory(): Promise<IDirectoryHandle> {
-    if (!this.isSupported()) {
+    if (!isTauri()) {
       throw new Error('Tauri environment not detected. __TAURI_INTERNALS__ is not available.')
     }
     
@@ -217,7 +213,6 @@ export class TauriFileSystemStrategy implements IFileSystemStrategy {
     const newPath = tauriHandle.joinPath(newFilename)
 
     try {
-      const { rename } = await import('@tauri-apps/plugin-fs')
       await rename(oldPath, newPath)
       return true
     } catch (error) {

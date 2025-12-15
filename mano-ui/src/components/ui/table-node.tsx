@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-
+import * as React from 'react';
 
 import type * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu';
 
@@ -378,12 +377,12 @@ function ColorDropdownMenu({
   children: React.ReactNode;
   tooltip: string;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = React.useState(false);
 
   const editor = useEditorRef();
   const selectedCells = usePluginOption(TablePlugin, 'selectedCells');
 
-  const onUpdateColor = useCallback(
+  const onUpdateColor = React.useCallback(
     (color: string) => {
       setOpen(false);
       setCellBackground(editor, { color, selectedCells: selectedCells ?? [] });
@@ -391,7 +390,7 @@ function ColorDropdownMenu({
     [selectedCells, editor]
   );
 
-  const onClearColor = useCallback(() => {
+  const onClearColor = React.useCallback(() => {
     setOpen(false);
     setCellBackground(editor, {
       color: null,
