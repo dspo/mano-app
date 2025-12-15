@@ -155,7 +155,7 @@ export function EditorGroupWrapper({ group }: EditorGroupWrapperProps) {
         <div 
           ref={setDropRef}
           onClick={handleFocus} 
-          className={`h-full transition-all ${isFocused ? '' : 'opacity-60'} ${isOver ? 'ring-2 ring-primary ring-inset' : ''}`}
+          className={`h-full min-h-0 transition-all ${isFocused ? '' : 'opacity-60'} ${isOver ? 'ring-2 ring-primary ring-inset' : ''}`}
         >
           <Tabs value={group.activeTabId || undefined} onValueChange={handleFileSelect} className="h-full flex flex-col">
             <div className={`h-10 rounded-none justify-start border-b flex items-center transition-colors ${
@@ -185,7 +185,7 @@ export function EditorGroupWrapper({ group }: EditorGroupWrapperProps) {
             if (!model) return null
 
             return (
-              <TabsContent key={tab.id} value={tab.id} className="flex-1 m-0">
+              <TabsContent key={tab.id} value={tab.id} className="flex-1 m-0 min-h-0">
                 <AutoSaveTextEditor
                   key={model.id}
                   value={model.content}
