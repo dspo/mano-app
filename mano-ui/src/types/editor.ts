@@ -12,7 +12,7 @@ export interface EditorModel {
   id: string              // Unique model ID (e.g., "model-1")
   fileId: string          // Reference to the node/file ID
   fileName: string
-  fileType: 'text'
+  fileType: 'slate'
   content: string
   isDirty: boolean
   isSavedToDisk: boolean
@@ -57,7 +57,7 @@ export interface EditorState {
 
 // Editor Action types
 export type EditorAction =
-  | { type: 'OPEN_FILE'; fileId: string; fileName: string; fileType: 'text'; content: string; groupId?: string; fileHandle?: FileSystemFileHandle | IFileHandle; readOnly?: boolean }
+  | { type: 'OPEN_FILE'; fileId: string; fileName: string; fileType: 'slate'; content: string; groupId?: string; fileHandle?: FileSystemFileHandle | IFileHandle; readOnly?: boolean }
   | { type: 'CLOSE_TAB'; tabId: string; groupId: string }
   | { type: 'CLOSE_ALL_TABS'; groupId: string }
   | { type: 'CLOSE_FILE_IN_ALL_GROUPS'; fileId: string }

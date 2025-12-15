@@ -14,7 +14,7 @@ import type {
   ManoConfigResult,
   FileResult,
 } from './types'
-import { isTauri } from '@/lib/utils'
+import {isTauri} from "@tauri-apps/api/core";
 
 /**
  * Tauri-specific directory handle wrapper
@@ -66,12 +66,8 @@ class TauriFileHandle implements IFileHandle {
 }
 
 export class TauriFileSystemStrategy implements IFileSystemStrategy {
-  isSupported(): boolean {
-    return isTauri()
-  }
-
   async pickDirectory(): Promise<IDirectoryHandle> {
-    if (!this.isSupported()) {
+    if (!isTauri()) {
       throw new Error('Tauri environment not detected. __TAURI_INTERNALS__ is not available.')
     }
     

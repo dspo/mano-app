@@ -43,11 +43,6 @@ export interface FileResult {
  */
 export interface IFileSystemStrategy {
   /**
-   * Check if this strategy is supported in current environment
-   */
-  isSupported(): boolean
-
-  /**
    * Pick a directory (show directory picker dialog)
    */
   pickDirectory(): Promise<IDirectoryHandle>

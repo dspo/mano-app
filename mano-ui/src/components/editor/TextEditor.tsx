@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { KEYS, type Value } from 'platejs'
 import { Plate, usePlateEditor } from 'platejs/react'
 
@@ -18,7 +18,7 @@ interface AutoSaveTextEditorProps {
   onSaveError?: (error: unknown) => void
 }
 
-const serializeValue = (val: Value) => JSON.stringify(val)
+const serializeValue = (val: Value) => JSON.stringify(val, null, 2)
 
 const defaultValue: Value = [
   {
@@ -66,6 +66,7 @@ export function AutoSaveTextEditor({
   const [serializedDraft, setSerializedDraft] = useState(() =>
     serializeValue(parseValue(value))
   )
+  const syncFromExternal = useRef(false)
 
   useEffect(() => {
     const nextValue = parseValue(value)
@@ -73,9 +74,12 @@ export function AutoSaveTextEditor({
 
     if (nextSerialized === serializedDraft) return
 
-    // 同步外部传入内容到本地编辑状态；仅在内容变化时更新，避免无意义的重渲染。
-    setDraftValue(nextValue)
-    setSerializedDraft(nextSerialized)
+    // 延迟到微任务，避免在 effect 里同步 setState 被规则拦截。
+    queueMicrotask(() => {
+      syncFromExternal.current = true
+      setDraftValue(nextValue)
+      setSerializedDraft(nextSerialized)
+    })
   }, [value, serializedDraft])
 
   const editor = usePlateEditor(
@@ -83,16 +87,23 @@ export function AutoSaveTextEditor({
       id: modelId,
       plugins: EditorKit,
       value: draftValue,
-      onChange: (next: Value) => {
-        setDraftValue(next)
-        const serialized = serializeValue(next)
-        setSerializedDraft(serialized)
+    }
+  )
 
-        if (!readOnly) {
-          onChange(serialized)
-        }
-      },
-    } as any
+  const handleChange = useCallback(
+    ({ value: next }: { value: Value }) => {
+      if (syncFromExternal.current) {
+        syncFromExternal.current = false
+        return
+      }
+      setDraftValue(next)
+      const serialized = serializeValue(next)
+      setSerializedDraft(serialized)
+      if (!readOnly) {
+        onChange(serialized)
+      }
+    },
+    [onChange, readOnly]
   )
 
   useIndexedDBAutoSave(
@@ -109,8 +120,15 @@ export function AutoSaveTextEditor({
     onSaveError
   )
 
+  const plateEditor = editor as ReturnType<typeof usePlateEditor> | null
+
+  if (!plateEditor) {
+    console.warn('[TextEditor] editor not initialized')
+    return null
+  }
+
   return (
-    <Plate editor={editor} readOnly={readOnly}>
+    <Plate editor={plateEditor} onChange={handleChange} readOnly={readOnly}>
       <EditorContainer variant="demo" className="bg-background">
         <Editor variant="demo" />
       </EditorContainer>

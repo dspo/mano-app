@@ -9,7 +9,7 @@
  * This compatibility layer will be removed in a future version.
  */
 
-import { getFileSystem, isFileSystemSupported } from './fileSystem/index'
+import { getFileSystem } from './fileSystem/index'
 import type { IFileHandle, IDirectoryHandle } from './fileSystem/index'
 import type { ManoConfig } from '@/types/mano-config'
 
@@ -17,7 +17,7 @@ import type { ManoConfig } from '@/types/mano-config'
 export type { IFileHandle, IDirectoryHandle } from './fileSystem/index'
 
 // Re-export functions
-export { getFileSystem, isFileSystemSupported }
+export { getFileSystem }
 
 // Re-export for convenience
 export { getNodeFilename } from '@/types/mano-config'
@@ -33,39 +33,6 @@ export async function saveToFileSystem(
   content: string | unknown
 ): Promise<boolean> {
   return getFileSystem().saveToFile(fileHandle, content)
-}
-
-/**
- * Read content from a file
- * @param fileHandle - File handle
- * @returns file content as string
- */
-export async function readFromFileSystem(
-  fileHandle: IFileHandle
-): Promise<string> {
-  return getFileSystem().readFromFile(fileHandle)
-}
-
-/**
- * Check if File System Access API is supported
- */
-export function isFileSystemAccessSupported(): boolean {
-  return isFileSystemSupported()
-}
-
-/**
- * Read or create mano.conf.json from directory
- * @param dirHandle - Directory handle
- * @returns ManoConfig object and file handle
- */
-export async function readOrCreateManoConfig(
-  dirHandle: IDirectoryHandle
-): Promise<{ config: ManoConfig; fileHandle: IFileHandle }> {
-  const result = await getFileSystem().readOrCreateManoConfig(dirHandle)
-  return {
-    config: result.config,
-    fileHandle: result.fileHandle,
-  }
 }
 
 /**

@@ -13,7 +13,6 @@ import { useEditor } from '@/hooks/useEditor'
 import { toast } from 'sonner'
 import type { IFileHandle, IDirectoryHandle } from '@/services/fileSystem'
 import { TauriDirectoryHandle } from '@/services/fileSystem/tauriStrategy'
-import { isTauri } from '@/lib/utils'
 import {
   getFileSystem,
   saveManoConfig,
@@ -39,6 +38,7 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core'
+import {isTauri} from "@tauri-apps/api/core";
 
 // Mock file contents
 const fileContents: Record<string, string> = {
@@ -1098,7 +1098,7 @@ function IDELayoutContent() {
           type: 'OPEN_FILE',
           fileId: file.id,
           fileName: file.name,
-          fileType: 'text',
+          fileType: 'slate',
           content: parsedContent,
           fileHandle: undefined,
           readOnly: true, // Mark as read-only for trash files
@@ -1128,7 +1128,7 @@ function IDELayoutContent() {
       console.log('[handleFileClick] filename from getNodeFilename:', filename)
       
       // Determine file type and default content
-      let fileType: 'text' = 'text'
+      const fileType: 'slate' = 'slate'
       let defaultContent = ''
       
       if (file.nodeType === 'Markdown') {

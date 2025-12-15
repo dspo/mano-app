@@ -29,16 +29,16 @@ export function useFileSystemAutoSave(
   const isSavingRef = useRef(false)
   const latestContentRef = useRef<unknown>(content)
   const latestFileHandleRef = useRef(fileHandle)
+  const saveToFileRef = useRef<((payload: unknown) => Promise<void>) | null>(null)
   
   // Update latest references
   latestContentRef.current = content
   latestFileHandleRef.current = fileHandle
 
-  const saveToFile = async (contentToSave: unknown) => {
+  // 持久化保存函数，避免因引用变化导致定时器被反复重置
+  saveToFileRef.current = async (contentToSave: unknown) => {
     const currentHandle = latestFileHandleRef.current
-    if (!currentHandle || isSavingRef.current) {
-      return
-    }
+    if (!currentHandle || isSavingRef.current) return
 
     try {
       isSavingRef.current = true
@@ -47,17 +47,18 @@ export function useFileSystemAutoSave(
       const textContent =
         typeof contentToSave === 'string' ? contentToSave : JSON.stringify(contentToSave, null, 2)
 
-      // Use cross-platform file system strategy
       const fileSystem = getFileSystem()
-      await fileSystem.saveToFile(currentHandle as IFileHandle, textContent)
+          const ok = await fileSystem.saveToFile(currentHandle as IFileHandle, textContent)
 
-      console.log('[FileSystemAutoSave] Saved to disk')
-      onSaveSuccess?.()
-      
-      // Update saved content reference
-      previousContentRef.current = contentToSave
+      if (ok) {
+        const handleName = (currentHandle as IFileHandle | FileSystemFileHandle | undefined)?.name
+        console.log('[FileSystemAutoSave] Saved to disk', handleName ? `(${handleName})` : '')
+        onSaveSuccess?.()
+        previousContentRef.current = contentToSave
+      } else {
+        onSaveError?.(new Error('saveToFile returned false'))
+      }
     } catch (error) {
-      console.error('[FileSystemAutoSave] Failed to save:', error)
       onSaveError?.(error)
     } finally {
       isSavingRef.current = false
@@ -71,9 +72,7 @@ export function useFileSystemAutoSave(
     }
 
     // Don't save when file handle is missing
-    if (!fileHandle) {
-      return
-    }
+    if (!fileHandle) return
 
     // First render, initialize previousContentRef
     if (previousContentRef.current === undefined) {
@@ -86,11 +85,9 @@ export function useFileSystemAutoSave(
     const previousContentStr = JSON.stringify(previousContentRef.current)
     
     if (currentContentStr !== previousContentStr) {
-      console.log('[FileSystemAutoSave] Content changed, scheduling save...')
-      
       // Set debounce timer
       timeoutRef.current = setTimeout(() => {
-        saveToFile(content)
+          void saveToFileRef.current?.(content)
       }, delay)
     }
 
@@ -99,7 +96,7 @@ export function useFileSystemAutoSave(
         clearTimeout(timeoutRef.current)
       }
     }
-  }, [content, fileHandle, delay, saveToFile])
+  }, [content, fileHandle, delay])
 
   // Immediately save unsaved content on component unmount
   useEffect(() => {
@@ -118,8 +115,8 @@ export function useFileSystemAutoSave(
         JSON.stringify(latestContent) !== JSON.stringify(previousContentRef.current)
       ) {
         // Final save on component unmount (synchronous execution)
-        saveToFile(latestContent)
+        void saveToFileRef.current?.(latestContent)
       }
     }
-  }, [saveToFile])
+  }, [])
 }

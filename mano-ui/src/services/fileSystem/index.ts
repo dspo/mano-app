@@ -3,11 +3,12 @@
  * Strategy pattern implementation for cross-platform file system operations
  */
 
-import { isTauri, isSafari } from '@/lib/utils'
 import { ChromeFileSystemStrategy } from './chromeStrategy'
 import { SafariFileSystemStrategy } from './safariStrategy'
 import { TauriFileSystemStrategy, TauriDirectoryHandle } from './tauriStrategy'
 import type { IFileSystemStrategy } from './types'
+import {isTauri} from "@tauri-apps/api/core";
+import {isSafari} from "@/lib/utils.ts";
 
 // Export types for external use
 export type {
@@ -62,13 +63,6 @@ class FileSystemService {
     }
     return this.strategy
   }
-
-  /**
-   * Check if file system operations are supported
-   */
-  public isSupported(): boolean {
-    return this.getStrategy().isSupported()
-  }
 }
 
 /**
@@ -77,13 +71,6 @@ class FileSystemService {
  */
 export function getFileSystem(): IFileSystemStrategy {
   return FileSystemService.getInstance().getStrategy()
-}
-
-/**
- * Check if file system operations are supported
- */
-export function isFileSystemSupported(): boolean {
-  return FileSystemService.getInstance().isSupported()
 }
 
 // Re-export for convenience

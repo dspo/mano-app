@@ -6,14 +6,6 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
- * Check if the application is running in Tauri environment
- * @returns true if running in Tauri, false otherwise
- */
-export const isTauri = () => {
-  return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
-}
-
-/**
  * Detect Chrome (includes Edge/Chromium variants, but used for FS Access support).
  */
 export const isChrome = () => {

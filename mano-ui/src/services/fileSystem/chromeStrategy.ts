@@ -49,10 +49,6 @@ class ChromeFileHandle implements IFileHandle {
 }
 
 export class ChromeFileSystemStrategy implements IFileSystemStrategy {
-  isSupported(): boolean {
-    return typeof window !== 'undefined' && 'showDirectoryPicker' in window
-  }
-
   async pickDirectory(): Promise<IDirectoryHandle> {
     try {
       const handle = await window.showDirectoryPicker({
