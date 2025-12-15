@@ -129,8 +129,8 @@ export function AutoSaveTextEditor({
 
   return (
     <Plate editor={plateEditor} onChange={handleChange} readOnly={readOnly}>
-      <EditorContainer variant="demo" className="bg-background">
-        <Editor variant="demo" />
+      <EditorContainer className="bg-background">
+        <Editor />
       </EditorContainer>
     </Plate>
   )

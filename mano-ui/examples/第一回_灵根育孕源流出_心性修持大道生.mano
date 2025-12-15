@@ -39,10 +39,10 @@
     "type": "p",
     "children": [
       {
-        "text": ""
+        "text": "欲知造化会元功，须看《西游释厄传》。"
       }
     ],
-    "id": "OznEAH5ej2"
+    "id": "2Ox0fT7qkV"
   },
   {
     "type": "p",
@@ -51,16 +51,7 @@
         "text": "欲知造化会元功，须看《西游释厄传》。"
       }
     ],
-    "id": "2Ox0fT7qkV"
-  },
-  {
-    "type": "p",
-    "id": "uLW5c2Ht12",
-    "children": [
-      {
-        "text": ""
-      }
-    ]
+    "id": "PKq4qwUkyn"
   },
   {
     "type": "p",
@@ -68,6 +59,15 @@
     "children": [
       {
         "text": "本书完。"
+      }
+    ]
+  },
+  {
+    "type": "p",
+    "id": "QQ5nBiQaBc",
+    "children": [
+      {
+        "text": ""
       }
     ]
   }
