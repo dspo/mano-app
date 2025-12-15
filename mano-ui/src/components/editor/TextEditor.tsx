@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Textarea } from '@/components/ui/textarea'
+import { KEYS, type Value } from 'platejs'
+import { Plate, usePlateEditor } from 'platejs/react'
+
+import { EditorContainer, Editor } from '@/components/ui/editor'
+import { EditorKit } from '@/components/editor/editor-kit'
 import { useIndexedDBAutoSave } from '@/hooks/useIndexedDB'
 import { useFileSystemAutoSave } from '@/hooks/useFileSystemAutoSave'
 import type { IFileHandle } from '@/services/fileSystem'
@@ -14,6 +18,41 @@ interface AutoSaveTextEditorProps {
   onSaveError?: (error: unknown) => void
 }
 
+const serializeValue = (val: Value) => JSON.stringify(val)
+
+const defaultValue: Value = [
+  {
+    id: 'p-0',
+    type: KEYS.p,
+    children: [{ text: '' }],
+  },
+]
+
+const textToValue = (text: string): Value => {
+  if (!text) return defaultValue
+
+  return text.split('\n').map((line, index) => ({
+    id: `p-${index}`,
+    type: KEYS.p,
+    children: [{ text: line }],
+  }))
+}
+
+const parseValue = (raw: string): Value => {
+  if (!raw) return defaultValue
+
+  try {
+    const parsed = JSON.parse(raw)
+    if (Array.isArray(parsed)) {
+      return parsed
+    }
+  } catch (error) {
+    console.warn('[Editor] Failed to parse content as JSON, fallback to plain text.', error)
+  }
+
+  return textToValue(raw)
+}
+
 export function AutoSaveTextEditor({
   value,
   onChange,
@@ -23,36 +62,58 @@ export function AutoSaveTextEditor({
   onSaveSuccess,
   onSaveError,
 }: AutoSaveTextEditorProps) {
-  const [draft, setDraft] = useState<string>(value)
+  const [draftValue, setDraftValue] = useState<Value>(() => parseValue(value))
+  const [serializedDraft, setSerializedDraft] = useState(() =>
+    serializeValue(parseValue(value))
+  )
 
   useEffect(() => {
-    setDraft(value)
-  }, [value])
+    const nextValue = parseValue(value)
+    const nextSerialized = serializeValue(nextValue)
 
-  useIndexedDBAutoSave(readOnly ? null : `editor-content-${modelId}`, draft, 1000)
+    if (nextSerialized === serializedDraft) return
+
+    // 同步外部传入内容到本地编辑状态；仅在内容变化时更新，避免无意义的重渲染。
+    setDraftValue(nextValue)
+    setSerializedDraft(nextSerialized)
+  }, [value, serializedDraft])
+
+  const editor = usePlateEditor(
+    {
+      id: modelId,
+      plugins: EditorKit,
+      value: draftValue,
+      onChange: (next: Value) => {
+        setDraftValue(next)
+        const serialized = serializeValue(next)
+        setSerializedDraft(serialized)
+
+        if (!readOnly) {
+          onChange(serialized)
+        }
+      },
+    } as any
+  )
+
+  useIndexedDBAutoSave(
+    readOnly ? null : `editor-content-${modelId}`,
+    serializedDraft,
+    1000
+  )
+
   useFileSystemAutoSave(
     readOnly ? undefined : fileHandle,
-    draft,
+    serializedDraft,
     1000,
     onSaveSuccess,
     onSaveError
   )
 
   return (
-    <div className="h-full flex flex-col bg-background">
-      <Textarea
-        value={draft}
-        onChange={(event) => {
-          const next = event.target.value
-          setDraft(next)
-          if (!readOnly) {
-            onChange(next)
-          }
-        }}
-        readOnly={readOnly}
-        className="flex-1 min-h-0 h-full resize-none font-mono text-sm leading-6"
-        placeholder="Start typing..."
-      />
-    </div>
+    <Plate editor={editor} readOnly={readOnly}>
+      <EditorContainer variant="demo" className="bg-background">
+        <Editor variant="demo" />
+      </EditorContainer>
+    </Plate>
   )
 }
