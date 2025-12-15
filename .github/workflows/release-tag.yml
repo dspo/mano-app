@@ -1,0 +1,139 @@
+name: Release Tag
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: 'macos-latest'
+            args: '--target aarch64-apple-darwin'
+            target: 'aarch64-apple-darwin'
+          - platform: 'windows-latest'
+            args: '--target x86_64-pc-windows-msvc'
+            target: 'x86_64-pc-windows-msvc'
+          - platform: 'windows-latest'
+            args: '--target aarch64-pc-windows-msvc'
+            target: 'aarch64-pc-windows-msvc'
+          - platform: 'ubuntu-24.04'
+            args: '--target x86_64-unknown-linux-gnu'
+            target: 'x86_64-unknown-linux-gnu'
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: './mano-tauri -> target'
+
+      - name: Install frontend dependencies
+        run: |
+          cd mano-ui
+          pnpm install
+
+      - name: Install Ubuntu dependencies
+        if: startsWith(matrix.platform, 'ubuntu-')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Delete existing release for tag
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Cleaning existing release for ${{ github.ref_name }} if present..."
+          gh release delete "${{ github.ref_name }}" --yes || echo "No existing release to delete"
+
+      - name: Build and Release Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          args: ${{ matrix.args }}
+          tagName: ${{ github.ref_name }}
+          releaseName: 'Release ${{ github.ref_name }}'
+          releaseBody: 'Automated release for ${{ github.ref_name }}'
+          releaseDraft: false
+          prerelease: false
+
+  prune-old-releases:
+    name: Prune old tag artifacts
+    needs: release
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Keep last 3 releases per minor
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          CURRENT_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          if [[ "$CURRENT_TAG" =~ ^v([0-9]+)\.([0-9]+)\. ]]; then
+            MINOR_PREFIX="v${BASH_REMATCH[1]}.${BASH_REMATCH[2]}."
+          else
+            echo "Tag $CURRENT_TAG does not match vMAJOR.MINOR.* pattern, skip cleanup."
+            exit 0
+          fi
+
+          releases_json=$(gh api -H "Accept: application/vnd.github+json" /repos/$REPO/releases --paginate)
+
+          tags_to_delete=$(echo "$releases_json" | jq -r \
+            --arg prefix "$MINOR_PREFIX" \
+            'map(select(.tag_name | startswith($prefix))) 
+             | sort_by(.created_at)
+             | if length > 3 then .[0:(length-3)] else [] end
+             | map(.tag_name | select(. != env.CURRENT_TAG)) 
+             | .[]?')
+
+          if [ -z "$tags_to_delete" ]; then
+            echo "No old releases to prune for minor $MINOR_PREFIX"
+            exit 0
+          fi
+
+          while IFS= read -r tag; do
+            [ -n "$tag" ] || continue
+            echo "Deleting release for tag: $tag"
+            gh release delete "$tag" --yes || echo "Failed to delete release $tag"
+          done <<< "$tags_to_delete"
