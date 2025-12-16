@@ -1,75 +1,38 @@
-# React + TypeScript + Vite
+# Mano UI
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Mano 的前端代码（React 19 + Vite 7 + Tailwind 4 + plate.js + shadcn/ui），同时服务于浏览器模式与 Tauri 2 桌面端。
 
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## React Compiler
-
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
-
-Note: This will impact Vite dev & build performances.
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## 开发
+```bash
+pnpm install
+pnpm dev          # 浏览器预览，默认 5173
+pnpm dev --port 1420   # Tauri dev 会调用此命令
+pnpm lint
+pnpm build
+pnpm preview
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+> 已启用 React Compiler。保持函数式组件，避免滥用 `useMemo`/`useCallback`/`React.memo`。
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## 核心特性
+- plate.js 编辑器：完整插件套件（表格、媒体、公式、Slash 命令、评论等），自动保存到 IndexedDB 与文件系统（1s 防抖），`⌘/Ctrl+S` 触发立即保存
+- IDE 布局：ActivityBar + 文件树 + 可分屏编辑器 + Bottom Panel（分隔条或 `⌘/Ctrl+J` 展开，内容目前为占位）
+- 文件树：全局唯一节点名，右键 “Create Mano Text” 新建，双击重命名，拖拽排序，删除会写入垃圾篓（内容 base64）并删除对应文件；垃圾篓只读，可恢复或彻底删除
+- 拖放与分屏：标签可在分屏间拖动；落在边缘创建新分屏；`⌘/Ctrl+\\` 快速向右分屏
+- 工作区存储：使用 `mano.conf.json` 记录树结构，缺失时自动生成，内含 `__trash__` 节点
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## 文件系统策略
+- Tauri：通过 `@tauri-apps/plugin-dialog` / `plugin-fs` 处理文件与重命名
+- Chrome：使用 File System Access API（需读写权限）
+- Safari：不支持文件系统操作，会抛出错误提示改用桌面端或 Chrome
+
+## 使用流程
+1. 首次进入点击 Sidebar 顶部的 “Mano” 打开文件夹（或由 Tauri 菜单发送 `workspace_updated` 事件）。
+2. 选择/创建 `mano.conf.json` 后即可在树上右键新建或双击重命名；Markdown 会以 `.md`，其余文本以 `.mano` 落盘。
+3. 删除节点 → 写入垃圾篓并移除物理文件；在垃圾篓右键 “Move out” 还原文件，“Delete” 彻底删除配置。
+4. 从垃圾篓打开的文件只读（预览用途）。
+
+## 约束与约定
+- 全局唯一名称：同一工作区任意节点名不得重复（包括目录）
+- 样式：仅 Tailwind 4 + shadcn/ui，不引入自定义 CSS
+- 浏览器依赖：需要支持 File System Access API 的环境，或运行在 Tauri
