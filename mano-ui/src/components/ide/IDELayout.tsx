@@ -621,12 +621,27 @@ function IDELayoutContent() {
           // Only rename if filenames are different
           if (oldFilename !== newFilename) {
             const fileSystem = getFileSystem()
+            // Ensure the old file exists (new nodes may not have been persisted yet)
+            await getOrCreateFile(dirHandle, oldFilename, '')
             const renamed = await fileSystem.renameFile(dirHandle, oldFilename, newFilename)
             
             if (!renamed) {
               toast.error('文件重命名失败，节点名称未更改。请检查文件系统权限。')
               return
             }
+
+            // Refresh file handle to point to new filename so autosave uses the renamed file
+            const { fileHandle: renamedHandle } = await getOrCreateFile(
+              dirHandle,
+              newFilename,
+              ''
+            )
+            dispatch({
+              type: 'UPDATE_MODEL_FILE_META',
+              fileId: node.id,
+              fileName: newName,
+              fileHandle: renamedHandle,
+            })
           }
         } catch (error) {
           console.error('Failed to rename physical file:', error)

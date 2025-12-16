@@ -309,6 +309,27 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
       }
     }
 
+    case 'UPDATE_MODEL_FILE_META': {
+      const updatedModels: EditorState['models'] = {}
+
+      Object.entries(state.models).forEach(([modelId, model]) => {
+        if (model.fileId === action.fileId) {
+          updatedModels[modelId] = {
+            ...model,
+            fileName: action.fileName,
+            fileHandle: action.fileHandle ?? model.fileHandle,
+          }
+        } else {
+          updatedModels[modelId] = model
+        }
+      })
+
+      return {
+        ...state,
+        models: updatedModels,
+      }
+    }
+
     case 'MARK_MODEL_SAVED': {
       const model = state.models[action.modelId]
       if (!model) return state

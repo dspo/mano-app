@@ -2,7 +2,6 @@
 
 
 import {
-  ArrowUpToLineIcon,
   BaselineIcon,
   BoldIcon,
   Code2Icon,
@@ -17,12 +16,9 @@ import { useEditorReadOnly } from 'platejs/react';
 
 import { AlignToolbarButton } from './align-toolbar-button';
 import { CommentToolbarButton } from './comment-toolbar-button';
-import { EmojiToolbarButton } from './emoji-toolbar-button';
-import { ExportToolbarButton } from './export-toolbar-button';
 import { FontColorToolbarButton } from './font-color-toolbar-button';
 import { FontSizeToolbarButton } from './font-size-toolbar-button';
 import { RedoToolbarButton, UndoToolbarButton } from './history-toolbar-button';
-import { ImportToolbarButton } from './import-toolbar-button';
 import {
   IndentToolbarButton,
   OutdentToolbarButton,
@@ -48,20 +44,12 @@ export function FixedToolbarButtons() {
   const readOnly = useEditorReadOnly();
 
   return (
-    <div className="flex w-full">
+    <div className="flex w-full flex-wrap items-center gap-2">
       {!readOnly && (
-        <>
+        <div className="flex flex-1 flex-wrap items-center gap-2">
           <ToolbarGroup>
             <UndoToolbarButton />
             <RedoToolbarButton />
-          </ToolbarGroup>
-
-          <ToolbarGroup>
-            <ExportToolbarButton>
-              <ArrowUpToLineIcon />
-            </ExportToolbarButton>
-
-            <ImportToolbarButton />
           </ToolbarGroup>
 
           <ToolbarGroup>
@@ -121,7 +109,6 @@ export function FixedToolbarButtons() {
           <ToolbarGroup>
             <LinkToolbarButton />
             <TableToolbarButton />
-            <EmojiToolbarButton />
           </ToolbarGroup>
 
           <ToolbarGroup>
@@ -140,21 +127,21 @@ export function FixedToolbarButtons() {
           <ToolbarGroup>
             <MoreToolbarButton />
           </ToolbarGroup>
-        </>
+        </div>
       )}
 
-      <div className="grow" />
+      <div className="flex flex-shrink-0 items-center gap-2">
+        <ToolbarGroup>
+          <MarkToolbarButton nodeType={KEYS.highlight} tooltip="Highlight">
+            <HighlighterIcon />
+          </MarkToolbarButton>
+          <CommentToolbarButton />
+        </ToolbarGroup>
 
-      <ToolbarGroup>
-        <MarkToolbarButton nodeType={KEYS.highlight} tooltip="Highlight">
-          <HighlighterIcon />
-        </MarkToolbarButton>
-        <CommentToolbarButton />
-      </ToolbarGroup>
-
-      <ToolbarGroup>
-        <ModeToolbarButton />
-      </ToolbarGroup>
+        <ToolbarGroup>
+          <ModeToolbarButton />
+        </ToolbarGroup>
+      </div>
     </div>
   );
 }

@@ -65,6 +65,7 @@ export type EditorAction =
   | { type: 'SPLIT_GROUP'; groupId: string; direction: 'horizontal' | 'vertical' }
   | { type: 'CLOSE_GROUP'; groupId: string }
   | { type: 'UPDATE_MODEL_CONTENT'; modelId: string; content: string }
+  | { type: 'UPDATE_MODEL_FILE_META'; fileId: string; fileName: string; fileHandle?: FileSystemFileHandle | IFileHandle }
   | { type: 'MARK_MODEL_SAVED'; modelId: string }
   | { type: 'MARK_MODEL_SAVED_TO_DISK'; modelId: string }
   | { type: 'MOVE_TAB_BETWEEN_GROUPS'; tabId: string; sourceGroupId: string; targetGroupId: string }
