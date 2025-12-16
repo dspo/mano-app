@@ -43,6 +43,7 @@ interface FileTreeItemProps {
   contextMenuNodeId?: string | null
   onContextMenuChange?: (nodeId: string | null) => void
   onToggleExpand?: (nodeId: string, isExpanded: boolean) => void
+  rootNodes: FileNode[]
 }
 
 const parseRowId = (id: string | number | symbol | undefined) => {
@@ -51,7 +52,7 @@ const parseRowId = (id: string | number | symbol | undefined) => {
   return m ? m[1] : null
 }
 
-function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragOverId, dropMode, dropLevel, onCreateNode, editingNodeId, onStartRename, onRenameNode, onCancelEdit, onRemoveNode, onMoveOut, onDeleteNode, isInTrash = false, movingOutNodeId, removingNodeId, contextMenuNodeId, onContextMenuChange, onToggleExpand }: FileTreeItemProps) {
+function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragOverId, dropMode, dropLevel, onCreateNode, editingNodeId, onStartRename, onRenameNode, onCancelEdit, onRemoveNode, onMoveOut, onDeleteNode, isInTrash = false, movingOutNodeId, removingNodeId, contextMenuNodeId, onContextMenuChange, onToggleExpand, rootNodes }: FileTreeItemProps) {
   // Read initial state from node.expanded (default false if not set)
   const [isOpen, setIsOpen] = useState(node.expanded ?? false)
   const [editValue, setEditValue] = useState(node.name)
@@ -71,6 +72,43 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
   
   // Check if current node is trash or inside trash
   const isTrashNode = node.id === '__trash__' || isInTrash
+  const nodePath = findNodePath(rootNodes, node.id)
+  const parentPath = nodePath ? nodePath.slice(0, -1) : null
+  const siblings = (() => {
+    if (!nodePath) return null
+    if (nodePath.length === 1) return rootNodes
+    const parent = parentPath ? getNodeByPath(rootNodes, parentPath) : null
+    return parent?.children ?? null
+  })()
+  const selfIndex = nodePath ? nodePath[nodePath.length - 1] : -1
+  const leftSibling = siblings && selfIndex > 0 ? siblings[selfIndex - 1] : null
+  const rightSibling = siblings && siblings.length > selfIndex + 1 ? siblings[selfIndex + 1] : null
+  const parentNode = parentPath ? getNodeByPath(rootNodes, parentPath) : null
+  const canMoveUp = !!leftSibling && !isTrashNode
+  const canMoveDown = !!rightSibling && !isTrashNode
+  const canMoveLeft = !!parentNode && nodePath && nodePath.length > 1 && !isTrashNode
+  const canMoveRight = !!leftSibling && leftSibling.id !== '__trash__' && !isTrashNode
+  const handleMoveUp = () => {
+    if (onReorder && leftSibling) {
+      onReorder({ sourceId: node.id, targetId: leftSibling.id, mode: 'before' })
+    }
+  }
+  const handleMoveDown = () => {
+    if (onReorder && rightSibling) {
+      onReorder({ sourceId: node.id, targetId: rightSibling.id, mode: 'after' })
+    }
+  }
+  const handleMoveLeft = () => {
+    if (onReorder && parentNode) {
+      onReorder({ sourceId: node.id, targetId: parentNode.id, mode: 'after' })
+    }
+  }
+  const handleMoveRight = () => {
+    if (onReorder && leftSibling && leftSibling.id !== '__trash__') {
+      onToggleExpand?.(leftSibling.id, true)
+      onReorder({ sourceId: node.id, targetId: leftSibling.id, mode: 'into' })
+    }
+  }
   
   // Handle double-click to enter rename mode
   const handleNodeDoubleClick = () => {
@@ -296,6 +334,30 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
             {!isInTrash && (
               <>
                 <ContextMenuItem
+                  onClick={handleMoveUp}
+                  disabled={!canMoveUp}
+                >
+                  Move up
+                </ContextMenuItem>
+                <ContextMenuItem
+                  onClick={handleMoveDown}
+                  disabled={!canMoveDown}
+                >
+                  Move down
+                </ContextMenuItem>
+                <ContextMenuItem
+                  onClick={handleMoveLeft}
+                  disabled={!canMoveLeft}
+                >
+                  Move left
+                </ContextMenuItem>
+                <ContextMenuItem
+                  onClick={handleMoveRight}
+                  disabled={!canMoveRight}
+                >
+                  Move right
+                </ContextMenuItem>
+                <ContextMenuItem
                   onClick={() => onCreateNode?.(node)}
                   disabled={node.readOnly || isTrashNode}
                 >
@@ -341,6 +403,7 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
                 contextMenuNodeId={contextMenuNodeId}
                 onContextMenuChange={onContextMenuChange}
                 onToggleExpand={onToggleExpand}
+                rootNodes={rootNodes}
               />
             ))}
           </div>
@@ -461,6 +524,30 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
           {!isInTrash && (
             <>
               <ContextMenuItem
+                onClick={handleMoveUp}
+                disabled={!canMoveUp}
+              >
+                Move up
+              </ContextMenuItem>
+              <ContextMenuItem
+                onClick={handleMoveDown}
+                disabled={!canMoveDown}
+              >
+                Move down
+              </ContextMenuItem>
+              <ContextMenuItem
+                onClick={handleMoveLeft}
+                disabled={!canMoveLeft}
+              >
+                Move left
+              </ContextMenuItem>
+              <ContextMenuItem
+                onClick={handleMoveRight}
+                disabled={!canMoveRight}
+              >
+                Move right
+              </ContextMenuItem>
+              <ContextMenuItem
                 onClick={() => onCreateNode?.(node)}
                 disabled={node.readOnly || isTrashNode}
               >
@@ -506,6 +593,7 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
               contextMenuNodeId={contextMenuNodeId}
               onContextMenuChange={onContextMenuChange}
               onToggleExpand={onToggleExpand}
+              rootNodes={rootNodes}
             />
           ))}
         </div>
@@ -795,6 +883,7 @@ export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree =
                   contextMenuNodeId={contextMenuNodeId}
                   onContextMenuChange={setContextMenuNodeId}
                   onToggleExpand={onToggleExpand}
+                  rootNodes={fileTree}
                 />
               ))}
             </div>

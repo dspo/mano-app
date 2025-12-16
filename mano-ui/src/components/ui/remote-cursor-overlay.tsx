@@ -22,7 +22,7 @@ export function RemoteCursorOverlay() {
 }
 
 function RemoteCursorOverlayContent() {
-  const containerRef: any = useEditorContainerRef();
+  const containerRef = useEditorContainerRef() as React.RefObject<HTMLDivElement>;
   const [cursors] = useRemoteCursorOverlayPositions<CursorData>({
     containerRef,
   });

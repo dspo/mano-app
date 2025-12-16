@@ -73,11 +73,9 @@ import {
 import { Popover, PopoverContent } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 
-import { blockSelectionVariants } from './block-selection';
-import {
-  ColorDropdownMenuItems,
-  DEFAULT_COLORS,
-} from './font-color-toolbar-button';
+import { blockSelectionVariants } from './block-selection-variants';
+import { ColorDropdownMenuItems } from './font-color-toolbar-button';
+import { DEFAULT_COLORS } from './font-color-constants';
 import { ResizeHandle } from './resize-handle';
 import {
   BorderAllIcon,
@@ -477,7 +475,7 @@ export function TableRowElement({
   );
 }
 
-function RowDragHandle({ dragRef }: { dragRef: React.Ref<any> }) {
+function RowDragHandle({ dragRef }: { dragRef: React.Ref<HTMLButtonElement> }) {
   const editor = useEditorRef();
   const element = useElement();
 
@@ -605,13 +603,21 @@ export function TableCellElement({
                 />
               )}
 
-              <div
-                className={cn(
-                  'absolute top-0 z-30 hidden h-full w-1 bg-ring',
-                  'right-[-1.5px]',
-                  columnResizeVariants({ colIndex: colIndex as any })
-                )}
-              />
+              {(() => {
+                const colVariant =
+                  typeof colIndex === 'number' && colIndex >= 0 && colIndex <= 10
+                    ? (colIndex as 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10)
+                    : undefined;
+                return (
+                  <div
+                    className={cn(
+                      'absolute top-0 z-30 hidden h-full w-1 bg-ring',
+                      'right-[-1.5px]',
+                      columnResizeVariants({ colIndex: colVariant })
+                    )}
+                  />
+                );
+              })()}
               {colIndex === 0 && (
                 <div
                   className={cn(
