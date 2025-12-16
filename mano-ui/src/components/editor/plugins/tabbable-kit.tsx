@@ -14,16 +14,16 @@ export const TabbableKit = TabbablePlugin.configure(({ editor }) => ({
 
       return !editor.api.some({
         match: (n) =>
-          !!(
-            (n.type &&
-              [
-                KEYS.codeBlock,
-                KEYS.li,
-                KEYS.listTodoClassic,
-                KEYS.table,
-              ].includes(n.type as any)) ||
-            n.listStyleType
-          ),
+          !!(() => {
+            const disallow = [
+              KEYS.codeBlock,
+              KEYS.li,
+              KEYS.listTodoClassic,
+              KEYS.table,
+            ] as const;
+            const type = typeof n.type === 'string' ? n.type : null;
+            return (type && disallow.includes(type as (typeof disallow)[number])) || n.listStyleType;
+          })(),
       });
     },
   },

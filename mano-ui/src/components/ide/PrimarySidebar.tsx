@@ -4,6 +4,7 @@ import type { DragEndEvent, DragStartEvent, DragOverEvent } from '@dnd-kit/core'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useState, useRef, useEffect } from 'react'
 import { cn } from '@/lib/utils'
+import { findNodePath, getNodeByPath } from '@/lib/tree-utils'
 import type { ManoNode } from '@/types/mano-config'
 import { ManoTextAlignStartIcon } from '@/icons/icons'
 import {
@@ -16,6 +17,8 @@ import { ManoLogoIcon } from '@/icons/ManoLogoIcon'
 
 // For backward compatibility, keep FileNode as alias
 export type FileNode = ManoNode
+
+const HORIZONTAL_GESTURE_THRESHOLD = 24
 
 interface FileTreeItemProps {
   node: FileNode
@@ -40,9 +43,16 @@ interface FileTreeItemProps {
   contextMenuNodeId?: string | null
   onContextMenuChange?: (nodeId: string | null) => void
   onToggleExpand?: (nodeId: string, isExpanded: boolean) => void
+  rootNodes: FileNode[]
 }
 
-function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragOverId, dropMode, dropLevel, onCreateNode, editingNodeId, onStartRename, onRenameNode, onCancelEdit, onRemoveNode, onMoveOut, onDeleteNode, isInTrash = false, movingOutNodeId, removingNodeId, contextMenuNodeId, onContextMenuChange, onToggleExpand }: FileTreeItemProps) {
+const parseRowId = (id: string | number | symbol | undefined) => {
+  if (id === undefined) return null
+  const m = String(id).match(/^row-(.*)$/)
+  return m ? m[1] : null
+}
+
+function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragOverId, dropMode, dropLevel, onCreateNode, editingNodeId, onStartRename, onRenameNode, onCancelEdit, onRemoveNode, onMoveOut, onDeleteNode, isInTrash = false, movingOutNodeId, removingNodeId, contextMenuNodeId, onContextMenuChange, onToggleExpand, rootNodes }: FileTreeItemProps) {
   // Read initial state from node.expanded (default false if not set)
   const [isOpen, setIsOpen] = useState(node.expanded ?? false)
   const [editValue, setEditValue] = useState(node.name)
@@ -62,6 +72,43 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
   
   // Check if current node is trash or inside trash
   const isTrashNode = node.id === '__trash__' || isInTrash
+  const nodePath = findNodePath(rootNodes, node.id)
+  const parentPath = nodePath ? nodePath.slice(0, -1) : null
+  const siblings = (() => {
+    if (!nodePath) return null
+    if (nodePath.length === 1) return rootNodes
+    const parent = parentPath ? getNodeByPath(rootNodes, parentPath) : null
+    return parent?.children ?? null
+  })()
+  const selfIndex = nodePath ? nodePath[nodePath.length - 1] : -1
+  const leftSibling = siblings && selfIndex > 0 ? siblings[selfIndex - 1] : null
+  const rightSibling = siblings && siblings.length > selfIndex + 1 ? siblings[selfIndex + 1] : null
+  const parentNode = parentPath ? getNodeByPath(rootNodes, parentPath) : null
+  const canMoveUp = !!leftSibling && !isTrashNode
+  const canMoveDown = !!rightSibling && !isTrashNode
+  const canMoveLeft = !!parentNode && nodePath && nodePath.length > 1 && !isTrashNode
+  const canMoveRight = !!leftSibling && leftSibling.id !== '__trash__' && !isTrashNode
+  const handleMoveUp = () => {
+    if (onReorder && leftSibling) {
+      onReorder({ sourceId: node.id, targetId: leftSibling.id, mode: 'before' })
+    }
+  }
+  const handleMoveDown = () => {
+    if (onReorder && rightSibling) {
+      onReorder({ sourceId: node.id, targetId: rightSibling.id, mode: 'after' })
+    }
+  }
+  const handleMoveLeft = () => {
+    if (onReorder && parentNode) {
+      onReorder({ sourceId: node.id, targetId: parentNode.id, mode: 'after' })
+    }
+  }
+  const handleMoveRight = () => {
+    if (onReorder && leftSibling && leftSibling.id !== '__trash__') {
+      onToggleExpand?.(leftSibling.id, true)
+      onReorder({ sourceId: node.id, targetId: leftSibling.id, mode: 'into' })
+    }
+  }
   
   // Handle double-click to enter rename mode
   const handleNodeDoubleClick = () => {
@@ -114,13 +161,6 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
       }
     }
   }, [])
-  
-  // Update editValue when editing starts
-  useEffect(() => {
-    if (isEditing) {
-      setEditValue(node.name)
-    }
-  }, [isEditing, node.name])
   
   // Determine if node is a directory
   const isDirectory = node.nodeType === 'Directory'
@@ -294,6 +334,30 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
             {!isInTrash && (
               <>
                 <ContextMenuItem
+                  onClick={handleMoveUp}
+                  disabled={!canMoveUp}
+                >
+                  Move up
+                </ContextMenuItem>
+                <ContextMenuItem
+                  onClick={handleMoveDown}
+                  disabled={!canMoveDown}
+                >
+                  Move down
+                </ContextMenuItem>
+                <ContextMenuItem
+                  onClick={handleMoveLeft}
+                  disabled={!canMoveLeft}
+                >
+                  Move left
+                </ContextMenuItem>
+                <ContextMenuItem
+                  onClick={handleMoveRight}
+                  disabled={!canMoveRight}
+                >
+                  Move right
+                </ContextMenuItem>
+                <ContextMenuItem
                   onClick={() => onCreateNode?.(node)}
                   disabled={node.readOnly || isTrashNode}
                 >
@@ -316,7 +380,7 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
           <div className="relative">
             {node.children!.map((child) => (
               <FileTreeItem
-                key={child.id}
+                key={editingNodeId === child.id ? `${child.id}-editing` : child.id}
                 node={child}
                 level={level + 1}
                 onFileClick={onFileClick}
@@ -339,6 +403,7 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
                 contextMenuNodeId={contextMenuNodeId}
                 onContextMenuChange={onContextMenuChange}
                 onToggleExpand={onToggleExpand}
+                rootNodes={rootNodes}
               />
             ))}
           </div>
@@ -459,6 +524,30 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
           {!isInTrash && (
             <>
               <ContextMenuItem
+                onClick={handleMoveUp}
+                disabled={!canMoveUp}
+              >
+                Move up
+              </ContextMenuItem>
+              <ContextMenuItem
+                onClick={handleMoveDown}
+                disabled={!canMoveDown}
+              >
+                Move down
+              </ContextMenuItem>
+              <ContextMenuItem
+                onClick={handleMoveLeft}
+                disabled={!canMoveLeft}
+              >
+                Move left
+              </ContextMenuItem>
+              <ContextMenuItem
+                onClick={handleMoveRight}
+                disabled={!canMoveRight}
+              >
+                Move right
+              </ContextMenuItem>
+              <ContextMenuItem
                 onClick={() => onCreateNode?.(node)}
                 disabled={node.readOnly || isTrashNode}
               >
@@ -481,7 +570,7 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
         <div className="relative">
           {node.children.map((child) => (
             <FileTreeItem
-              key={child.id}
+              key={editingNodeId === child.id ? `${child.id}-editing` : child.id}
               node={child}
               level={level + 1}
               onFileClick={onFileClick}
@@ -504,6 +593,7 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
               contextMenuNodeId={contextMenuNodeId}
               onContextMenuChange={onContextMenuChange}
               onToggleExpand={onToggleExpand}
+              rootNodes={rootNodes}
             />
           ))}
         </div>
@@ -563,15 +653,50 @@ export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree =
       return
     }
     const overId = String(over.id)
-    const m = overId.match(/^row-(.*)$/)
-    if (!m) {
+    const targetId = parseRowId(overId)
+    if (!targetId) {
       setDragOverId(null)
       setDropMode(null)
       setDropLevel(0)
       return
     }
-    const targetId = m[1]
+    const sourceId = String(active.id)
     const targetLevel = over.data.current?.level ?? 0
+    const deltaX = event.delta?.x ?? 0
+    const deltaY = event.delta?.y ?? 0
+    const isHorizontalGesture = Math.abs(deltaX) > HORIZONTAL_GESTURE_THRESHOLD && Math.abs(deltaX) > Math.abs(deltaY)
+
+    // Horizontal gesture: move left to outdent, move right to indent into left sibling
+    if (isHorizontalGesture && targetId === sourceId) {
+      const sourcePath = findNodePath(fileTree, sourceId)
+      if (sourcePath) {
+        const parentPath = sourcePath.slice(0, -1)
+
+        if (deltaX < 0 && sourcePath.length > 1) {
+          const parentNode = getNodeByPath(fileTree, parentPath)
+          if (parentNode) {
+            setDragOverId(parentNode.id)
+            setDropMode('after')
+            setDropLevel(parentPath.length - 1)
+            return
+          }
+        }
+
+        if (deltaX > 0) {
+          const siblingIndex = sourcePath[sourcePath.length - 1]
+          if (siblingIndex > 0) {
+            const leftSiblingPath = [...parentPath, siblingIndex - 1]
+            const leftSibling = getNodeByPath(fileTree, leftSiblingPath)
+            if (leftSibling) {
+              setDragOverId(leftSibling.id)
+              setDropMode('into')
+              setDropLevel(leftSiblingPath.length) // child level
+              return
+            }
+          }
+        }
+      }
+    }
 
     // Check if source and target nodes are in trash
     const findNodeWithTrashInfo = (nodes: FileNode[], id: string, isInTrash = false): { node: FileNode | null; isInTrash: boolean } => {
@@ -588,7 +713,6 @@ export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree =
       return { node: null, isInTrash: false }
     }
 
-    const sourceId = String(active.id)
     const sourceInfo = findNodeWithTrashInfo(fileTree, sourceId)
     const targetInfo = findNodeWithTrashInfo(fileTree, targetId)
 
@@ -649,15 +773,46 @@ export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree =
     setDropLevel(0)
     setActiveNode(null)
     
-    if (!active || !over || !onReorder) return
-    
+    if (!active || !onReorder) return
+
     const sourceId = String(active.id)
-    const overId = String(over.id)
-    const m = overId.match(/^row-(.*)$/)
-    if (!m) return
-    const targetId = m[1]
-    const targetLevel = over.data.current?.level ?? 0
-    
+    const targetId = over ? parseRowId(String(over.id)) : null
+    const deltaX = event.delta?.x ?? 0
+    const deltaY = event.delta?.y ?? 0
+    const isHorizontalGesture = Math.abs(deltaX) > HORIZONTAL_GESTURE_THRESHOLD && Math.abs(deltaX) > Math.abs(deltaY)
+    const targetLevel = over?.data.current?.level ?? 0
+
+    // Horizontal gesture handling: prioritize when dragging mostly sideways on the same row
+    if (isHorizontalGesture && (!targetId || targetId === sourceId)) {
+      const sourcePath = findNodePath(fileTree, sourceId)
+      if (sourcePath) {
+        const parentPath = sourcePath.slice(0, -1)
+
+        if (deltaX < 0 && sourcePath.length > 1) {
+          const parentNode = getNodeByPath(fileTree, parentPath)
+          if (parentNode) {
+            onReorder({ sourceId, targetId: parentNode.id, mode: 'after' })
+            return
+          }
+        }
+
+        if (deltaX > 0) {
+          const siblingIndex = sourcePath[sourcePath.length - 1]
+          if (siblingIndex > 0) {
+            const leftSiblingPath = [...parentPath, siblingIndex - 1]
+            const leftSibling = getNodeByPath(fileTree, leftSiblingPath)
+            if (leftSibling) {
+              onToggleExpand?.(leftSibling.id, true)
+              onReorder({ sourceId, targetId: leftSibling.id, mode: 'into' })
+              return
+            }
+          }
+        }
+      }
+    }
+
+    if (!targetId) return
+
     // Decide mode based on relationship between dropLevel and targetLevel
     let mode: 'before' | 'after' | 'into' = dropMode || 'after'
     if (finalDropLevel > targetLevel) {
@@ -706,7 +861,7 @@ export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree =
             <div className="py-2">
               {fileTree.map((node) => (
                 <FileTreeItem
-                  key={node.id}
+                  key={editingNodeId === node.id ? `${node.id}-editing` : node.id}
                   node={node}
                   level={0}
                   onFileClick={onFileClick}
@@ -728,6 +883,7 @@ export function PrimarySidebar({ activity, onFileClick, selectedFile, fileTree =
                   contextMenuNodeId={contextMenuNodeId}
                   onContextMenuChange={setContextMenuNodeId}
                   onToggleExpand={onToggleExpand}
+                  rootNodes={fileTree}
                 />
               ))}
             </div>

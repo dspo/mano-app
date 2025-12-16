@@ -7,12 +7,6 @@ import type { CreatePlateEditorOptions } from 'platejs/react';
 import { getCommentKey, getDraftCommentKey } from '@platejs/comment';
 import { CommentPlugin, useCommentId } from '@platejs/comment/react';
 import {
-  differenceInDays,
-  differenceInHours,
-  differenceInMinutes,
-  format,
-} from 'date-fns';
-import {
   ArrowUpIcon,
   CheckIcon,
   MoreHorizontalIcon,
@@ -38,6 +32,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { formatCommentDate } from './comment-utils';
 import { cn } from '@/lib/utils';
 import { BasicMarksKit } from '@/components/editor/plugins/basic-marks-kit';
 import {
@@ -390,7 +385,7 @@ function CommentMoreDropdown(props: {
 
 const useCommentEditor = (
   options: Omit<CreatePlateEditorOptions, 'plugins'> = {},
-  deps: any[] = []
+  deps: ReadonlyArray<unknown> = []
 ) => {
   const commentEditor = usePlateEditor(
     {
@@ -599,22 +594,3 @@ export function CommentCreateForm({
     </div>
   );
 }
-
-export const formatCommentDate = (date: Date) => {
-  const now = new Date();
-  const diffMinutes = differenceInMinutes(now, date);
-  const diffHours = differenceInHours(now, date);
-  const diffDays = differenceInDays(now, date);
-
-  if (diffMinutes < 60) {
-    return `${diffMinutes}m`;
-  }
-  if (diffHours < 24) {
-    return `${diffHours}h`;
-  }
-  if (diffDays < 2) {
-    return `${diffDays}d`;
-  }
-
-  return format(date, 'MM/dd/yyyy');
-};

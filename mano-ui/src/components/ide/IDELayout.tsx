@@ -152,8 +152,8 @@ function IDELayoutContent() {
   const [notification, setNotification] = useState<{ message: string; x: number; y: number } | null>(null)
   const [fileTree, setFileTree] = useState<FileNode[]>([])
   const [textNodeNameSet, setTextNodeNameSet] = useState<Set<string>>(new Set())
-  const [_fileContentsMap, setFileContentsMap] = useState<Record<string, string>>(fileContents)
-  const [_fileHandlesMap, setFileHandlesMap] = useState<Record<string, FileSystemFileHandle | IFileHandle>>({})
+  const [, setFileContentsMap] = useState<Record<string, string>>(fileContents)
+  const [, setFileHandlesMap] = useState<Record<string, FileSystemFileHandle | IFileHandle>>({})
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null)
   
   // Directory and config handles
@@ -393,7 +393,7 @@ function IDELayoutContent() {
   const handleTreeReorder = async ({ sourceId, targetId, mode }: { sourceId: string; targetId: string; mode: 'before' | 'after' | 'into' }) => {
     try {
       // Prevent moving node to itself or its descendants
-      if (sourceId === targetId || isAncestor(fileTree as any, sourceId, targetId)) return
+      if (sourceId === targetId || isAncestor(fileTree, sourceId, targetId)) return
 
       // Check if source and target nodes are in trash
       const findNodeWithTrashInfo = (nodes: FileNode[], id: string, isInTrash = false): { node: FileNode | null; isInTrash: boolean } => {
@@ -420,7 +420,7 @@ function IDELayoutContent() {
       }
 
       // Rule 2) Dragging from outside into trash: equivalent to Remove
-      if (!sourceInfo.isInTrash && (targetId === '__trash__' || targetInfo.isInTrash)) {
+      if (!sourceInfo.isInTrash && mode === 'into' && (targetId === '__trash__' || targetInfo.isInTrash)) {
         // If target is not trash root node, block operation (cannot put into child nodes)
         if (targetId !== '__trash__') {
           toast.error('只能将节点移动到垃圾桶根目录')
@@ -437,9 +437,10 @@ function IDELayoutContent() {
 
       // Rule 3) Dragging out from trash: allowed, but don't encode content or delete files (just move)
       // Normal drag reorder logic
-      const sourcePath = findNodePath(fileTree as any, sourceId)
+      const sourcePath = findNodePath(fileTree, sourceId)
       if (!sourcePath) return
-      const { removed, newTree } = removeAtPath(fileTree as any, sourcePath)
+      const { removed, newTree } = removeAtPath(fileTree, sourcePath)
+      const baseTree = newTree as FileNode[]
       
       // If dragging out from trash, need to clear content field
       if (sourceInfo.isInTrash && !targetInfo.isInTrash) {
@@ -451,35 +452,27 @@ function IDELayoutContent() {
           }
           return cleaned
         }
-        const cleanedNode = cleanContent(removed as any)
-        
-        // Insert to target
-        let updated: FileNode[]
-        if (mode === 'into') {
-          updated = insertInto(newTree as any, targetId, cleanedNode as any) as any
-        } else {
-          updated = insertBeforeAfter(newTree as any, targetId, cleanedNode as any, mode) as any
-        }
+        const cleanedNode = cleanContent(removed as FileNode)
+        const updated = mode === 'into'
+          ? (insertInto(baseTree, targetId, cleanedNode) as FileNode[])
+          : (insertBeforeAfter(baseTree, targetId, cleanedNode, mode) as FileNode[])
         setFileTree(updated)
         
         // Save to mano.conf.json
         if (configFileHandle) {
-          await saveManoConfig(configFileHandle, { data: updated as any, lastUpdated: new Date().toISOString() })
+          await saveManoConfig(configFileHandle, { data: updated, lastUpdated: new Date().toISOString() })
         }
         return
       }
 
       // Normal drag reorder
-      let updated: FileNode[]
-      if (mode === 'into') {
-        updated = insertInto(newTree as any, targetId, removed as any) as any
-      } else {
-        updated = insertBeforeAfter(newTree as any, targetId, removed as any, mode) as any
-      }
+      const updated = mode === 'into'
+        ? (insertInto(baseTree, targetId, removed as FileNode) as FileNode[])
+        : (insertBeforeAfter(baseTree, targetId, removed as FileNode, mode) as FileNode[])
       setFileTree(updated)
       // Persist to mano.conf.json
       if (configFileHandle) {
-        await saveManoConfig(configFileHandle, { data: updated as any, lastUpdated: new Date().toISOString() })
+        await saveManoConfig(configFileHandle, { data: updated, lastUpdated: new Date().toISOString() })
       }
     } catch (e) {
       console.error('Reorder failed:', e)
@@ -521,7 +514,7 @@ function IDELayoutContent() {
       }
 
       // Add to end of parent node's children
-      const updated = insertInto(fileTree as any, parentNode.id, newNode as any) as FileNode[]
+      const updated = insertInto(fileTree, parentNode.id, newNode) as FileNode[]
       setFileTree(updated)
 
       // Set to edit mode
@@ -655,7 +648,7 @@ function IDELayoutContent() {
 
       // Save to mano.conf.json
       await saveManoConfig(configFileHandle, { 
-        data: updated as any, 
+        data: updated, 
         lastUpdated: new Date().toISOString() 
       })
 
@@ -1143,7 +1136,7 @@ function IDELayoutContent() {
       console.log('[handleFileClick] filename from getNodeFilename:', filename)
       
       // Determine file type and default content
-      const fileType: 'slate' = 'slate'
+      const fileType = 'slate' as const
       let defaultContent = ''
       
       if (file.nodeType === 'Markdown') {
@@ -1186,56 +1179,54 @@ function IDELayoutContent() {
 
   // Note: File closing is now handled inside EditorGroupWrapper
 
-  // Split editor functions
-  const handleSplitEditorRight = () => {
-    dispatch({ type: 'SPLIT_GROUP', groupId: state.lastFocusedGroupId, direction: 'horizontal' })
-  }
-
-  // Save current file to disk
-  const handleSaveFile = async () => {
-    const group = state.groups[state.lastFocusedGroupId]
-    if (!group || !group.activeTabId) {
-      console.warn('[Save] No active tab')
-      return
-    }
-
-    const activeTab = group.tabs.find(t => t.id === group.activeTabId)
-    if (!activeTab) return
-
-    const model = state.models[activeTab.modelId]
-    if (!model) {
-      console.warn('[Save] Model not found for tab:', activeTab.id)
-      toast.error('Cannot save: model not found')
-      return
-    }
-
-    if (!model.fileHandle) {
-      console.warn('[Save] No file handle for model:', model.fileName)
-      toast.error('Cannot save: file handle not found')
-      return
-    }
-
-    try {
-      const success = await saveToFileSystem(model.fileHandle, model.content)
-      
-      if (success) {
-        // Mark model as saved to disk
-        dispatch({
-          type: 'MARK_MODEL_SAVED_TO_DISK',
-          modelId: model.id,
-        })
-        toast.success(`Saved ${model.fileName}`)
-      } else {
-        toast.error('Failed to save file')
-      }
-    } catch (error) {
-      console.error('[Save] Error:', error)
-      toast.error('Failed to save file')
-    }
-  }
-
   // Keyboard shortcuts
   useEffect(() => {
+    const handleSplitEditorRight = () => {
+      dispatch({ type: 'SPLIT_GROUP', groupId: state.lastFocusedGroupId, direction: 'horizontal' })
+    }
+
+    const handleSaveFile = async () => {
+      const group = state.groups[state.lastFocusedGroupId]
+      if (!group || !group.activeTabId) {
+        console.warn('[Save] No active tab')
+        return
+      }
+
+      const activeTab = group.tabs.find(t => t.id === group.activeTabId)
+      if (!activeTab) return
+
+      const model = state.models[activeTab.modelId]
+      if (!model) {
+        console.warn('[Save] Model not found for tab:', activeTab.id)
+        toast.error('Cannot save: model not found')
+        return
+      }
+
+      if (!model.fileHandle) {
+        console.warn('[Save] No file handle for model:', model.fileName)
+        toast.error('Cannot save: file handle not found')
+        return
+      }
+
+      try {
+        const success = await saveToFileSystem(model.fileHandle, model.content)
+        
+        if (success) {
+          // Mark model as saved to disk
+          dispatch({
+            type: 'MARK_MODEL_SAVED_TO_DISK',
+            modelId: model.id,
+          })
+          toast.success(`Saved ${model.fileName}`)
+        } else {
+          toast.error('Failed to save file')
+        }
+      } catch (error) {
+        console.error('[Save] Error:', error)
+        toast.error('Failed to save file')
+      }
+    }
+
     const handleKeyDown = (e: KeyboardEvent) => {
       // Cmd/Ctrl + S: Save File
       if ((e.metaKey || e.ctrlKey) && e.key === 's') {
@@ -1275,7 +1266,7 @@ function IDELayoutContent() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [handleSplitEditorRight, handleSaveFile, state])
+  }, [dispatch, state])
 
   // Toggle functions for buttons/menu
   const toggleSidebar = () => {

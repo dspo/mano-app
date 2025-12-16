@@ -1,6 +1,7 @@
-import React, { createContext, useReducer } from 'react'
+import { useReducer } from 'react'
 import type { ReactNode } from 'react'
 import type { EditorState, EditorAction, EditorLayout, EditorGroup, EditorTab, EditorModel } from '@/types/editor'
+import { EditorContext } from './EditorContextBase'
 
 // Initial state
 const initialState: EditorState = {
@@ -142,7 +143,8 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
 
         // If model is not in use anymore, remove it
         if (!modelIsInUse) {
-          const { [closedTab.modelId]: _, ...remaining } = newModels
+          const { [closedTab.modelId]: removedModel, ...remaining } = newModels
+          void removedModel
           newModels = remaining
         }
       }
@@ -601,14 +603,6 @@ function removeLayoutNode(layout: EditorLayout, targetGroupId: string): EditorLa
 
   return layout
 }
-
-// Context
-export interface EditorContextValue {
-  state: EditorState
-  dispatch: React.Dispatch<EditorAction>
-}
-
-export const EditorContext = createContext<EditorContextValue | null>(null)
 
 // Provider
 export function EditorProvider({ children }: { children: ReactNode }) {

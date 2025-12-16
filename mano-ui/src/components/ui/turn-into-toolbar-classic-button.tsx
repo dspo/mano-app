@@ -22,7 +22,7 @@ import {
 } from '@/components/editor/transforms-classic';
 
 import { ToolbarButton, ToolbarMenuGroup } from './toolbar';
-import { turnIntoItems as baseTurnIntoItems } from './turn-into-toolbar-button';
+import { turnIntoItems as baseTurnIntoItems } from './turn-into-items';
 
 // Map standard list items to classic versions
 const listItemsMap: Record<string, (typeof baseTurnIntoItems)[number]> = {

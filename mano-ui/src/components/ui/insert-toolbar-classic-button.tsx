@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { KEYS } from 'platejs';
 import { useEditorRef } from 'platejs/react';
+import type { PlateEditor } from 'platejs/react';
 
 import {
   DropdownMenu,
@@ -50,7 +51,7 @@ type Group = {
 type Item = {
   icon: React.ReactNode;
   value: string;
-  onSelect: (editor: any, value: string) => void;
+  onSelect: (editor: PlateEditor, value: string) => void;
   focusEditor?: boolean;
   label?: string;
 };

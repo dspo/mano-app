@@ -39,11 +39,11 @@ import {
 } from '@/components/editor/plugins/discussion-kit';
 import { suggestionPlugin } from '@/components/editor/plugins/suggestion-kit';
 
+import { BlockSuggestionCard } from './block-suggestion';
 import {
-  BlockSuggestionCard,
   isResolvedSuggestion,
   useResolveSuggestion,
-} from './block-suggestion';
+} from './block-suggestion-utils';
 import { Comment, CommentCreateForm } from './comment';
 
 export const BlockDiscussion: RenderNodeWrapper<AnyPluginConfig> = (props) => {

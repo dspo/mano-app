@@ -25,7 +25,7 @@ export function ExcalidrawElement(
         <div className="mx-auto aspect-video h-[600px] w-[min(100%,600px)] overflow-hidden rounded-sm border">
           {Excalidraw && (
             <Excalidraw
-              {...(excalidrawProps as any)}
+              {...excalidrawProps}
               viewModeEnabled={readOnly}
             />
           )}

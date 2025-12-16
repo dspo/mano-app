@@ -19,7 +19,7 @@ import { ElementApi, isType, KEYS } from 'platejs';
 const preFormat: AutoformatBlockRule['preFormat'] = (editor) =>
   unwrapList(editor);
 
-const format = (editor: SlateEditor, customFormatting: any) => {
+const format = (editor: SlateEditor, customFormatting: () => void) => {
   if (editor.selection) {
     const parentEntry = editor.api.parent(editor.selection);
 
