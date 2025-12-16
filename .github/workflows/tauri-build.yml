@@ -19,18 +19,22 @@ jobs:
             args: '--target aarch64-apple-darwin'
             target: 'aarch64-apple-darwin'
             label: 'macOS ARM64'
+            bundles: 'dmg'
           - platform: 'windows-latest'
             args: '--target x86_64-pc-windows-msvc'
             target: 'x86_64-pc-windows-msvc'
             label: 'Windows AMD64'
+            bundles: 'msi'
           - platform: 'windows-latest'
             args: '--target aarch64-pc-windows-msvc'
             target: 'aarch64-pc-windows-msvc'
             label: 'Windows ARM64'
+            bundles: 'msi'
           - platform: 'ubuntu-24.04'
             args: '--target x86_64-unknown-linux-gnu'
             target: 'x86_64-unknown-linux-gnu'
             label: 'Linux AMD64'
+            bundles: 'deb'
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -87,6 +91,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           args: ${{ matrix.args }}
+          bundles: ${{ matrix.bundles }}
 
       - name: Display artifact sizes
         shell: bash
@@ -132,29 +137,9 @@ jobs:
               done
             fi
             
-            # Windows NSIS installers
-            if [ -d "$BUNDLE_DIR/nsis" ] && [ -n "$(find "$BUNDLE_DIR/nsis" -name "*.exe" -print -quit 2>/dev/null)" ]; then
-              for file in "$BUNDLE_DIR/nsis"/*.exe; do
-                [ -f "$file" ] || continue
-                size=$(du -sh "$file" | cut -f1)
-                name=$(basename "$file")
-                echo "  • $name: $size"
-              done
-            fi
-            
             # Linux DEB packages
             if [ -d "$BUNDLE_DIR/deb" ] && [ -n "$(find "$BUNDLE_DIR/deb" -name "*.deb" -print -quit 2>/dev/null)" ]; then
               for file in "$BUNDLE_DIR/deb"/*.deb; do
-                [ -f "$file" ] || continue
-                size=$(du -sh "$file" | cut -f1)
-                name=$(basename "$file")
-                echo "  • $name: $size"
-              done
-            fi
-            
-            # Linux AppImage packages
-            if [ -d "$BUNDLE_DIR/appimage" ] && [ -n "$(find "$BUNDLE_DIR/appimage" -name "*.AppImage" -print -quit 2>/dev/null)" ]; then
-              for file in "$BUNDLE_DIR/appimage"/*.AppImage; do
                 [ -f "$file" ] || continue
                 size=$(du -sh "$file" | cut -f1)
                 name=$(basename "$file")
@@ -269,21 +254,6 @@ jobs:
                 }
               }
               
-              // Windows NSIS installers
-              const nsisDir = path.join(bundleDir, 'nsis');
-              if (fs.existsSync(nsisDir)) {
-                const exeFiles = fs.readdirSync(nsisDir).filter(f => f.endsWith('.exe'));
-                if (exeFiles.length > 0) {
-                  comment += '**NSIS Installer:**\n';
-                  exeFiles.forEach(file => {
-                    const filePath = path.join(nsisDir, file);
-                    const size = getFileSize(filePath);
-                    comment += `- \`${file}\`: **${size}**\n`;
-                  });
-                  comment += '\n';
-                }
-              }
-              
               // Linux DEB packages
               const debDir = path.join(bundleDir, 'deb');
               if (fs.existsSync(debDir)) {
@@ -292,21 +262,6 @@ jobs:
                   comment += '**DEB Package:**\n';
                   debFiles.forEach(file => {
                     const filePath = path.join(debDir, file);
-                    const size = getFileSize(filePath);
-                    comment += `- \`${file}\`: **${size}**\n`;
-                  });
-                  comment += '\n';
-                }
-              }
-              
-              // Linux AppImage packages
-              const appimageDir = path.join(bundleDir, 'appimage');
-              if (fs.existsSync(appimageDir)) {
-                const appimageFiles = fs.readdirSync(appimageDir).filter(f => f.endsWith('.AppImage'));
-                if (appimageFiles.length > 0) {
-                  comment += '**AppImage:**\n';
-                  appimageFiles.forEach(file => {
-                    const filePath = path.join(appimageDir, file);
                     const size = getFileSize(filePath);
                     comment += `- \`${file}\`: **${size}**\n`;
                   });

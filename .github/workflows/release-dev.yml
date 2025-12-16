@@ -17,15 +17,19 @@ jobs:
           - platform: 'macos-latest'
             args: '--target aarch64-apple-darwin'
             target: 'aarch64-apple-darwin'
+            bundles: 'dmg'
           - platform: 'windows-latest'
             args: '--target x86_64-pc-windows-msvc'
             target: 'x86_64-pc-windows-msvc'
+            bundles: 'msi'
           - platform: 'windows-latest'
             args: '--target aarch64-pc-windows-msvc'
             target: 'aarch64-pc-windows-msvc'
+            bundles: 'msi'
           - platform: 'ubuntu-24.04'
             args: '--target x86_64-unknown-linux-gnu'
             target: 'x86_64-unknown-linux-gnu'
+            bundles: 'deb'
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -91,6 +95,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           args: ${{ matrix.args }}
+          bundles: ${{ matrix.bundles }}
           tagName: dev
           releaseName: 'Dev Build'
           releaseBody: 'Automated development build from main branch'
