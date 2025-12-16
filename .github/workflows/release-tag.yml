@@ -14,21 +14,17 @@ jobs:
       matrix:
         include:
           - platform: 'macos-latest'
-            args: '--target aarch64-apple-darwin'
+            args: '--target aarch64-apple-darwin --bundles dmg'
             target: 'aarch64-apple-darwin'
-            bundles: 'dmg'
           - platform: 'windows-latest'
-            args: '--target x86_64-pc-windows-msvc'
+            args: '--target x86_64-pc-windows-msvc --bundles msi'
             target: 'x86_64-pc-windows-msvc'
-            bundles: 'msi'
           - platform: 'windows-latest'
-            args: '--target aarch64-pc-windows-msvc'
+            args: '--target aarch64-pc-windows-msvc --bundles msi'
             target: 'aarch64-pc-windows-msvc'
-            bundles: 'msi'
           - platform: 'ubuntu-24.04'
-            args: '--target x86_64-unknown-linux-gnu'
+            args: '--target x86_64-unknown-linux-gnu --bundles deb'
             target: 'x86_64-unknown-linux-gnu'
-            bundles: 'deb'
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -93,7 +89,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           args: ${{ matrix.args }}
-          bundles: ${{ matrix.bundles }}
           tagName: ${{ github.ref_name }}
           releaseName: 'Release ${{ github.ref_name }}'
           releaseBody: 'Automated release for ${{ github.ref_name }}'
