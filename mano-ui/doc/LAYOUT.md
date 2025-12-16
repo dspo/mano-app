@@ -21,7 +21,17 @@ IDELayout (Root Container)
 
 ---
 
-## Core Components
+## Workspace Lifecycle & Storage
+
+- Workspace config is stored in `mano.conf.json`; if missing, a default file with `__trash__` is created on open.
+- Node names must be globally unique (directories included). Opening a workspace with duplicates will surface a blocking toast.
+- Text nodes map to physical files: `.mano` for SlateText, `.md` for Markdown. Opening a node will create the file if needed (Markdown gets a default heading).
+- Delete → move to trash: file contents are base64-encoded into `mano.conf.json` and the physical file is removed. Trash items are read-only; “Move out” recreates files, “Delete” removes the config entry.
+- File system strategies: Tauri plugins on desktop; Chrome File System Access in browser; Safari throws an unsupported error.
+
+---
+
+## Core Components & Behavior
 
 ### 1. IDELayout (Main Orchestrator)
 
@@ -85,9 +95,8 @@ IDELayout (Root Container)
 **Features**:
 
 #### Header Section
-- **Mano Logo + Title**: Clickable button to open workspace (triggers `Open Workspace...` dialog)
-  - Displays `animate-pulse` breathing effect when no workspace loaded (visual hint)
-- **Add Button** (Plus icon): Creates new node under root directory
+- **Mano Logo + Title**: Button to open workspace (dialog or Tauri `workspace_updated` event)
+  - Pulses when no workspace loaded (visual hint)
 
 #### File Tree (Recursive Component)
 - **Node Types**:
@@ -95,15 +104,18 @@ IDELayout (Root Container)
   - `SlateText` - Rich text files (`.mano` extension, TextAlignStart icon)
   - `Markdown` - Markdown files (`.md` extension, TextQuote icon)
 
+- **Naming rules**:
+  - All node names must be globally unique. New nodes start from “新建文档”, auto-incremented when clashes occur.
+
 - **Interactions**:
-  - **Single Click**: Selects file, opens in editor
-  - **Drag-and-Drop**: Reorders nodes with visual drop indicators (before/after/into modes)
+  - **Single Click**: Directories toggle expand; files open in editor
+  - **Double Click**: Enter inline rename (blocked for trash/readOnly)
+  - **Drag-and-Drop**: Reorders nodes with drop indicators; nodes in trash cannot be dragged; dropping into trash is disallowed
   - **Context Menu** (Right-click):
-    - `Create...` - Add child node (Directory or SlateText)
-    - `Rename` - Inline editing mode
-    - `Remove to Trash` - Move to `__trash__` node
-    - `Move Out` - (Trash-specific) Restore to root
-    - `Delete Permanently` - (Trash-specific) Remove from tree
+    - `Move up/down/left/right` - Keyboard-free ordering
+    - `Create Mano Text` - Add child text node
+    - `Remove` - Move to `__trash__` and delete backing files after base64 capture
+    - *(Trash only)* `Move out` to restore files, `Delete` to remove from config
 
 - **State Indicators**:
   - Selected file: `bg-accent` background
@@ -113,9 +125,9 @@ IDELayout (Root Container)
 #### Trash Node
 - **ID**: `__trash__` (reserved, read-only)
 - **Behavior**: 
-  - Cannot be deleted, renamed, or moved
+  - Cannot be deleted, renamed, moved, or dragged
   - Stores deleted nodes with `content` base64-encoded
-  - Supports restore (`Move Out`) and permanent deletion
+  - Supports restore (`Move out`) and permanent deletion
 
 ---
 
@@ -137,9 +149,11 @@ IDELayout (Root Container)
 - **Tab Bar**: Horizontal list of open files
   - Tab indicators: File name, close button (`X`)
   - Active tab: `bg-accent` styling
-  - Dirty state: Orange `•` indicator (unsaved changes)
-  - Saved to disk: Green `✓` indicator
-- **Content Area**: Text editor built on `@/components/ui/textarea` (editable by default; read-only for trash previews)
+  - Dirty state: Orange dot until saved to disk
+- **Content Area**: Plate-based `AutoSaveTextEditor`
+  - Plugin kit mirrors plate basic-nodes demo (tables, media, markdown, comments, slash, etc.)
+  - Auto-saves to IndexedDB + file system with 1s debounce; `⌘/Ctrl+S` triggers immediate save
+  - Trash files open read-only
 
 #### Split View
 - **Directions**: Horizontal or vertical splits
@@ -155,21 +169,21 @@ IDELayout (Root Container)
 
 **Dimensions**: Resizable `10-60%` height, collapsible
 
-**Purpose**: Multi-tab panel for terminal, diagnostics, and debug output.
+**Purpose**: Multi-tab panel for terminal, diagnostics, and debug output (currently mock data).
 
 **Tabs**:
-- **Terminal** (TerminalIcon) - Command-line interface (mock implementation)
-- **Problems** (AlertCircle) - Compilation errors/warnings with badge count
-- **Output** (FileOutput) - Build/runtime logs
-- **Debug Console** (Bug) - Interactive debugging REPL
+- **Terminal** (TerminalIcon)
+- **Problems** (AlertCircle)
+- **Output** (FileOutput)
+- **Debug Console** (Bug)
 
 **Header**:
 - Tab list with icon + label
 - Close button (`X`) in top-right corner to collapse panel
 
 **Content**:
-- Scrollable area with monospace font for terminal output
-- Badge indicators for problem counts
+- Static placeholders only; no live wiring yet
+- Can be expanded via drag handle or `⌘/Ctrl+J` even though ActivityBar toggle is disabled
 
 ---
 
@@ -179,7 +193,7 @@ IDELayout (Root Container)
 
 **Dimensions**: Fixed height `24px`
 
-**Purpose**: Displays contextual information about workspace and active file.
+**Purpose**: Displays contextual information about workspace and active file (currently mock values).
 
 **Sections**:
 
@@ -300,17 +314,17 @@ IDELayout (Root Container)
 
 | Shortcut | Action |
 |----------|--------|
-| `⌘B` | Toggle Primary Sidebar |
-| `⌘J` | Toggle Bottom Panel (planned) |
+| `⌘/Ctrl+B` | Toggle Primary Sidebar |
+| `⌘/Ctrl+J` | Toggle Bottom Panel |
+| `⌘/Ctrl+S` | Save active file immediately |
+| `⌘/Ctrl+\\` | Split editor to the right |
 
 ---
 
 ## File Type System
 
 ### Supported Types
-- **`text`**: Plain text files (both `.mano` and `.md` nodes use this flow)
-  - Format: Plain string
-  - Renderer: `Textarea` editor (editable unless opened from trash, then read-only)
+- **`text`**: Plate JSON value persisted as string; when JSON parse fails, falls back to line-by-line plain text. Trash files open read-only.
 
 ### File Naming
 - **Display Name**: User-editable label (stored in `ManoNode.name`)
@@ -338,7 +352,7 @@ IDELayout (Root Container)
 - **Trash**: `id: "__trash__"`, `readOnly: true`
 - **Root Directories**: Top-level nodes with `nodeType: "Directory"`
 
-**Auto-Creation**: Generated by `createDefaultManoConfig()` if missing
+**Auto-Creation**: Generated by `createDefaultManoConfig()` if missing; `lastUpdated` is refreshed on every save
 
 ---
 
@@ -349,8 +363,9 @@ IDELayout (Root Container)
 **Strategy Pattern**: `src/services/fileSystem/index.ts`
 
 **Strategies**:
-- **Browser**: Uses `window.showDirectoryPicker()` (File System Access API)
+- **Chrome/browser**: Uses `window.showDirectoryPicker()` (File System Access API) with wrapped handles
 - **Tauri**: Uses `@tauri-apps/plugin-dialog` and `@tauri-apps/plugin-fs`
+- **Safari**: Explicitly unsupported (throws guidance to switch to desktop/Chrome)
 
 **Detection**: `isTauri()` utility function checks for `window.__TAURI__`
 
