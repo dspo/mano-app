@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { ActivityBar } from './ActivityBar'
 import { PrimarySidebar } from './PrimarySidebar'
 import { insertInto, insertBeforeAfter, findNodePath, removeAtPath, isAncestor, checkDuplicateNames, isInTrash, buildTextNodeNameSet, hasNameInSet } from '@/lib/tree-utils'
@@ -414,7 +414,7 @@ function IDELayoutContent() {
   }
 
   // Handle workspace from Tauri window menu
-  const handleWorkspaceFromMenu = async (workspacePath: string) => {
+  const handleWorkspaceFromMenu = useCallback(async (workspacePath: string) => {
     try {
       console.log('[IDELayout] Handling workspace from Tauri menu:', workspacePath)
       
@@ -452,7 +452,7 @@ function IDELayoutContent() {
       console.error('[IDELayout] Failed to handle workspace from menu:', err)
       toast.error('打开文件夹失败')
     }
-  }
+  }, [])
 
   // Listen to Tauri window menu events
   useEffect(() => {
@@ -482,7 +482,7 @@ function IDELayoutContent() {
         unlisten()
       }
     }
-  }, [])
+  }, [handleWorkspaceFromMenu])
 
   // Handle tree drag and reorder
   const handleTreeReorder = async ({ sourceId, targetId, mode }: { sourceId: string; targetId: string; mode: 'before' | 'after' | 'into' }) => {
