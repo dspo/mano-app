@@ -7,6 +7,7 @@ import { EditorKit } from '@/components/editor/editor-kit'
 import { useIndexedDBAutoSave } from '@/hooks/useIndexedDB'
 import { useFileSystemAutoSave } from '@/hooks/useFileSystemAutoSave'
 import type { IFileHandle } from '@/services/fileSystem'
+import { ReadOnlyLockProvider } from '@/components/editor/readOnlyLockContext'
 
 interface AutoSaveTextEditorProps {
   value: string
@@ -14,6 +15,7 @@ interface AutoSaveTextEditorProps {
   modelId: string
   fileHandle?: FileSystemFileHandle | IFileHandle
   readOnly?: boolean
+  readOnlyLocked?: boolean
   onSaveSuccess?: () => void
   onSaveError?: (error: unknown) => void
 }
@@ -59,6 +61,7 @@ export function AutoSaveTextEditor({
   modelId,
   fileHandle,
   readOnly = false,
+  readOnlyLocked = false,
   onSaveSuccess,
   onSaveError,
 }: AutoSaveTextEditorProps) {
@@ -128,10 +131,12 @@ export function AutoSaveTextEditor({
   }
 
   return (
-    <Plate editor={plateEditor} onChange={handleChange} readOnly={readOnly}>
-      <EditorContainer className="bg-background">
-        <Editor />
-      </EditorContainer>
-    </Plate>
+    <ReadOnlyLockProvider value={readOnlyLocked}>
+      <Plate editor={plateEditor} onChange={handleChange} readOnly={readOnly}>
+        <EditorContainer className="bg-background">
+          <Editor />
+        </EditorContainer>
+      </Plate>
+    </ReadOnlyLockProvider>
   )
 }

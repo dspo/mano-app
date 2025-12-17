@@ -84,6 +84,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
         version: 0,
         fileHandle: action.fileHandle,
         readOnly: action.readOnly || false,
+        readOnlyLocked: action.readOnlyLocked || false,
       }
 
       const newTabId = `tab-${state.nextTabId}`

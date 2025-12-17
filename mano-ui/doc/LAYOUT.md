@@ -125,9 +125,9 @@ IDELayout (Root Container)
 #### Trash Node
 - **ID**: `__trash__` (reserved, read-only)
 - **Behavior**: 
-  - Cannot be deleted, renamed, moved, or dragged
-  - Stores deleted nodes with `content` base64-encoded
-  - Supports restore (`Move out`) and permanent deletion
+  - Cannot be deleted, renamed, or moved
+  - Stores deleted nodes by renaming their files with a `.bak` suffix
+  - Supports restore (`Move Out`) and permanent deletion
 
 ---
 

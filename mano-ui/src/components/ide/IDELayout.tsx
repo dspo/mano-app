@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { ActivityBar } from './ActivityBar'
 import { PrimarySidebar } from './PrimarySidebar'
 import { insertInto, insertBeforeAfter, findNodePath, removeAtPath, isAncestor, checkDuplicateNames, isInTrash, buildTextNodeNameSet, hasNameInSet } from '@/lib/tree-utils'
@@ -189,6 +189,101 @@ function IDELayoutContent() {
     setTextNodeNameSet(newNameSet)
   }, [fileTree])
 
+  const closeEditorsRecursively = (node: FileNode) => {
+    if (node.nodeType !== 'Directory') {
+      dispatch({ type: 'CLOSE_FILE_IN_ALL_GROUPS', fileId: node.id })
+    }
+    node.children?.forEach(child => closeEditorsRecursively(child))
+  }
+
+  const keepTrashAtEnd = (nodes: FileNode[]): FileNode[] => {
+    const list = [...nodes]
+    const trashIndex = list.findIndex(n => n.id === '__trash__')
+    if (trashIndex === -1) return list
+    const [trashNode] = list.splice(trashIndex, 1)
+    list.push(trashNode)
+    return list
+  }
+
+  const deleteNodeFilesFromTrash = async (
+    node: FileNode,
+    directory: IDirectoryHandle,
+    fs = getFileSystem()
+  ): Promise<void> => {
+    if (node.nodeType !== 'Directory') {
+      const filename = `${getNodeFilename(node)}.bak`
+      const deleted = await fs.deleteFile(directory, filename)
+      if (!deleted) {
+        console.warn(`[handleDeleteNode] Failed to delete backup file: ${filename}`)
+      }
+    }
+    if (node.children?.length) {
+      for (const child of node.children) {
+        await deleteNodeFilesFromTrash(child, directory, fs)
+      }
+    }
+  }
+
+  const backupNodeFiles = async (
+    node: FileNode,
+    directory: IDirectoryHandle,
+    fs = getFileSystem()
+  ): Promise<FileNode> => {
+    let processed: FileNode = { ...node }
+    if ('content' in processed) {
+      delete processed.content
+    }
+
+    if (node.children?.length) {
+      const children: FileNode[] = []
+      for (const child of node.children) {
+        children.push(await backupNodeFiles(child, directory, fs))
+      }
+      processed = { ...processed, children }
+    }
+
+    if (node.nodeType !== 'Directory') {
+      const filename = getNodeFilename(node)
+      const backupFilename = `${filename}.bak`
+      const renamed = await fs.renameFile(directory, filename, backupFilename)
+      if (!renamed) {
+        throw new Error(`无法将文件重命名为备份：${filename} → ${backupFilename}`)
+      }
+    }
+
+    return processed
+  }
+
+  const restoreNodeFiles = async (
+    node: FileNode,
+    directory: IDirectoryHandle,
+    fs = getFileSystem()
+  ): Promise<FileNode> => {
+    let processed: FileNode = { ...node }
+    if ('content' in processed) {
+      delete processed.content
+    }
+
+    if (node.children?.length) {
+      const children: FileNode[] = []
+      for (const child of node.children) {
+        children.push(await restoreNodeFiles(child, directory, fs))
+      }
+      processed = { ...processed, children }
+    }
+
+    if (node.nodeType !== 'Directory') {
+      const filename = getNodeFilename(node)
+      const backupFilename = `${filename}.bak`
+      const renamed = await fs.renameFile(directory, backupFilename, filename)
+      if (!renamed) {
+        throw new Error(`无法恢复文件：${backupFilename} → ${filename}`)
+      }
+    }
+
+    return processed
+  }
+
   // Handle drag start
   const handleDragStart = (event: DragStartEvent) => {
     const dragData = event.active.data.current
@@ -306,7 +401,7 @@ function IDELayoutContent() {
       }
       
       setConfigFileHandle(fileHandle)
-      setFileTree(config.data)
+      setFileTree(keepTrashAtEnd(config.data))
       
       toast.success(`已打开文件夹: ${directory.name}`)
       console.log('[IDELayout] Loaded mano.conf.json:', config)
@@ -319,7 +414,7 @@ function IDELayoutContent() {
   }
 
   // Handle workspace from Tauri window menu
-  const handleWorkspaceFromMenu = async (workspacePath: string) => {
+  const handleWorkspaceFromMenu = useCallback(async (workspacePath: string) => {
     try {
       console.log('[IDELayout] Handling workspace from Tauri menu:', workspacePath)
       
@@ -349,7 +444,7 @@ function IDELayoutContent() {
       }
       
       setConfigFileHandle(fileHandle)
-      setFileTree(config.data)
+      setFileTree(keepTrashAtEnd(config.data))
       
       toast.success(`已打开文件夹: ${directory.name}`)
       console.log('[IDELayout] Loaded mano.conf.json:', config)
@@ -357,7 +452,7 @@ function IDELayoutContent() {
       console.error('[IDELayout] Failed to handle workspace from menu:', err)
       toast.error('打开文件夹失败')
     }
-  }
+  }, [])
 
   // Listen to Tauri window menu events
   useEffect(() => {
@@ -387,7 +482,7 @@ function IDELayoutContent() {
         unlisten()
       }
     }
-  }, [])
+  }, [handleWorkspaceFromMenu])
 
   // Handle tree drag and reorder
   const handleTreeReorder = async ({ sourceId, targetId, mode }: { sourceId: string; targetId: string; mode: 'before' | 'after' | 'into' }) => {
@@ -413,6 +508,17 @@ function IDELayoutContent() {
       const sourceInfo = findNodeWithTrashInfo(fileTree, sourceId)
       const targetInfo = findNodeWithTrashInfo(fileTree, targetId)
 
+      // Enforce trash invariants
+      if (sourceId === '__trash__') {
+        toast.error('无法移动垃圾篓节点')
+        return
+      }
+      if (targetId === '__trash__' && mode === 'after') return
+      if (targetInfo.isInTrash && targetId !== '__trash__') {
+        toast.error('无法将节点移动到垃圾篓内部')
+        return
+      }
+
       // Rule 1) Cannot reorder within trash
       if (sourceInfo.isInTrash && targetInfo.isInTrash) {
         toast.error('无法在垃圾桶内部重排节点')
@@ -435,32 +541,40 @@ function IDELayoutContent() {
         return
       }
 
-      // Rule 3) Dragging out from trash: allowed, but don't encode content or delete files (just move)
+      // Rule 3) Dragging out from trash: restore files from .bak before moving
       // Normal drag reorder logic
       const sourcePath = findNodePath(fileTree, sourceId)
       if (!sourcePath) return
       const { removed, newTree } = removeAtPath(fileTree, sourcePath)
       const baseTree = newTree as FileNode[]
       
-      // If dragging out from trash, need to clear content field
+      // If dragging out from trash, restore files (.bak -> original) and move
       if (sourceInfo.isInTrash && !targetInfo.isInTrash) {
-        const cleanContent = (node: FileNode): FileNode => {
-          const cleaned = { ...node }
-          delete cleaned.content
-          if (cleaned.children) {
-            cleaned.children = cleaned.children.map(child => cleanContent(child))
-          }
-          return cleaned
+        if (!configFileHandle || !dirHandle) {
+          toast.error('请先打开文件夹')
+          return
         }
-        const cleanedNode = cleanContent(removed as FileNode)
-        const updated = mode === 'into'
-          ? (insertInto(baseTree, targetId, cleanedNode) as FileNode[])
-          : (insertBeforeAfter(baseTree, targetId, cleanedNode, mode) as FileNode[])
-        setFileTree(updated)
-        
-        // Save to mano.conf.json
-        if (configFileHandle) {
-          await saveManoConfig(configFileHandle, { data: updated, lastUpdated: new Date().toISOString() })
+
+        try {
+          const nodeToRestore = removed as FileNode
+          closeEditorsRecursively(nodeToRestore)
+          setMovingOutNodeId(nodeToRestore.id)
+          await new Promise(resolve => setTimeout(resolve, 500))
+
+          const restoredNode = await restoreNodeFiles(nodeToRestore, dirHandle)
+          const updated = mode === 'into'
+            ? (insertInto(baseTree, targetId, restoredNode) as FileNode[])
+            : (insertBeforeAfter(baseTree, targetId, restoredNode, mode) as FileNode[])
+          const normalized = keepTrashAtEnd(updated)
+          setFileTree(normalized)
+          
+          // Save to mano.conf.json
+          await saveManoConfig(configFileHandle, { data: normalized, lastUpdated: new Date().toISOString() })
+          setMovingOutNodeId(null)
+        } catch (error) {
+          console.error('Failed to restore node while dragging out of trash:', error)
+          toast.error('恢复节点失败，请重试')
+          setMovingOutNodeId(null)
         }
         return
       }
@@ -469,10 +583,11 @@ function IDELayoutContent() {
       const updated = mode === 'into'
         ? (insertInto(baseTree, targetId, removed as FileNode) as FileNode[])
         : (insertBeforeAfter(baseTree, targetId, removed as FileNode, mode) as FileNode[])
-      setFileTree(updated)
+      const normalized = keepTrashAtEnd(updated)
+      setFileTree(normalized)
       // Persist to mano.conf.json
       if (configFileHandle) {
-        await saveManoConfig(configFileHandle, { data: updated, lastUpdated: new Date().toISOString() })
+        await saveManoConfig(configFileHandle, { data: normalized, lastUpdated: new Date().toISOString() })
       }
     } catch (e) {
       console.error('Reorder failed:', e)
@@ -644,11 +759,11 @@ function IDELayoutContent() {
       }
 
       // Only update state and config if file rename succeeded
-      setFileTree(updated)
+      setFileTree(keepTrashAtEnd(updated))
 
       // Save to mano.conf.json
       await saveManoConfig(configFileHandle, { 
-        data: updated, 
+        data: keepTrashAtEnd(updated), 
         lastUpdated: new Date().toISOString() 
       })
 
@@ -699,7 +814,7 @@ function IDELayoutContent() {
       }
 
       const updated = removeNodeById(fileTree)
-      setFileTree(updated)
+      setFileTree(keepTrashAtEnd(updated))
     }
 
     setEditingNodeId(null)
@@ -720,15 +835,7 @@ function IDELayoutContent() {
 
     try {
       // Close all tabs that opened this node (recursively close child nodes)
-      const closeNodeAndChildren = (n: FileNode) => {
-        if (n.nodeType !== 'Directory') {
-          dispatch({ type: 'CLOSE_FILE_IN_ALL_GROUPS', fileId: n.id })
-        }
-        if (n.children) {
-          n.children.forEach(child => closeNodeAndChildren(child))
-        }
-      }
-      closeNodeAndChildren(node)
+      closeEditorsRecursively(node)
 
       // Set animation state
       setRemovingNodeId(node.id)
@@ -736,50 +843,8 @@ function IDELayoutContent() {
       // Wait for animation to complete
       await new Promise(resolve => setTimeout(resolve, 500))
 
-      const fs = getFileSystem()
-
-        // Recursively process all text nodes: read content, base64 encode, delete file
-      const processNode = async (n: FileNode, trashNodes: FileNode[] = []): Promise<FileNode> => {
-        let processedNode = { ...n }
-
-        // If it's a text node (SlateText or Markdown)
-        if (n.nodeType === 'SlateText' || n.nodeType === 'Markdown') {
-          try {
-            // Read file content
-            const filename = getNodeFilename(n)
-            const { content } = await fs.getOrCreateFile(dirHandle, filename, '')
-            
-            // Base64 encode and store to content field
-            const base64Content = btoa(unescape(encodeURIComponent(content)))
-            processedNode.content = base64Content
-
-            // Delete physical file
-            await fs.deleteFile(dirHandle, filename)
-            console.log(`[handleRemoveNode] Deleted file: ${filename}`)
-          } catch (error) {
-            console.error(`[handleRemoveNode] Failed to process node ${n.id}:`, error)
-            throw error
-          }
-        }
-
-        // Recursively process child nodes (no renaming needed - global deduplication ensures no conflicts)
-        if (n.children && n.children.length > 0) {
-          const processedChildren: FileNode[] = []
-          for (const child of n.children) {
-            const processedChild = await processNode(child, trashNodes)
-            processedChildren.push(processedChild)
-          }
-          processedNode = {
-            ...processedNode,
-            children: processedChildren
-          }
-        }
-
-        return processedNode
-      }
-
       // Process node and all its children
-      const processedNode = await processNode(node)
+      const processedNode = await backupNodeFiles(node, dirHandle)
 
       // Find or create __trash__ node
       let trashNode = fileTree.find(n => n.id === '__trash__')
@@ -828,11 +893,12 @@ function IDELayoutContent() {
         updated = [...updated, trashNode as FileNode]
       }
 
-      setFileTree(updated)
+      const normalized = keepTrashAtEnd(updated)
+      setFileTree(normalized)
 
       // Save to mano.conf.json
       await saveManoConfig(configFileHandle, {
-        data: updated,
+        data: normalized,
         lastUpdated: new Date().toISOString()
       })
 
@@ -858,15 +924,7 @@ function IDELayoutContent() {
 
     try {
       // Close all tabs that opened this node (recursively close child nodes)
-      const closeNodeAndChildren = (n: FileNode) => {
-        if (n.nodeType !== 'Directory') {
-          dispatch({ type: 'CLOSE_FILE_IN_ALL_GROUPS', fileId: n.id })
-        }
-        if (n.children) {
-          n.children.forEach(child => closeNodeAndChildren(child))
-        }
-      }
-      closeNodeAndChildren(node)
+      closeEditorsRecursively(node)
 
       // Set animation state
       setMovingOutNodeId(node.id)
@@ -874,61 +932,8 @@ function IDELayoutContent() {
       // Wait for animation to complete
       await new Promise(resolve => setTimeout(resolve, 500))
 
-      const fs = getFileSystem()
-
-      // Get all nodes outside trash for checking duplicates
-      const getNodesOutsideTrash = (nodes: FileNode[]): FileNode[] => {
-        return nodes.filter(n => n.id !== '__trash__')
-      }
-
-      const nodesOutsideTrash = getNodesOutsideTrash(fileTree)
-
-      // Check and rename to avoid conflicts
-      // Recursively process nodes: decode content and restore files
-      const restoreNode = async (n: FileNode, parentNodes: FileNode[] = nodesOutsideTrash): Promise<FileNode> => {
-        let restoredNode = { ...n }
-
-        // If it's a text node with content field (base64 encoded)
-        if ((n.nodeType === 'SlateText' || n.nodeType === 'Markdown') && n.content) {
-          try {
-            // Base64 decode
-            const decodedContent = decodeURIComponent(escape(atob(n.content)))
-            
-            // Create file with new name
-            const filename = getNodeFilename(restoredNode)
-            const fileHandle = await fs.getOrCreateFile(dirHandle, filename, '')
-            await fs.saveToFile(fileHandle.fileHandle, decodedContent)
-            
-            // Clear content field
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { content, ...nodeWithoutContent } = restoredNode
-            restoredNode = nodeWithoutContent as FileNode
-            
-            console.log(`[handleMoveOut] Restored file: ${filename}`)
-          } catch (error) {
-            console.error(`[handleMoveOut] Failed to restore node ${n.id}:`, error)
-            throw error
-          }
-        }
-
-        // Recursively process child nodes (no renaming needed - global deduplication ensures no conflicts)
-        if (n.children && n.children.length > 0) {
-          const restoredChildren: FileNode[] = []
-          for (const child of n.children) {
-            const restoredChild = await restoreNode(child, parentNodes)
-            restoredChildren.push(restoredChild)
-          }
-          restoredNode = {
-            ...restoredNode,
-            children: restoredChildren
-          }
-        }
-
-        return restoredNode
-      }
-
       // Restore node and all its children
-      const restoredNode = await restoreNode(node)
+      const restoredNode = await restoreNodeFiles(node, dirHandle)
 
       // Remove node from trash
       const removeFromTrash = (nodes: FileNode[]): FileNode[] => {
@@ -966,11 +971,12 @@ function IDELayoutContent() {
         updated = [...updated, restoredNode as FileNode]
       }
 
-      setFileTree(updated)
+      const normalized = keepTrashAtEnd(updated)
+      setFileTree(normalized)
 
       // Save to mano.conf.json
       await saveManoConfig(configFileHandle, {
-        data: updated,
+        data: normalized,
         lastUpdated: new Date().toISOString()
       })
 
@@ -989,28 +995,29 @@ function IDELayoutContent() {
 
   // Permanently delete node from trash
   const handleDeleteNode = async (node: FileNode) => {
-    if (!configFileHandle) {
-      toast.error('未加载配置文件')
+    if (!configFileHandle || !dirHandle) {
+      toast.error('未加载配置文件或文件夹')
+      return
+    }
+
+    const inTrash = isInTrash(fileTree, node.id)
+    if (!inTrash || node.id === '__trash__') {
+      toast.error('只能删除垃圾篓中的节点')
       return
     }
 
     try {
       // Close all tabs for this node and its children (if any)
-      const closeNodeAndChildren = (n: FileNode) => {
-        if (n.nodeType !== 'Directory') {
-          dispatch({ type: 'CLOSE_FILE_IN_ALL_GROUPS', fileId: n.id })
-        }
-        if (n.children) {
-          n.children.forEach(child => closeNodeAndChildren(child))
-        }
-      }
-      closeNodeAndChildren(node)
+      closeEditorsRecursively(node)
 
       // Set animation state
       setRemovingNodeId(node.id)
       
       // Wait for animation
       await new Promise(resolve => setTimeout(resolve, 500))
+
+      // Delete backup files on disk
+      await deleteNodeFilesFromTrash(node, dirHandle)
 
       // Remove node from tree (search and remove from parent's children)
       const removeNodeById = (nodes: FileNode[]): FileNode[] => {
@@ -1023,11 +1030,12 @@ function IDELayoutContent() {
       }
 
       const updated = removeNodeById(fileTree)
-      setFileTree(updated)
+      const normalized = keepTrashAtEnd(updated)
+      setFileTree(normalized)
 
       // Save to mano.conf.json
       await saveManoConfig(configFileHandle, {
-        data: updated,
+        data: normalized,
         lastUpdated: new Date().toISOString()
       })
 
@@ -1064,12 +1072,13 @@ function IDELayoutContent() {
     }
 
     const updated = updateNodeExpanded(fileTree)
-    setFileTree(updated)
+    const normalized = keepTrashAtEnd(updated)
+    setFileTree(normalized)
 
     // Save to mano.conf.json
     try {
       await saveManoConfig(configFileHandle, {
-        data: updated,
+        data: normalized,
         lastUpdated: new Date().toISOString()
       })
       console.log(`[handleToggleExpand] Node ${nodeId} expanded: ${isExpanded}`)
@@ -1086,20 +1095,25 @@ function IDELayoutContent() {
     
     setSelectedFile(file.id)
     
-    // Check if file is in trash - if so, read from base64 content
+    // Check if file is in trash - read from backup file
     const inTrash = isInTrash(fileTree, file.id)
     
     if (inTrash) {
-      // File is in trash - read from base64 content field
+      if (!dirHandle) {
+        toast.error('请先打开文件夹')
+        return
+      }
+
+      // File is in trash - read from .bak backup file
       try {
         console.log('[handleFileClick] Opening file from trash:', file.name)
         
-        const parsedContent = file.content
-          ? decodeURIComponent(escape(atob(file.content)))
-          : ''
+        const backupFilename = `${getNodeFilename(file)}.bak`
+        const { content } = await getOrCreateFile(dirHandle, backupFilename, '')
+        const parsedContent = content
         
         // Store in memory (not to disk)
-        setFileContentsMap(prev => ({ ...prev, [file.id]: file.content || '' }))
+        setFileContentsMap(prev => ({ ...prev, [file.id]: parsedContent }))
         
         // Open file in editor with readOnly flag
         dispatch({
@@ -1110,6 +1124,7 @@ function IDELayoutContent() {
           content: parsedContent,
           fileHandle: undefined,
           readOnly: true, // Mark as read-only for trash files
+          readOnlyLocked: true, // Locked: cannot toggle back to edit
         })
         
         toast.success(`已打开（预览）: ${file.name}`, { duration: 1500 })
