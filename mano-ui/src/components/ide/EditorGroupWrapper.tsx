@@ -192,6 +192,7 @@ export function EditorGroupWrapper({ group }: EditorGroupWrapperProps) {
                   modelId={model.id}
                   fileHandle={model.fileHandle}
                   readOnly={model.readOnly}
+                  readOnlyLocked={model.readOnlyLocked}
                   onSaveSuccess={() => {
                     dispatch({
                       type: 'MARK_MODEL_SAVED',

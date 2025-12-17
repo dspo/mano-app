@@ -33,9 +33,15 @@ import { TableToolbarButton } from './table-toolbar-button';
 import { ToggleToolbarButton } from './toggle-toolbar-button';
 import { ToolbarGroup } from './toolbar';
 import { TurnIntoToolbarButton } from './turn-into-toolbar-classic-button';
+import { useReadOnlyLock } from '@/components/editor/readOnlyLockContext';
 
 export function FixedToolbarButtons() {
   const readOnly = useEditorReadOnly();
+  const readOnlyLocked = useReadOnlyLock();
+
+  if (readOnlyLocked) {
+    return null;
+  }
 
   return (
     <div className="flex w-full">

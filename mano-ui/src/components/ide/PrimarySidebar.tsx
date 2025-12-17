@@ -1,4 +1,4 @@
-import { ChevronRight, ChevronDown, FileText, Library, TextQuote, TextAlignStart, Plus, Trash2, ArrowUpFromLine, Trash } from 'lucide-react'
+import { ChevronRight, ChevronDown, FileText, Library, TextQuote, TextAlignStart, Plus, Trash2, ArrowUpFromLine, Trash, ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from 'lucide-react'
 import { DndContext, useDraggable, useDroppable, PointerSensor, useSensor, useSensors, DragOverlay } from '@dnd-kit/core'
 import type { DragEndEvent, DragStartEvent, DragOverEvent } from '@dnd-kit/core'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -11,6 +11,7 @@ import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
+  ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu'
 import { ManoLogoIcon } from '@/icons/ManoLogoIcon'
@@ -334,30 +335,6 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
             {!isInTrash && (
               <>
                 <ContextMenuItem
-                  onClick={handleMoveUp}
-                  disabled={!canMoveUp}
-                >
-                  Move up
-                </ContextMenuItem>
-                <ContextMenuItem
-                  onClick={handleMoveDown}
-                  disabled={!canMoveDown}
-                >
-                  Move down
-                </ContextMenuItem>
-                <ContextMenuItem
-                  onClick={handleMoveLeft}
-                  disabled={!canMoveLeft}
-                >
-                  Move left
-                </ContextMenuItem>
-                <ContextMenuItem
-                  onClick={handleMoveRight}
-                  disabled={!canMoveRight}
-                >
-                  Move right
-                </ContextMenuItem>
-                <ContextMenuItem
                   onClick={() => onCreateNode?.(node)}
                   disabled={node.readOnly || isTrashNode}
                 >
@@ -370,6 +347,35 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
                   Remove
+                </ContextMenuItem>
+                <ContextMenuSeparator />
+                <ContextMenuItem
+                  onClick={handleMoveUp}
+                  disabled={!canMoveUp}
+                >
+                  <ArrowUp className="w-4 h-4 mr-2" />
+                  Move Up
+                </ContextMenuItem>
+                <ContextMenuItem
+                  onClick={handleMoveDown}
+                  disabled={!canMoveDown}
+                >
+                  <ArrowDown className="w-4 h-4 mr-2" />
+                  Move Down
+                </ContextMenuItem>
+                <ContextMenuItem
+                  onClick={handleMoveLeft}
+                  disabled={!canMoveLeft}
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Move Left
+                </ContextMenuItem>
+                <ContextMenuItem
+                  onClick={handleMoveRight}
+                  disabled={!canMoveRight}
+                >
+                  <ArrowRight className="w-4 h-4 mr-2" />
+                  Move Right
                 </ContextMenuItem>
               </>
             )}
@@ -524,30 +530,6 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
           {!isInTrash && (
             <>
               <ContextMenuItem
-                onClick={handleMoveUp}
-                disabled={!canMoveUp}
-              >
-                Move up
-              </ContextMenuItem>
-              <ContextMenuItem
-                onClick={handleMoveDown}
-                disabled={!canMoveDown}
-              >
-                Move down
-              </ContextMenuItem>
-              <ContextMenuItem
-                onClick={handleMoveLeft}
-                disabled={!canMoveLeft}
-              >
-                Move left
-              </ContextMenuItem>
-              <ContextMenuItem
-                onClick={handleMoveRight}
-                disabled={!canMoveRight}
-              >
-                Move right
-              </ContextMenuItem>
-              <ContextMenuItem
                 onClick={() => onCreateNode?.(node)}
                 disabled={node.readOnly || isTrashNode}
               >
@@ -560,6 +542,35 @@ function FileTreeItem({ node, level, onFileClick, selectedFile, onReorder, dragO
               >
                 <Trash2 className="w-4 h-4 mr-2" />
                 Remove
+              </ContextMenuItem>
+              <ContextMenuSeparator />
+              <ContextMenuItem
+                onClick={handleMoveUp}
+                disabled={!canMoveUp}
+              >
+                <ArrowUp className="w-4 h-4 mr-2" />
+                Move Up
+              </ContextMenuItem>
+              <ContextMenuItem
+                onClick={handleMoveDown}
+                disabled={!canMoveDown}
+              >
+                <ArrowDown className="w-4 h-4 mr-2" />
+                Move Down
+              </ContextMenuItem>
+              <ContextMenuItem
+                onClick={handleMoveLeft}
+                disabled={!canMoveLeft}
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Move Left
+              </ContextMenuItem>
+              <ContextMenuItem
+                onClick={handleMoveRight}
+                disabled={!canMoveRight}
+              >
+                <ArrowRight className="w-4 h-4 mr-2" />
+                Move Right
               </ContextMenuItem>
             </>
           )}

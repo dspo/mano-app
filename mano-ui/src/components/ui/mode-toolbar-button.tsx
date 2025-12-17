@@ -19,13 +19,19 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 import { ToolbarButton } from './toolbar';
+import { useReadOnlyLock } from '@/components/editor/readOnlyLockContext';
 
 export function ModeToolbarButton(props: DropdownMenuProps) {
   const editor = useEditorRef();
   const [readOnly, setReadOnly] = usePlateState('readOnly');
   const [open, setOpen] = React.useState(false);
+  const readOnlyLocked = useReadOnlyLock();
 
   const isSuggesting = usePluginOption(SuggestionPlugin, 'isSuggesting');
+
+  if (readOnlyLocked) {
+    return null;
+  }
 
   let value = 'editing';
 

@@ -11,7 +11,7 @@ export interface ManoNode {
   readOnly?: boolean
   nodeType: NodeType
   children?: ManoNode[]
-  content?: string  // Base64 encoded content for deleted nodes in trash
+  content?: string  // Legacy backup field (previously base64 content for trash)
   expanded?: boolean  // Whether the directory node is expanded (default: false for collapsed)
 }
 

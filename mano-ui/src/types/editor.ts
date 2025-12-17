@@ -19,6 +19,7 @@ export interface EditorModel {
   version: number         // Incremented on every content change to force consumer refresh
   fileHandle?: FileSystemFileHandle | IFileHandle
   readOnly?: boolean      // Whether file is in read-only mode (e.g., trash)
+  readOnlyLocked?: boolean // If true, read-only cannot be toggled off in UI
 }
 
 /**
@@ -57,7 +58,7 @@ export interface EditorState {
 
 // Editor Action types
 export type EditorAction =
-  | { type: 'OPEN_FILE'; fileId: string; fileName: string; fileType: 'slate'; content: string; groupId?: string; fileHandle?: FileSystemFileHandle | IFileHandle; readOnly?: boolean }
+  | { type: 'OPEN_FILE'; fileId: string; fileName: string; fileType: 'slate'; content: string; groupId?: string; fileHandle?: FileSystemFileHandle | IFileHandle; readOnly?: boolean; readOnlyLocked?: boolean }
   | { type: 'CLOSE_TAB'; tabId: string; groupId: string }
   | { type: 'CLOSE_ALL_TABS'; groupId: string }
   | { type: 'CLOSE_FILE_IN_ALL_GROUPS'; fileId: string }
